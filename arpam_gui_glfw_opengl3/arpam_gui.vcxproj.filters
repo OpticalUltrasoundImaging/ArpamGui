@@ -45,6 +45,9 @@
     <ClCompile Include="..\imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>imgui\backends</Filter>
     </ClCompile>
+    <ClCompile Include="main_gui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">
@@ -64,6 +67,9 @@
     </ClInclude>
     <ClInclude Include="..\imgui\backends\imgui_impl_opengl3_loader.h">
       <Filter>imgui\backends</Filter>
+    </ClInclude>
+    <ClInclude Include="main_gui.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
