@@ -48,6 +48,9 @@
     <ClCompile Include="main_gui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="motor_control.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">
@@ -69,6 +72,9 @@
       <Filter>imgui\backends</Filter>
     </ClInclude>
     <ClInclude Include="main_gui.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="motor_control.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
