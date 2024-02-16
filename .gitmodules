@@ -2,3 +2,6 @@
 	path = imgui
 	url = git@github.com:ocornut/imgui.git
 	branch = docking
+[submodule "fftconv"]
+	path = fftconv
+	url = git@github.com:kwsp/fftconv.git
