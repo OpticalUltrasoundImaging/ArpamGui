@@ -20,5 +20,11 @@ message("Vendor Libraries: ${VENDOR_LIBS}")
 # target_link_libraries(example_glfw_vulkan PRIVATE ${VENDOR_LIBS})
 # target_compile_definitions(example_glfw_vulkan PUBLIC -DImTextureID=ImU64)
 
+# Add fftconv
+add_subdirectory(fftconv/fftconv_fftw)
+
+# Build libarpam
+add_subdirectory(libarpam)
+
 # Build the ARPAM gui
 add_subdirectory(arpam_gui_glfw_vulkan)
