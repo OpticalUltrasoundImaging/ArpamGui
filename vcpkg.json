@@ -1,21 +1,20 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "arpam-gui",
-  "version": "0.1",
-  "dependencies": [
-    "glfw3",
-    "halide",
-    {
-      "name": "fftw3",
-      "platform": "x64",
-      "features": [
-        "avx2"
-      ]
-    },
-    {
-      "name": "fftw3",
-      "platform": "!x64"
-    }
-  ],
-  "builtin-baseline": "7ba0ba7334c3346e7eee1e049ba85da193a8d821"
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "arpam-gui",
+    "version": "0.1",
+    "dependencies": [
+        "glslang",
+        "glfw3",
+        "halide",
+        {
+            "name": "fftw3",
+            "platform": "x64",
+            "features": ["avx2"]
+        },
+        {
+            "name": "fftw3",
+            "platform": "!x64"
+        }
+    ],
+    "builtin-baseline": "7ba0ba7334c3346e7eee1e049ba85da193a8d821"
 }
