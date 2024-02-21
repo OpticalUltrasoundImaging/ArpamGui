@@ -6,6 +6,7 @@
         "glslang",
         "glfw3",
         "halide",
+        "eigen3",
         {
             "name": "fftw3",
             "platform": "x64",
@@ -14,6 +15,10 @@
         {
             "name": "fftw3",
             "platform": "!x64"
+        },
+        {
+            "name": "opencv",
+            "features": ["eigen", "halide"]
         }
     ],
     "builtin-baseline": "7ba0ba7334c3346e7eee1e049ba85da193a8d821"
