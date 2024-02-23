@@ -12,9 +12,9 @@ namespace arpam::recon {
 /*
 Filt
 */
-template <typename T> void recon(Eigen::MatrixX<T> rf) {
+template <typename T> void recon(const Eigen::MatrixX<T> &rf) {
   for (auto col_i = 0; col_i < rf.cols(); col_i++) {
-    auto rf_aline = rf.col(col_i);
+    const auto rf_aline = rf.col(col_i);
   }
 };
 

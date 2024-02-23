@@ -7,6 +7,8 @@
 #include <fftw3.h>
 #include <stdexcept>
 
+#include "libarpam/fft.hpp"
+
 namespace arpam::signal {
 
 inline void create_hamming_window(const std::span<double> window) {
@@ -97,7 +99,7 @@ be between 0 and ``fs/2``. Default is 2.
 of length numtaps
 */
 inline auto firwin2(int numtaps, const Eigen::ArrayXd &freq,
-                    const Eigen::ArrayXd &gain, int nfreqs = 0, double fs = 2.0)
+                    const Eigen::ArrayXd &gain, int nfreqs = 0, double fs = 2)
     -> Eigen::ArrayXd {
   if (numtaps < 3 || numtaps % 2 == 0) {
     throw std::invalid_argument(
@@ -116,35 +118,145 @@ inline auto firwin2(int numtaps, const Eigen::ArrayXd &freq,
   // Adjust phase of the coefficients so that the first `ntaps` of the
   // inverse FFT are the desired filter coefficients
   Eigen::ArrayXcd shift =
-      Eigen::exp(-static_cast<double>(numtaps - 1) / 2.0 *
+      Eigen::exp(-static_cast<double>(numtaps - 1) / 2 *
                  std::complex<double>(0, 1) * M_PI * x.array() / nyq);
   fx *= shift;
 
-  // Use compute the inverse fft
+  // Compute the inverse fft
   const int real_size = (static_cast<int>(fx.size()) - 1) * 2;
-  auto *real_buf = fftw_alloc_real(real_size);
-  auto *cx_buf = fftw_alloc_complex(fx.size());
+
+  fft::fftw_engine_c2r_1d fft_engine(real_size);
+  // NOLINTBEGIN(*-pointer-arithmetic)
   for (int i = 0; i < nfreqs; ++i) {
-    cx_buf[i][0] = fx(i).real();
-    cx_buf[i][1] = fx(i).imag();
+    fft_engine.complex[i][0] = fx(i).real();
+    fft_engine.complex[i][1] = fx(i).imag();
   }
-
-  fftw_plan plan =
-      fftw_plan_dft_c2r_1d(real_size, cx_buf, real_buf, FFTW_ESTIMATE);
-
-  fftw_execute(plan);
+  // NOLINTEND(*-pointer-arithmetic)
+  fft_engine.execute();
 
   // Keep only the first `numtaps` coefficients (and normalize since FFTW
   // doesn't) and apply the Hamming window
   Eigen::ArrayXd out = create_hamming_window(numtaps);
   for (int i = 0; i < numtaps; ++i) {
-    out(i) *= real_buf[i] / real_size; // NOLINT
+    out(i) *= fft_engine.real[i] / real_size; // NOLINT
   }
-
-  fftw_destroy_plan(plan);
-  fftw_free(real_buf);
-  fftw_free(cx_buf);
 
   return out;
 }
+
+class EnvelopDetection {
+public:
+  explicit EnvelopDetection(Eigen::Index n) : engine(n) {}
+
+  auto operator()(const Eigen::ArrayXd &input, Eigen::ArrayXd &env_out) {
+    const Eigen::Index n = input.size();
+
+    // Copy input to real buffer
+    // NOLINTBEGIN(*-pointer-arithmetic)
+    for (int i = 0; i < n; ++i) {
+      engine.in[i][0] = input[i];
+      engine.in[i][1] = 0.;
+    }
+    // NOLINTEND(*-pointer-arithmetic)
+
+    // Execute r2c fft
+    engine.execute_forward();
+
+    // NOLINTBEGIN(*-pointer-arithmetic)
+    // Zero negative frequencies (half-Hermitian to Hermitian conversion)
+    // Double the magnitude of positive frequencies
+    const auto n_half = n / 2;
+    for (auto i = 1; i < n_half; ++i) {
+      engine.out[i][0] *= 2;
+      engine.out[i][1] *= 2;
+    }
+
+    if (n % 2 == 0) {
+      engine.out[n_half][0] = 0;
+      engine.out[n_half][1] = 0;
+    } else {
+      engine.out[n_half][0] *= 2;
+      engine.out[n_half][1] *= 2;
+    }
+
+    for (auto i = n_half + 1; i < n; ++i) {
+      engine.out[i][0] = 0;
+      engine.out[i][1] = 0;
+    }
+    // NOLINTEND(*-pointer-arithmetic)
+
+    // Execute c2r fft on modified spectrum
+    engine.execute_backward();
+
+    // Construct the analytic signal
+    Eigen::ArrayXcd analytic_signal(n);
+    // NOLINTBEGIN(*-pointer-arithmetic)
+    for (Eigen::Index i = 0; i < n; ++i) {
+      const auto real = input[i];
+      const auto imag = engine.in[i][1] / static_cast<double>(n);
+      env_out(i) = std::abs(std::complex{real, imag});
+    }
+    // NOLINTEND(*-pointer-arithmetic)
+  }
+
+private:
+  fft ::fftw_engine_1d engine;
+};
+
+/**
+@brief Compute the analytic signal, using the Hilbert transform.
+*/
+auto hilbert(const Eigen::ArrayXd &input) -> Eigen::ArrayXcd {
+  const Eigen::Index n = input.size();
+  fft::fftw_engine_1d engine(n);
+
+  // Copy input to real buffer
+  // NOLINTBEGIN(*-pointer-arithmetic)
+  for (int i = 0; i < n; ++i) {
+    engine.in[i][0] = input[i];
+    engine.in[i][1] = 0.;
+  }
+  // NOLINTEND(*-pointer-arithmetic)
+
+  // Execute r2c fft
+  engine.execute_forward();
+
+  // NOLINTBEGIN(*-pointer-arithmetic)
+  // Zero negative frequencies (half-Hermitian to Hermitian conversion)
+  // Double the magnitude of positive frequencies
+  const auto n_half = n / 2;
+  for (auto i = 1; i < n_half; ++i) {
+    engine.out[i][0] *= 2;
+    engine.out[i][1] *= 2;
+  }
+
+  if (n % 2 == 0) {
+    engine.out[n_half][0] = 0;
+    engine.out[n_half][1] = 0;
+  } else {
+    engine.out[n_half][0] *= 2;
+    engine.out[n_half][1] *= 2;
+  }
+
+  for (auto i = n_half + 1; i < n; ++i) {
+    engine.out[i][0] = 0;
+    engine.out[i][1] = 0;
+  }
+  // NOLINTEND(*-pointer-arithmetic)
+
+  // Execute c2r fft on modified spectrum
+  engine.execute_backward();
+
+  // Construct the analytic signal
+  Eigen::ArrayXcd analytic_signal(n);
+  // NOLINTBEGIN(*-pointer-arithmetic)
+  for (Eigen::Index i = 0; i < n; ++i) {
+    analytic_signal(i) = std::complex<double>(
+        input[i], engine.in[i][1] / static_cast<double>(n));
+  }
+  // NOLINTEND(*-pointer-arithmetic)
+
+  return analytic_signal;
+}
+
 } // namespace arpam::signal
