@@ -26,6 +26,7 @@ target_sources(test_libarpam
     PRIVATE
     test/test_libarpam.cpp
     test/test_io.cpp
+    test/test_signal.cpp
 )
 target_link_libraries(test_libarpam
     PRIVATE
