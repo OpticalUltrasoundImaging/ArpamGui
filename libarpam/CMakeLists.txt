@@ -9,6 +9,7 @@ add_library(libarpam STATIC)
 target_sources(libarpam
     PRIVATE
     src/libarpam/libarpam.cpp
+    src/libarpam/signal.cpp
 )
 target_include_directories(libarpam PUBLIC src)
 target_link_libraries(libarpam 
@@ -27,6 +28,7 @@ target_sources(test_libarpam
     test/test_libarpam.cpp
     test/test_io.cpp
     test/test_signal.cpp
+    test/test_recon.cpp
 )
 target_link_libraries(test_libarpam
     PRIVATE

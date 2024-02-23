@@ -29,8 +29,8 @@ auto load_bin(std::string_view filename,
   file.seekg(0, std::ios::beg);
 
   const auto n_values = fsize / sizeof(T);
-  const size_t rows = 1000;
-  const size_t cols = n_values / rows;
+  const size_t cols = 1000;
+  const size_t rows = n_values / cols;
 
   // Check if the file size matches our matrix size
   if (rows * cols * sizeof(T) != fsize) {
@@ -82,6 +82,15 @@ void to_bin(std::string_view filename, std::span<const T> data) {
       reinterpret_cast<const char *>(data.data()), // NOLINT(*-reinterpret-cast)
 
       datasize_bytes);
+}
+
+template <typename T>
+void to_bin(std::string_view filename, Eigen::ArrayWrapper<T> data) {
+  to_bin(filename, std::span<const T>(data.data(), data.size()));
+}
+template <typename T>
+void to_bin(std::string_view filename, Eigen::ArrayX<T> data) {
+  to_bin(filename, std::span<const T>(data.data(), data.size()));
 }
 
 } // namespace arpam::io
