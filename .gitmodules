@@ -5,3 +5,6 @@
 [submodule "fftconv"]
 	path = fftconv
 	url = git@github.com:kwsp/fftconv.git
+[submodule "implot"]
+	path = implot
+	url = git@github.com:epezent/implot.git

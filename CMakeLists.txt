@@ -6,13 +6,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
-# VENDOR_LIBS is a list that stores all external dependencies of
-# ARPAM_gui, including imgui, glfw, vulkan
-set(VENDOR_LIBS)
-
-# Add ImGui and gui backends
+### Add ImGui and gui backends
+# Disable clang-tidy temporarily to build dependencies and restore after
+set(CMAKE_CXX_CLANG_TIDY_SAVE ${CMAKE_CXX_CLANG_TIDY})
+set(CMAKE_CXX_CLANG_TIDY "")
 include(CMakeLists_imgui.cmake)
-message("Vendor Libraries: ${VENDOR_LIBS}")
+set(CMAKE_CXX_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY_SAVE})
 
 # # Build an ImGui example
 # add_executable(example_glfw_vulkan)

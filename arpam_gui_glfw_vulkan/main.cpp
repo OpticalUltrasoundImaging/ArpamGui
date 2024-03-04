@@ -19,16 +19,22 @@
 //   by your own engine/app code.
 // Read comments in imgui_impl_vulkan.h.
 
+#include <cstdio>  // printf, fprintf
+#include <cstdlib> // abort
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
-#include <stdio.h>  // printf, fprintf
-#include <stdlib.h> // abort
+#include "implot.h"
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 // #include <vulkan/vulkan_beta.h>
+
+#include "main_gui.hpp"
+
+// NOLINTBEGIN(*)
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to
 // maximize ease of testing and compatibility with old VS compilers. To link
@@ -429,17 +435,20 @@ static void FramePresent(ImGui_ImplVulkanH_Window *wd) {
       wd->SemaphoreCount; // Now we can use the next set of semaphores
 }
 
+// NOLINTEND(*)
+
 // Main code
-int main(int, char **) {
+auto main(int /*unused*/, char ** /*unused*/) -> int {
   glfwSetErrorCallback(glfw_error_callback);
-  if (!glfwInit())
+  if (!glfwInit()) {
     return 1;
+  }
 
   // Create window with Vulkan context
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   GLFWwindow *window = glfwCreateWindow(
       1280, 720, "Dear ImGui GLFW+Vulkan example", nullptr, nullptr);
-  if (!glfwVulkanSupported()) {
+  if (glfwVulkanSupported() == 0) {
     printf("GLFW: Vulkan Not Supported\n");
     return 1;
   }
@@ -448,18 +457,20 @@ int main(int, char **) {
   uint32_t extensions_count = 0;
   const char **glfw_extensions =
       glfwGetRequiredInstanceExtensions(&extensions_count);
-  for (uint32_t i = 0; i < extensions_count; i++)
+  for (uint32_t i = 0; i < extensions_count; i++) {
     extensions.push_back(glfw_extensions[i]);
+  }
   SetupVulkan(extensions);
 
   // Create Window Surface
-  VkSurfaceKHR surface;
+  VkSurfaceKHR surface = nullptr;
   VkResult err =
       glfwCreateWindowSurface(g_Instance, window, g_Allocator, &surface);
   check_vk_result(err);
 
   // Create Framebuffers
-  int w, h;
+  int w = 0;
+  int h = 0;
   glfwGetFramebufferSize(window, &w, &h);
   ImGui_ImplVulkanH_Window *wd = &g_MainWindowData;
   SetupVulkanWindow(wd, surface, w, h);
@@ -467,6 +478,8 @@ int main(int, char **) {
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImPlot::CreateContext();
+
   ImGuiIO &io = ImGui::GetIO();
   (void)io;
   io.ConfigFlags |=
@@ -486,9 +499,9 @@ int main(int, char **) {
   // When viewports are enabled we tweak WindowRounding/WindowBg so platform
   // windows can look identical to regular ones.
   ImGuiStyle &style = ImGui::GetStyle();
-  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-    style.WindowRounding = 0.0f;
-    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+  if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
+    style.WindowRounding = 0.0F;
+    style.Colors[ImGuiCol_WindowBg].w = 1.0F;
   }
 
   // Setup Platform/Renderer backends
@@ -538,10 +551,11 @@ int main(int, char **) {
   // Our state
   bool show_demo_window = true;
   bool show_another_window = false;
-  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+  ImVec4 clear_color = ImVec4(0.45F, 0.55F, 0.60F, 1.00F);
+  arpam_gui::MainGui main_gui(io);
 
   // Main loop
-  while (!glfwWindowShouldClose(window)) {
+  while (glfwWindowShouldClose(window) == 0) {
     // Poll and handle events (inputs, window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to
     // tell if dear imgui wants to use your inputs.
@@ -555,7 +569,8 @@ int main(int, char **) {
 
     // Resize swap chain?
     if (g_SwapChainRebuild) {
-      int width, height;
+      int width = 0;
+      int height = 0;
       glfwGetFramebufferSize(window, &width, &height);
       if (width > 0 && height > 0) {
         ImGui_ImplVulkan_SetMinImageCount(g_MinImageCount);
@@ -575,13 +590,14 @@ int main(int, char **) {
     // 1. Show the big demo window (Most of the sample code is in
     // ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear
     // ImGui!).
-    if (show_demo_window)
+    if (show_demo_window) {
       ImGui::ShowDemoWindow(&show_demo_window);
+    }
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair
     // to create a named window.
     {
-      static float f = 0.0f;
+      static float f = 0.0F;
       static int counter = 0;
 
       ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!"
@@ -619,10 +635,14 @@ int main(int, char **) {
                                  // window will have a closing button that will
                                  // clear the bool when clicked)
       ImGui::Text("Hello from another window!");
-      if (ImGui::Button("Close Me"))
+      if (ImGui::Button("Close Me")) {
         show_another_window = false;
+      }
       ImGui::End();
     }
+
+    // Render custom gui
+    main_gui.render();
 
     // Rendering
     ImGui::Render();
@@ -633,8 +653,9 @@ int main(int, char **) {
     wd->ClearValue.color.float32[1] = clear_color.y * clear_color.w;
     wd->ClearValue.color.float32[2] = clear_color.z * clear_color.w;
     wd->ClearValue.color.float32[3] = clear_color.w;
-    if (!main_is_minimized)
+    if (!main_is_minimized) {
       FrameRender(wd, main_draw_data);
+    }
 
     // Update and Render additional Platform Windows
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -643,8 +664,9 @@ int main(int, char **) {
     }
 
     // Present Main Platform Window
-    if (!main_is_minimized)
+    if (!main_is_minimized) {
       FramePresent(wd);
+    }
   }
 
   // Cleanup
@@ -652,6 +674,7 @@ int main(int, char **) {
   check_vk_result(err);
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplGlfw_Shutdown();
+  ImPlot::DestroyContext();
   ImGui::DestroyContext();
 
   CleanupVulkanWindow();

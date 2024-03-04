@@ -1,5 +1,14 @@
 {
     "files.associations": {
-        "array": "cpp"
+        "array": "cpp",
+        "span": "cpp",
+        "fstream": "cpp",
+        "__locale": "cpp",
+        "functional": "cpp",
+        "map": "cpp",
+        "string": "cpp",
+        "tuple": "cpp",
+        "unordered_map": "cpp",
+        "variant": "cpp"
     }
 }
