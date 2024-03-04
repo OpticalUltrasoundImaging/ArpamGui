@@ -1,7 +1,9 @@
 #include <Eigen/Dense>
+#include <filesystem>
 #include <gtest/gtest.h>
 
-#include "libarpam/libarpam.hpp"
+#include "libarpam/io.hpp"
+#include "libarpam/recon.hpp"
 
 class ReconTest : public ::testing::Test {
 protected:

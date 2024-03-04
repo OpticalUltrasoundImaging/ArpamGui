@@ -10,6 +10,7 @@ target_sources(libarpam
     PRIVATE
     src/libarpam/libarpam.cpp
     src/libarpam/signal.cpp
+    src/libarpam/recon.cpp
 )
 target_include_directories(libarpam PUBLIC src)
 target_link_libraries(libarpam 

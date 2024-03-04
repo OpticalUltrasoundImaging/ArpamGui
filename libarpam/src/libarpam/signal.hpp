@@ -60,16 +60,6 @@ auto firwin2(int numtaps, const Eigen::ArrayXd &freq,
              const Eigen::ArrayXd &gain, int nfreqs = 0, double fs = 2)
     -> Eigen::ArrayXd;
 
-class EnvelopDetection {
-public:
-  explicit EnvelopDetection(Eigen::Index n) : engine(n) {}
-
-  void operator()(const Eigen::ArrayXd &input, Eigen::ArrayXd &env_out);
-
-private:
-  fft ::fftw_engine_1d engine;
-};
-
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
 */
