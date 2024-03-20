@@ -16,6 +16,12 @@ void create_hamming_window(const std::span<double> window) {
   }
 }
 
+auto create_hamming_window(const int numtaps) -> Eigen::ArrayXd {
+  Eigen::ArrayXd window(numtaps);
+  create_hamming_window(std::span<double>(window.data(), window.size()));
+  return window;
+}
+
 void interp(std::span<const double> x, std::span<const double> xp,
             std::span<const double> fp, std::span<double> fx) {
   if (xp.size() != fp.size() || xp.size() < 2) {

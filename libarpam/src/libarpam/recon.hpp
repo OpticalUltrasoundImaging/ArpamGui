@@ -1,6 +1,10 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <cassert>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
 
 #include "fftconv.hpp"
 #include "libarpam/fft.hpp"
@@ -8,44 +12,87 @@
 
 namespace arpam::recon {
 
+using fftconv::FloatOrDouble;
+
+template <FloatOrDouble T> struct FIRFilterParams {
+  int numtaps;
+  Eigen::ArrayX<T> freq;
+  Eigen::ArrayX<T> gain;
+
+  [[nodiscard]] auto validate() const -> bool {
+    if (numtaps < 3) {
+      std::cerr << "numtaps must be positive and greater than 3\n";
+      return false;
+    }
+    if (freq.size() != gain.size()) {
+      std::cerr << "freq and gain must have the same size.\n";
+      return false;
+    }
+    if (freq[0] != 0) {
+      std::cerr << "freq[0] must be 0\n";
+      return false;
+    }
+
+    return true;
+  }
+};
+
+template <FloatOrDouble Real> struct ReconParams {
+  FIRFilterParams<Real> firFilterParams;
+  float dynamic_range{25.0F};
+};
+
 namespace pipeline {
 
-class FIRFilter {
+template <FloatOrDouble T> class FIRFilter {
 public:
-  FIRFilter(size_t n, int numtaps, const Eigen::ArrayXd &freq,
-            const Eigen::ArrayXd &gain)
-      : kernel(signal::firwin2(numtaps, freq, gain)) {}
+  FIRFilter(size_t n, const FIRFilterParams<T> &params) { setKernel(params); }
 
-  template <typename T>
   void forward(const std::span<const T> input, const std::span<T> output) {
-    fftconv::oaconvolve_fftw_same(
-        std::span<const double>(input.data(), input.size()),
-        std::span<const double>(kernel.data(), kernel.size()),
-        std::span<double>(output.data(), output.size()));
+    // Convolution with kernel using "same" padding
+    assert(input.size() <= output.size());
+    fftconv::oaconvolve_fftw_same<T>(
+        input, std::span<const T>(m_kernel.data(), m_kernel.size()),
+        std::span<T>(output.data(), input.size()));
   }
 
-  template <typename T>
   void forward(const Eigen::MatrixX<T> &input, Eigen::MatrixX<T> &output) {
     for (auto col_i = 0; col_i < input.cols(); col_i++) {
-      //   this->forward(input.col(col_i), output.col(col_i));
-      const auto _inp = input.col(col_i);
-      auto _out = output.col(col_i);
-      this->forward(std::span<const double>(_inp.data(), _inp.size()),
-                    std::span<double>(_out.data(), _out.size()));
+      const auto in_col = input.col(col_i);
+      auto out_col = output.col(col_i);
+      this->forward(std::span<const T>(in_col.data(), in_col.size()),
+                    std::span<T>(out_col.data(), out_col.size()));
+    }
+  }
+
+  void setKernel(const Eigen::ArrayX<T> &kernel) { m_kernel = kernel; }
+
+  void setKernel(const FIRFilterParams<T> &params) {
+    if (!params.validate()) {
+      throw std::runtime_error("Bad FIRFilterParams. Check stderr.");
+    }
+
+    if constexpr (std::is_same_v<T, double>) {
+      m_kernel = signal::firwin2(params.numtaps, params.freq, params.gain);
+    } else { // T == float
+      m_kernel =
+          signal::firwin2(params.numtaps, params.freq.template cast<double>(),
+                          params.gain.template cast<double>())
+              .template cast<float>();
     }
   }
 
 private:
-  Eigen::ArrayXd kernel;
+  Eigen::ArrayX<T> m_kernel;
 };
 
 class EnvelopeDetection {
 public:
-  explicit EnvelopeDetection(Eigen::Index n) : engine(n) {}
+  explicit EnvelopeDetection(size_t n) : engine(n) {}
 
   void forward(const std::span<const double> input, std::span<double> output) {
     assert(input.size() == output.size());
-    const int64_t n = input.size();
+    const auto n = static_cast<int64_t>(input.size());
 
     // Copy input to real buffer
     // NOLINTBEGIN(*-pointer-arithmetic)
@@ -95,7 +142,45 @@ public:
   };
 
 private:
-  fft ::fftw_engine_1d engine;
+  fft::fftw_engine_1d engine;
+};
+
+// TODO(tnie): unit test
+class LogCompression {
+public:
+  explicit LogCompression(size_t n, double db) : m_db(db) {}
+  inline void set_db(double db) { m_db = db; };
+  inline void forward(const std::span<const double> input,
+                      std::span<double> output) const {
+    const auto max_val = *std::max_element(input.begin(), input.end());
+    if (max_val != 0) {
+      const auto scale = 1 / max_val;
+      for (int i = 0; i < input.size(); ++i) {
+        const double compressed =
+            20.0 / m_db * (std::log10(input[i] * scale) + 1);
+        output[i] = compressed < 0 ? 0 : compressed;
+      }
+    } else {
+      std::fill(output.begin(), output.end(), 0);
+    }
+  }
+  inline void forward(const std::span<const double> input,
+                      std::span<uint8_t> output) const {
+    const auto max_val = *std::max_element(input.begin(), input.end());
+    if (max_val != 0) {
+      const auto scale = 1 / max_val;
+      for (int i = 0; i < input.size(); ++i) {
+        const auto compressed = static_cast<uint8_t>(
+            255.0 * (20.0 / m_db * (std::log10(input[i] * scale) + 1)));
+        output[i] = compressed < 1 ? 0 : compressed;
+      }
+    } else {
+      std::fill(output.begin(), output.end(), 0);
+    }
+  }
+
+private:
+  double m_db;
 };
 
 } // namespace pipeline
@@ -103,6 +188,9 @@ private:
 /*
 Filt
 */
-void recon(const Eigen::MatrixXd &rf, Eigen::MatrixXd &output);
+void recon(const ReconParams<double> &params, const Eigen::MatrixXd &rf,
+           Eigen::MatrixXd &output);
 
+void recon(const ReconParams<double> &params, const Eigen::MatrixXd &rf,
+           Eigen::MatrixX<uint8_t> &output);
 } // namespace arpam::recon

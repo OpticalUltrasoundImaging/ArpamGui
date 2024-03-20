@@ -12,11 +12,7 @@ namespace arpam::signal {
 void create_hamming_window(std::span<double> window);
 
 // Helper function to create a Hamming window
-[[nodiscard]] inline auto create_hamming_window(const int numtaps) {
-  Eigen::VectorXd window(numtaps);
-  create_hamming_window(std::span<double>(window.data(), window.size()));
-  return window;
-}
+[[nodiscard]] auto create_hamming_window(int numtaps) -> Eigen::ArrayXd;
 
 // 1D linear interpolation for monotonically increasing sample points
 // Conditions: xp must be increasing

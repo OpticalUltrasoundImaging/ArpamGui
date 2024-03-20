@@ -42,11 +42,9 @@ auto load_bin(std::string_view filename,
   Eigen::MatrixX<T> matrix(rows, cols);
 
   // Read file
-  if (file.read(
+  if (!file.read(
           reinterpret_cast<char *>(matrix.data()), // NOLINT(*-reinterpret-cast)
           fsize)) {
-    std::cout << "Matrix loaded successfully\n";
-  } else {
     std::cerr << "Failed to read data into matrix\n";
     return {};
   }
@@ -88,6 +86,7 @@ template <typename T>
 void to_bin(std::string_view filename, Eigen::ArrayWrapper<T> data) {
   to_bin(filename, std::span<const T>(data.data(), data.size()));
 }
+
 template <typename T>
 void to_bin(std::string_view filename, Eigen::ArrayX<T> data) {
   to_bin(filename, std::span<const T>(data.data(), data.size()));
