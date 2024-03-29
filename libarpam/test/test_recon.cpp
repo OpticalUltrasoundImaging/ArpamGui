@@ -5,6 +5,7 @@
 
 #include "libarpam/io.hpp"
 #include "libarpam/recon.hpp"
+#include <fftconv.hpp>
 
 // NOLINTBEGIN(*-magic-numbers,*-constant-array-index)
 
@@ -38,58 +39,90 @@ using arpam::recon::FIRFilterParams;
 using arpam::recon::pipeline::FIRFilter;
 
 TEST_F(FIRFilterParamsTest, ValidatesNumtaps) {
-  FIRFilterParams<float> params{-1, Eigen::ArrayXf::LinSpaced(5, 0.0F, 0.4F),
-                                Eigen::ArrayXf::Ones(5)};
+  FIRFilterParams<double> params{-1, Eigen::ArrayXd::LinSpaced(5, 0.0F, 0.4F),
+                                 Eigen::ArrayXd::Ones(5)};
   ASSERT_FALSE(params.validate());
 }
 
 TEST_F(FIRFilterParamsTest, ValidatesFreqGainSize) {
-  FIRFilterParams<float> params{5, Eigen::ArrayXf::LinSpaced(5, 0.0F, 0.4F),
-                                Eigen::ArrayXf::Ones(4)};
+  FIRFilterParams<double> params{5, Eigen::ArrayXd::LinSpaced(5, 0.0F, 0.4F),
+                                 Eigen::ArrayXd::Ones(4)};
   ASSERT_FALSE(params.validate());
 }
 
 TEST_F(FIRFilterParamsTest, ValidatesFreqStartsAtZero) {
-  FIRFilterParams<float> params{5, Eigen::ArrayXf::LinSpaced(5, 0.1F, 0.4F),
-                                Eigen::ArrayXf::Ones(5)};
+  FIRFilterParams<double> params{5, Eigen::ArrayXd::LinSpaced(5, 0.1F, 0.4F),
+                                 Eigen::ArrayXd::Ones(5)};
   ASSERT_FALSE(params.validate());
 }
 
 TEST_F(FIRFilterParamsTest, PassesValidation) {
-  FIRFilterParams<float> params{5, Eigen::ArrayXf::LinSpaced(5, 0.0F, 0.4F),
-                                Eigen::ArrayXf::Ones(5)};
+  FIRFilterParams<double> params{5, Eigen::ArrayXd::LinSpaced(5, 0.0F, 0.4F),
+                                 Eigen::ArrayXd::Ones(5)};
   ASSERT_TRUE(params.validate());
 }
 
 TEST_F(FIRFilterTest, ForwardSpanCorrectSize) {
-  FIRFilterParams<float> params{5, Eigen::ArrayXf::LinSpaced(5, 0.0F, 0.4F),
-                                Eigen::ArrayXf::Ones(5)};
-  FIRFilter<float> filter(5, params);
+  Eigen::ArrayXd freq(4);
+  Eigen::ArrayXd gain(4);
+  freq << 0.0, 0.1, 0.3, 1.0;
+  gain << 0.0, 1.0, 1.0, 0.0;
+
+  FIRFilter filter(5, {15, freq, gain});
 
   // TODO(tnie): get values for these
-  std::vector<float> input(10, 1.0F);
-  std::vector<float> output(10, 0.0F);
+  Eigen::ArrayXd input(50);
+  input << 0.00000000e+00, 1.27877162e-01, 2.53654584e-01, 3.75267005e-01,
+      4.90717552e-01, 5.98110530e-01, 6.95682551e-01, 7.81831482e-01,
+      8.55142763e-01, 9.14412623e-01, 9.58667853e-01, 9.87181783e-01,
+      9.99486216e-01, 9.95379113e-01, 9.74927912e-01, 9.38468422e-01,
+      8.86599306e-01, 8.20172255e-01, 7.40277997e-01, 6.48228395e-01,
+      5.45534901e-01, 4.33883739e-01, 3.15108218e-01, 1.91158629e-01,
+      6.40702200e-02, -6.40702200e-02, -1.91158629e-01, -3.15108218e-01,
+      -4.33883739e-01, -5.45534901e-01, -6.48228395e-01, -7.40277997e-01,
+      -8.20172255e-01, -8.86599306e-01, -9.38468422e-01, -9.74927912e-01,
+      -9.95379113e-01, -9.99486216e-01, -9.87181783e-01, -9.58667853e-01,
+      -9.14412623e-01, -8.55142763e-01, -7.81831482e-01, -6.95682551e-01,
+      -5.98110530e-01, -4.90717552e-01, -3.75267005e-01, -2.53654584e-01,
+      -1.27877162e-01, -2.44929360e-16;
 
-  filter.forward(input, output);
+  Eigen::ArrayXd output = Eigen::ArrayXd::Zero(50);
 
-  // This test might need to be adjusted based on what you expect the output to
-  // be For now, let's just check if the output buffer has been modified
-  // (assuming the filter does not produce all zeros)
-  ASSERT_NE(output, std::vector<float>(10, 0.0F));
+  Eigen::ArrayXd expected(50);
+  expected << -0.03667143, 0.04213159, 0.1417299, 0.2283456, 0.30714469,
+      0.37728277, 0.43999873, 0.49482524, 0.54122433, 0.57873654, 0.60674591,
+      0.62479252, 0.63258006, 0.62998065, 0.61703698, 0.59396158, 0.56113334,
+      0.51909132, 0.46852582, 0.41026715, 0.3452719, 0.27460729, 0.19943364,
+      0.1209853, 0.04055038, -0.04055038, -0.1209853, -0.19943364, -0.27460729,
+      -0.3452719, -0.41026715, -0.46852582, -0.51909132, -0.56113334,
+      -0.59396158, -0.61703698, -0.62998065, -0.63258006, -0.62479252,
+      -0.60674591, -0.57873654, -0.54122433, -0.49482524, -0.43999873,
+      -0.37728277, -0.30714469, -0.2283456, -0.1417299, -0.04213159, 0.03667143;
+
+  const std::span<const double> input_span{input.data(),
+                                           static_cast<size_t>(input.size())};
+  const std::span<double> output_span{output.data(),
+                                      static_cast<size_t>(output.size())};
+
+  filter.forward(input_span, output_span);
+
+  for (int i = 0; i < output.size(); ++i) {
+    EXPECT_NEAR(output[i], expected[i], 1e-8);
+  }
 }
 
 TEST_F(FIRFilterTest, ForwardMatrixCorrectSize) {
-  FIRFilterParams<float> params{5, Eigen::ArrayXf::LinSpaced(5, 0.0F, 0.4F),
-                                Eigen::ArrayXf::Ones(5)};
-  FIRFilter<float> filter(5, params);
+  FIRFilter filter(
+      5, FIRFilterParams<double>{5, Eigen::ArrayXd::LinSpaced(5, 0.0, 0.4),
+                                 Eigen::ArrayXd::Ones(5)});
 
-  Eigen::MatrixXf input = Eigen::MatrixXf::Ones(10, 2); // 10x2 matrix of ones
-  Eigen::MatrixXf output(10, 2);                        // Output buffer
+  Eigen::MatrixXd input = Eigen::MatrixXd::Ones(10, 2); // 10x2 matrix of ones
+  Eigen::MatrixXd output(10, 2);                        // Output buffer
 
   filter.forward(input, output);
 
   // Similar to the span test, we check if the output buffer has been modified
-  ASSERT_NE(output, Eigen::MatrixXf::Zero(10, 2));
+  ASSERT_NE(output, Eigen::MatrixXd::Zero(10, 2));
 }
 
 class ReconTest : public ::testing::Test {

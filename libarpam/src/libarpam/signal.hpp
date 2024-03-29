@@ -5,8 +5,6 @@
 #include <Eigen/Dense>
 #include <fftw3.h>
 
-#include "libarpam/fft.hpp"
-
 namespace arpam::signal {
 
 void create_hamming_window(std::span<double> window);

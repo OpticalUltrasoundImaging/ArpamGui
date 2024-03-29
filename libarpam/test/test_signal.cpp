@@ -119,7 +119,6 @@ TEST_F(Firwin2Test, NormalOperation) {
         -1.67573816e-04, -1.55718185e-04;
 
     Eigen::ArrayXd kernel = arpam::signal::firwin2(numtaps, freq, gain);
-
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
     }
@@ -127,7 +126,6 @@ TEST_F(Firwin2Test, NormalOperation) {
 
   {
     const int numtaps = 129;
-
     Eigen::ArrayXd freq(4);
     freq << 0.0, 0.2, 0.4, 1.0;
     Eigen::ArrayXd gain(4);
@@ -169,7 +167,40 @@ TEST_F(Firwin2Test, NormalOperation) {
         -6.51672129e-06, -1.04440356e-05;
 
     Eigen::ArrayXd kernel = arpam::signal::firwin2(numtaps, freq, gain);
+    for (int i = 0; i < kernel.size(); ++i) {
+      EXPECT_NEAR(kernel[i], expected[i], 1e-8);
+    }
+  }
 
+  {
+    const int numtaps = 11;
+    Eigen::ArrayXd freq(4);
+    freq << 0.0, 0.1, 0.3, 1.0;
+    Eigen::ArrayXd gain(4);
+    gain << 0, 1, 1, 0;
+    Eigen::ArrayXd expected(numtaps);
+    expected << -0.00303209, -0.0108505, -0.01969895, -0.06874682, 0.1605826,
+        0.59486607, 0.1605826, -0.06874682, -0.01969895, -0.0108505,
+        -0.00303209;
+
+    Eigen::ArrayXd kernel = arpam::signal::firwin2(numtaps, freq, gain);
+    for (int i = 0; i < kernel.size(); ++i) {
+      EXPECT_NEAR(kernel[i], expected[i], 1e-8);
+    }
+  }
+
+  {
+    const int numtaps = 15;
+    Eigen::ArrayXd freq(4);
+    freq << 0.0, 0.1, 0.3, 1.0;
+    Eigen::ArrayXd gain(4);
+    gain << 0, 1, 1, 0;
+    Eigen::ArrayXd expected(numtaps);
+    expected << -0.0023648, -0.00519774, -0.00959635, -0.02829048, -0.03180531,
+        -0.08332539, 0.16802909, 0.59486607, 0.16802909, -0.08332539,
+        -0.03180531, -0.02829048, -0.00959635, -0.00519774, -0.0023648;
+
+    Eigen::ArrayXd kernel = arpam::signal::firwin2(numtaps, freq, gain);
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
     }

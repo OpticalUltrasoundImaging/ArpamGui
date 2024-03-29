@@ -1,7 +1,7 @@
-#include <cassert>
 #include <cmath>
 #include <stdexcept>
 
+#include "libarpam/fft.hpp"
 #include "libarpam/signal.hpp"
 
 namespace arpam::signal {
@@ -74,7 +74,10 @@ auto firwin2(int numtaps, const Eigen::ArrayXd &freq,
 
   // Linearly interpolate the desired response on a uniform mesh `x`
   const Eigen::ArrayXd x = Eigen::ArrayXd::LinSpaced(nfreqs, 0.0, nyq);
-  Eigen::ArrayXcd fx = interp(x, freq, gain);
+  // implicitly convert returned ArrayXd to ArrayXcd
+  Eigen::ArrayXd _fx{interp(x, freq, gain)};
+std:
+  Eigen::ArrayXcd fx{_fx};
 
   // Adjust phase of the coefficients so that the first `ntaps` of the
   // inverse FFT are the desired filter coefficients
