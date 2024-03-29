@@ -21,6 +21,9 @@
 
 #include <cstdio>  // printf, fprintf
 #include <cstdlib> // abort
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_structs.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -30,9 +33,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
-// #include <vulkan/vulkan_beta.h>
 
 #include "main_gui.hpp"
+#include "vulkan_texture_loader.hpp"
 
 // NOLINTBEGIN(*)
 
@@ -259,13 +262,15 @@ static void SetupVulkan(ImVector<const char *> instance_extensions) {
   // the font image and only uses one descriptor set (for that) If you wish to
   // load e.g. additional textures you may need to alter pools sizes.
   {
+    // TODO this is suboptimal. Create application specific desxriptor pool
+    const size_t descriptorCount = 4;
     VkDescriptorPoolSize pool_sizes[] = {
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptorCount},
     };
     VkDescriptorPoolCreateInfo pool_info = {};
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 1;
+    pool_info.maxSets = descriptorCount;
     pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
     pool_info.pPoolSizes = pool_sizes;
     err = vkCreateDescriptorPool(g_Device, &pool_info, g_Allocator,
@@ -447,8 +452,9 @@ auto main(int /*unused*/, char ** /*unused*/) -> int {
 
   // Create window with Vulkan context
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  GLFWwindow *window = glfwCreateWindow(
-      1280, 720, "Dear ImGui GLFW+Vulkan example", nullptr, nullptr);
+  GLFWwindow *window =
+      glfwCreateWindow(1280, 720, "ARPAM GUI", nullptr, nullptr);
+
   if (glfwVulkanSupported() == 0) {
     printf("GLFW: Vulkan Not Supported\n");
     return 1;
@@ -551,129 +557,128 @@ auto main(int /*unused*/, char ** /*unused*/) -> int {
   // nullptr, io.Fonts->GetGlyphRangesJapanese()); IM_ASSERT(font != nullptr);
 
   // Our state
-  bool show_demo_window = true;
   bool show_another_window = false;
   ImVec4 clear_color = ImVec4(0.45F, 0.55F, 0.60F, 1.00F);
-  arpam_gui::MainGui main_gui(io);
 
-  // Main loop
-  while (glfwWindowShouldClose(window) == 0) {
-    // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to
-    // tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to
-    // your main application, or clear/overwrite your copy of the mouse data.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input
-    // data to your main application, or clear/overwrite your copy of the
-    // keyboard data. Generally you may always pass all inputs to dear imgui,
-    // and hide them from your application based on those two flags.
-    glfwPollEvents();
+  auto *commandpool =
+      g_MainWindowData.Frames[g_MainWindowData.FrameIndex].CommandPool;
 
-    // Resize swap chain?
-    if (g_SwapChainRebuild) {
-      int width = 0;
-      int height = 0;
-      glfwGetFramebufferSize(window, &width, &height);
-      if (width > 0 && height > 0) {
-        ImGui_ImplVulkan_SetMinImageCount(g_MinImageCount);
-        ImGui_ImplVulkanH_CreateOrResizeWindow(
-            g_Instance, g_PhysicalDevice, g_Device, &g_MainWindowData,
-            g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
-        g_MainWindowData.FrameIndex = 0;
-        g_SwapChainRebuild = false;
+  vk::AllocationCallbacks allocator = g_Allocator;
+  {
+
+    VulkanTextureLoader texture_loader(g_PhysicalDevice, g_Device, commandpool,
+                                       g_Queue, &allocator);
+    arpam_gui::MainGui main_gui(texture_loader);
+
+    // Main loop
+    while (glfwWindowShouldClose(window) == 0) {
+      // Poll and handle events (inputs, window resize, etc.)
+      // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to
+      // tell if dear imgui wants to use your inputs.
+      // - When io.WantCaptureMouse is true, do not dispatch mouse input data to
+      // your main application, or clear/overwrite your copy of the mouse data.
+      // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input
+      // data to your main application, or clear/overwrite your copy of the
+      // keyboard data. Generally you may always pass all inputs to dear imgui,
+      // and hide them from your application based on those two flags.
+      glfwPollEvents();
+
+      // Resize swap chain?
+      if (g_SwapChainRebuild) {
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(window, &width, &height);
+        if (width > 0 && height > 0) {
+          ImGui_ImplVulkan_SetMinImageCount(g_MinImageCount);
+          ImGui_ImplVulkanH_CreateOrResizeWindow(
+              g_Instance, g_PhysicalDevice, g_Device, &g_MainWindowData,
+              g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
+          g_MainWindowData.FrameIndex = 0;
+          g_SwapChainRebuild = false;
+        }
       }
-    }
 
-    // Start the Dear ImGui frame
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+      // Start the Dear ImGui frame
+      ImGui_ImplVulkan_NewFrame();
+      ImGui_ImplGlfw_NewFrame();
+      ImGui::NewFrame();
 
-    // 1. Show the big demo window (Most of the sample code is in
-    // ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear
-    // ImGui!).
-    if (show_demo_window) {
-      ImGui::ShowDemoWindow(&show_demo_window);
-    }
+      // 2. Show a simple window that we create ourselves. We use a Begin/End
+      // pair to create a named window.
+      {
+        static float f = 0.0F;
+        static int counter = 0;
 
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair
-    // to create a named window.
-    {
-      static float f = 0.0F;
-      static int counter = 0;
+        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!"
+                                       // and append into it.
 
-      ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!"
-                                     // and append into it.
+        ImGui::Text("This is some useful text."); // Display some text (you can
+                                                  // use a format strings too)
+        ImGui::Checkbox("Another Window", &show_another_window);
 
-      ImGui::Text("This is some useful text."); // Display some text (you can
-                                                // use a format strings too)
-      ImGui::Checkbox(
-          "Demo Window",
-          &show_demo_window); // Edit bools storing our window open/close state
-      ImGui::Checkbox("Another Window", &show_another_window);
+        ImGui::ColorEdit3(
+            "clear color",
+            (float *)&clear_color); // Edit 3 floats representing a color
 
-      ImGui::SliderFloat("float", &f, 0.0f,
-                         1.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-      ImGui::ColorEdit3(
-          "clear color",
-          (float *)&clear_color); // Edit 3 floats representing a color
+        if (ImGui::Button(
+                "Button")) // Buttons return true when clicked (most
+                           // widgets return true when edited/activated)
+          counter++;
+        ImGui::SameLine();
+        ImGui::Text("counter = %d", counter);
 
-      if (ImGui::Button("Button")) // Buttons return true when clicked (most
-                                   // widgets return true when edited/activated)
-        counter++;
-      ImGui::SameLine();
-      ImGui::Text("counter = %d", counter);
-
-      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-                  1000.0f / io.Framerate, io.Framerate);
-      ImGui::End();
-    }
-
-    // 3. Show another simple window.
-    if (show_another_window) {
-      ImGui::Begin(
-          "Another Window",
-          &show_another_window); // Pass a pointer to our bool variable (the
-                                 // window will have a closing button that will
-                                 // clear the bool when clicked)
-      ImGui::Text("Hello from another window!");
-      if (ImGui::Button("Close Me")) {
-        show_another_window = false;
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                    1000.0f / io.Framerate, io.Framerate);
+        ImGui::End();
       }
-      ImGui::End();
-    }
 
-    // Render custom gui
-    main_gui.render();
+      // 3. Show another simple window.
+      if (show_another_window) {
+        ImGui::Begin(
+            "Another Window",
+            &show_another_window); // Pass a pointer to our bool variable (the
+                                   // window will have a closing button that
+                                   // will clear the bool when clicked)
+        ImGui::Text("Hello from another window!");
+        if (ImGui::Button("Close Me")) {
+          show_another_window = false;
+        }
+        ImGui::End();
+      }
 
-    // Rendering
-    ImGui::Render();
-    ImDrawData *main_draw_data = ImGui::GetDrawData();
-    const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f ||
-                                    main_draw_data->DisplaySize.y <= 0.0f);
-    wd->ClearValue.color.float32[0] = clear_color.x * clear_color.w;
-    wd->ClearValue.color.float32[1] = clear_color.y * clear_color.w;
-    wd->ClearValue.color.float32[2] = clear_color.z * clear_color.w;
-    wd->ClearValue.color.float32[3] = clear_color.w;
-    if (!main_is_minimized) {
-      FrameRender(wd, main_draw_data);
-    }
+      // Render custom gui
+      main_gui.render();
 
-    // Update and Render additional Platform Windows
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-      ImGui::UpdatePlatformWindows();
-      ImGui::RenderPlatformWindowsDefault();
-    }
+      // Rendering
+      ImGui::Render();
+      ImDrawData *main_draw_data = ImGui::GetDrawData();
+      const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f ||
+                                      main_draw_data->DisplaySize.y <= 0.0f);
+      wd->ClearValue.color.float32[0] = clear_color.x * clear_color.w;
+      wd->ClearValue.color.float32[1] = clear_color.y * clear_color.w;
+      wd->ClearValue.color.float32[2] = clear_color.z * clear_color.w;
+      wd->ClearValue.color.float32[3] = clear_color.w;
+      if (!main_is_minimized) {
+        FrameRender(wd, main_draw_data);
+      }
 
-    // Present Main Platform Window
-    if (!main_is_minimized) {
-      FramePresent(wd);
+      // Update and Render additional Platform Windows
+      if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+      }
+
+      // Present Main Platform Window
+      if (!main_is_minimized) {
+        FramePresent(wd);
+      }
     }
   }
 
   // Cleanup
   err = vkDeviceWaitIdle(g_Device);
   check_vk_result(err);
+
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImPlot::DestroyContext();
