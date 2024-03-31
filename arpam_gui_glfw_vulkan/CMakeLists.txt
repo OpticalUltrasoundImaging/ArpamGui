@@ -7,12 +7,11 @@ add_executable(${EXE_NAME}
 )
 
 # Use strict C++ 20
-target_compile_options(${EXE_NAME} PRIVATE cxx_std_20)
-set_target_properties(${EXE_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-
-# Enable link time optimization
-set_target_properties(${EXE_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-
+set_target_properties(${EXE_NAME} PROPERTIES
+    CXX_STANDARD 20
+    CXX_EXTENSIONS OFF
+    INTERPROCEDURAL_OPTIMIZATION TRUE  # LTO
+)
 
 target_link_libraries(${EXE_NAME} 
     PRIVATE 

@@ -112,7 +112,7 @@ void MainGui::render() {
     ImGui::SameLine();
     ImGui::SliderFloat("Dynamic range", &dynamic_range, 0.0f, 60.0f);
 
-    const auto aline_size = m_rf.rows();
+    const size_t aline_size = m_rf.rows();
 
     // Get FIR filter kernel
     const int numtaps = 65;
@@ -130,15 +130,13 @@ void MainGui::render() {
 
     // Plot A-line RF
     if (ImPlot::BeginPlot("RF signal")) {
-      const auto &rf = m_rf.col(m_rf_idx);
+      const std::span<const double> rf_line{m_rf.col(m_rf_idx).data(),
+                                            aline_size};
 
       if (use_filter) {
-        fir_filter.forward(
-            std::span<const double>{rf.data(), static_cast<size_t>(rf.size())},
-            std::span<double>{vizbuf.data(),
-                              static_cast<size_t>(vizbuf.size())});
+        fir_filter.forward(rf_line, vizbuf);
       } else {
-        std::copy(rf.begin(), rf.end(), vizbuf.begin());
+        std::copy(rf_line.begin(), rf_line.end(), vizbuf.begin());
       }
 
       if (use_hilbert) {

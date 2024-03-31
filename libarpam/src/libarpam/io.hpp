@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bit>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <span>
@@ -9,6 +10,7 @@
 #include <Eigen/Dense>
 
 namespace arpam::io {
+namespace fs = std::filesystem;
 
 // Swap the endianness of a value inplace
 template <typename T> void swap_endian_inplace(T *val) {
@@ -18,8 +20,8 @@ template <typename T> void swap_endian_inplace(T *val) {
 
 // T is the type of value stored in the binary file.
 template <typename T>
-auto load_bin(std::string_view filename,
-              std::endian endian = std::endian::little) -> Eigen::MatrixX<T> {
+auto load_bin(const fs::path filename, std::endian endian = std::endian::little)
+    -> Eigen::MatrixX<T> {
   std::ifstream file(filename, std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
     std::cerr << "Failed to open file\n";
@@ -69,7 +71,7 @@ auto load_bin(std::string_view filename,
 view into a sequence of objects of type `T`.
 */
 template <typename T>
-void to_bin(std::string_view filename, std::span<const T> data) {
+void to_bin(fs::path filename, std::span<const T> data) {
   std::ofstream file(filename, std::ios::binary);
   if (!file.is_open()) {
     std::cerr << "Failed to open file\n";
@@ -78,7 +80,6 @@ void to_bin(std::string_view filename, std::span<const T> data) {
   const std::streamsize datasize_bytes = data.size() * sizeof(T);
   file.write(
       reinterpret_cast<const char *>(data.data()), // NOLINT(*-reinterpret-cast)
-
       datasize_bytes);
 }
 

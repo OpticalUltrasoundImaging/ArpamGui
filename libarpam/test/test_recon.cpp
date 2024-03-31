@@ -136,7 +136,7 @@ public:
       return;
     }
 
-    m_rf = arpam::io::load_bin<double>(filepath.c_str(), std::endian::big);
+    m_rf = arpam::io::load_bin<double>(filepath, std::endian::big);
   }
 
   Eigen::MatrixXd m_rf;

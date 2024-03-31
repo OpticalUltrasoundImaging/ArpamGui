@@ -19,8 +19,14 @@ target_link_libraries(libarpam
 )
 
 # Use strict C++20
-target_compile_features(libarpam PUBLIC cxx_std_20)
-set_target_properties(libarpam PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(libarpam PROPERTIES
+    CXX_STANDARD 20
+    CXX_EXTENSIONS OFF
+)
+
+if(WIN32)
+    target_compile_definitions(libarpam PRIVATE _USE_MATH_DEFINES)
+endif()
 
 
 # Build tests
