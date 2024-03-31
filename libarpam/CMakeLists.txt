@@ -7,12 +7,11 @@ find_package(Eigen3 CONFIG REQUIRED)
 add_library(libarpam STATIC)
 target_sources(libarpam
     PRIVATE
-    src/libarpam/libarpam.cpp
-    src/libarpam/signal.cpp
-    src/libarpam/recon.cpp
+    src/signal.cpp
+    src/recon.cpp
 )
-target_include_directories(libarpam PUBLIC src)
-target_link_libraries(libarpam 
+target_include_directories(libarpam PUBLIC include)
+target_link_libraries(libarpam
     PUBLIC
     fftconv
     Eigen3::Eigen
