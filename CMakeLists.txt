@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
-project(ARPAM_gui C CXX)
+project(ARPAM_gui
+    LANGUAGES C CXX
+)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -24,7 +27,7 @@ set(CMAKE_CXX_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY_SAVE})
 # target_compile_definitions(example_glfw_vulkan PUBLIC -DImTextureID=ImU64)
 
 # Add fftconv
-add_subdirectory(fftconv/fftconv_fftw)
+add_subdirectory(extern/fftconv/fftconv_fftw)
 
 # Build libarpam
 add_subdirectory(libarpam)

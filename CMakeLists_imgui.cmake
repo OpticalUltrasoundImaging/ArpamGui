@@ -11,7 +11,7 @@ find_package(Vulkan REQUIRED)
 # Compile ImGui and ImPlot into a single static library
 add_library(imgui STATIC)
 
-set(IMGUI_DIR ./imgui)
+set(IMGUI_DIR ./extern/imgui)
 set(IMGUI_SRC
     ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
@@ -21,7 +21,7 @@ set(IMGUI_SRC
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp)
 
-set(IMPLOT_DIR ./implot)
+set(IMPLOT_DIR ./extern/implot)
 set(IMPLOT_SRC
     ${IMPLOT_DIR}/implot.cpp
     ${IMPLOT_DIR}/implot_items.cpp

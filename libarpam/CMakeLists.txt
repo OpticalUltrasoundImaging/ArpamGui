@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(libarpam C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-
 find_package(Eigen3 CONFIG REQUIRED)
 
+# Define libarpam library
 add_library(libarpam STATIC)
 target_sources(libarpam
     PRIVATE
@@ -19,7 +18,12 @@ target_link_libraries(libarpam
     Eigen3::Eigen
 )
 
+# Use strict C++20
+target_compile_features(libarpam PUBLIC cxx_std_20)
+set_target_properties(libarpam PROPERTIES CXX_EXTENSIONS OFF)
 
+
+# Build tests
 enable_testing()
 find_package(GTest CONFIG REQUIRED)
 
