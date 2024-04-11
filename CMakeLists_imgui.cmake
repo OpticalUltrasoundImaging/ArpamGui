@@ -28,16 +28,21 @@ set(IMPLOT_SRC
     ${IMPLOT_DIR}/implot_demo.cpp
 )
 
+set(IMGUI_FILEDIALOG_DIR ./extern/ImGuiFileDialog)
+set(IMGUI_FILEDIALOG_SRC ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp)
+
 target_sources(imgui
     PRIVATE
     ${IMGUI_SRC}
     ${IMPLOT_SRC}
+    ${IMGUI_FILEDIALOG_SRC}
 )
 target_include_directories(imgui
     PUBLIC 
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${IMPLOT_DIR}
+    ${IMGUI_FILEDIALOG_DIR}
 )
 target_link_libraries(imgui
     PUBLIC

@@ -8,3 +8,6 @@
 [submodule "extern/fftconv"]
 	path = extern/fftconv
 	url = git@github.com:kwsp/fftconv.git
+[submodule "extern/ImGuiFileDialog"]
+	path = extern/ImGuiFileDialog
+	url = git@github.com:aiekick/ImGuiFileDialog.git
