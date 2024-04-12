@@ -2,11 +2,11 @@
 #include <gtest/gtest.h>
 
 // Assuming swap_endian_inplace is defined in `swap_endian_inplace.h`
-#include "libarpam/io.hpp"
+#include "uspam/io.hpp"
 
 // NOLINTBEGIN(*-using-namespace,*-magic-numbers,*-reinterpret-cast,*-pointer-arithmetic)
 
-using namespace arpam::io;
+using namespace uspam::io;
 
 TEST(SwapEndianInPlaceTest, SwapUint16) {
   uint16_t original = 0x1234;

@@ -4,10 +4,9 @@
 #include <iostream>
 #include <memory>
 
-#include <Eigen/Dense>
 #include <imgui.h>
 
-#include "libarpam/libarpam.hpp"
+#include "uspam/uspam.hpp"
 
 #include "utils/utils.hpp"
 #include "vulkan_texture_loader.hpp"
@@ -36,7 +35,7 @@ private:
   bool show_demo_window = true;
 
   // Buffer for current bin
-  Eigen::MatrixX<double> m_rf;
+  arma::mat m_rf;
   uint16_t m_rf_idx{0};
 };
 

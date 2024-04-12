@@ -1,4 +1,4 @@
-set(EXE_NAME ARPAM_gui)
+set(EXE_NAME arpam-gui)
 add_executable(${EXE_NAME}
     main.cpp
     main_gui.cpp
@@ -10,11 +10,11 @@ add_executable(${EXE_NAME}
 set_target_properties(${EXE_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
-    INTERPROCEDURAL_OPTIMIZATION TRUE  # LTO
+    # INTERPROCEDURAL_OPTIMIZATION TRUE  # LTO
 )
 
 target_link_libraries(${EXE_NAME} 
     PRIVATE 
-    libarpam
+    libuspam
     imgui
 )

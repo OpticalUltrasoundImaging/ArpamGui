@@ -41,8 +41,8 @@
             },
             "generator": "Visual Studio 17 2022",
             "cacheVariables": {
-                "CMAKE_CXX_FLAGS": "/arch:AVX2",
-                "CMAKE_C_FLAGS": "/arch:AVX2"
+                "CMAKE_CXX_FLAGS": "/arch:AVX2 /EHsc",
+                "CMAKE_C_FLAGS": "/arch:AVX2 /EHsc"
             }
         },
         {
@@ -78,6 +78,11 @@
             "name": "Win64 Release",
             "configurePreset": "win64",
             "configuration": "Release"
+        },
+        {
+            "name": "Win64 RelWithDebInfo",
+            "configurePreset": "win64",
+            "configuration": "RelWithDebInfo"
         },
         {
             "name": "Win64 Debug",

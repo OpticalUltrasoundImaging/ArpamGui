@@ -2,15 +2,15 @@
 
 #include <span>
 
-#include <Eigen/Dense>
+#include <armadillo>
 #include <fftw3.h>
 
-namespace arpam::signal {
+namespace uspam::signal {
 
 void create_hamming_window(std::span<double> window);
 
 // Helper function to create a Hamming window
-[[nodiscard]] auto create_hamming_window(int numtaps) -> Eigen::ArrayXd;
+[[nodiscard]] auto create_hamming_window(int numtaps) -> arma::vec;
 
 // 1D linear interpolation for monotonically increasing sample points
 // Conditions: xp must be increasing
@@ -19,8 +19,8 @@ void interp(std::span<const double> x, std::span<const double> xp,
 
 // 1D linear interpolation for monotonically increasing sample points
 // Conditions: xp must be increasing
-[[nodiscard]] auto interp(const Eigen::ArrayXd &x, const Eigen::ArrayXd &xp,
-                          const Eigen::ArrayXd &fp);
+[[nodiscard]] auto interp(const arma::vec &x, const arma::vec &xp,
+                          const arma::vec &fp);
 
 /**
 @brief FIR filter design using the window method.
@@ -50,13 +50,19 @@ be between 0 and ``fs/2``. Default is 2.
 @return Eigen::ArrayXd The filter coefficients of the FIR filter, as a 1-D array
 of length numtaps
 */
-auto firwin2(int numtaps, const Eigen::ArrayXd &freq,
-             const Eigen::ArrayXd &gain, int nfreqs = 0, double fs = 2)
-    -> Eigen::ArrayXd;
+auto firwin2(int numtaps, const std::span<const double> freq,
+             const std::span<const double> gain, int nfreqs = 0, double fs = 2)
+    -> arma::vec;
 
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
 */
-auto hilbert(const Eigen::ArrayXd &input) -> Eigen::ArrayXcd;
+auto hilbert(const arma::vec &input) -> arma::cx_vec;
+void hilbert_abs(const std::span<const double> x, const std::span<double> env);
+[[nodiscard]] inline auto hilbert_abs(const std::span<const double> x) {
+  arma::vec env(x.size());
+  hilbert_abs(x, env);
+  return env;
+}
 
-} // namespace arpam::signal
+} // namespace uspam::signal

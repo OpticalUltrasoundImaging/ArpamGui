@@ -32,7 +32,11 @@ set(CMAKE_CXX_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY_SAVE})
 add_subdirectory(extern/fftconv/fftconv_fftw)
 
 # Build libarpam
-add_subdirectory(libarpam)
+add_subdirectory(libuspam)
+
+# Build the CLI
+add_subdirectory(cli)
 
 # Build the ARPAM gui
 add_subdirectory(arpam_gui_glfw_vulkan)
+
