@@ -93,7 +93,7 @@ auto firwin2(int numtaps, const std::span<const double> freq,
   // Compute the inverse fft
   const int real_size = (static_cast<int>(fx.size()) - 1) * 2;
 
-  auto& fft_engine = fft::fftw_engine_c2r_1d::get(real_size);
+  auto &fft_engine = fft::fftw_engine_c2r_1d::get(real_size);
   // NOLINTBEGIN(*-pointer-arithmetic)
   for (int i = 0; i < nfreqs; ++i) {
     fft_engine.complex[i][0] = fx(i).real();
@@ -113,63 +113,9 @@ auto firwin2(int numtaps, const std::span<const double> freq,
   return out;
 }
 
-auto hilbert(const std::span<const double> input) -> arma::cx_vec {
-  const auto n = input.size();
-  auto& engine = fft::fftw_engine_1d::get(n);
-
-  // Copy input to real buffer
-  // NOLINTBEGIN(*-pointer-arithmetic)
-  for (int i = 0; i < n; ++i) {
-    engine.in[i][0] = input[i];
-    engine.in[i][1] = 0.;
-  }
-  // NOLINTEND(*-pointer-arithmetic)
-
-  // Execute r2c fft
-  engine.execute_forward();
-
-  // NOLINTBEGIN(*-pointer-arithmetic)
-  // Zero negative frequencies (half-Hermitian to Hermitian conversion)
-  // Double the magnitude of positive frequencies
-  const auto n_half = n / 2;
-  for (auto i = 1; i < n_half; ++i) {
-    engine.out[i][0] *= 2.;
-    engine.out[i][1] *= 2.;
-  }
-
-  if (n % 2 == 0) {
-    engine.out[n_half][0] = 0.;
-    engine.out[n_half][1] = 0.;
-  } else {
-    engine.out[n_half][0] *= 2.;
-    engine.out[n_half][1] *= 2.;
-  }
-
-  for (auto i = n_half + 1; i < n; ++i) {
-    engine.out[i][0] = 0.;
-    engine.out[i][1] = 0.;
-  }
-  // NOLINTEND(*-pointer-arithmetic)
-
-  // Execute c2r fft on modified spectrum
-  engine.execute_backward();
-
-  // Construct the analytic signal
-
-  arma::cx_vec analytic_signal(n);
-  const double fct = 1. / static_cast<double>(n);
-  // NOLINTBEGIN(*-pointer-arithmetic)
-  for (auto i = 0; i < n; ++i) {
-    analytic_signal(i) = std::complex<double>(input[i], engine.in[i][1] * fct);
-  }
-  // NOLINTEND(*-pointer-arithmetic)
-
-  return analytic_signal;
-}
-
 void hilbert_abs(const std::span<const double> x, const std::span<double> env) {
   const auto n = x.size();
-  auto& engine = fft::fftw_engine_1d::get(n);
+  auto &engine = fft::fftw_engine_1d::get(n);
 
   // Copy input to real buffer
   // NOLINTBEGIN(*-pointer-arithmetic)
@@ -219,4 +165,47 @@ void hilbert_abs(const std::span<const double> x, const std::span<double> env) {
   // NOLINTEND(*-pointer-arithmetic)
 }
 
+void hilbert_abs_r2c(const std::span<const double> x,
+                     const std::span<double> env) {
+  const auto n = x.size();
+  auto &engine = fft::fftw_engine_half_cx_1d::get(n);
+
+  // Copy input to real buffer
+  // NOLINTBEGIN(*-pointer-arithmetic)
+  for (int i = 0; i < n; ++i) {
+    engine.real[i] = x[i];
+  }
+  // NOLINTEND(*-pointer-arithmetic)
+
+  // Execute r2c fft
+  engine.execute_r2c();
+
+  // NOLINTBEGIN(*-pointer-arithmetic)
+  // Only positive frequencies in r2c transform. Switch freq by *-1j
+  {
+    const std::complex<double> fct{0, -1};
+    for (int i = 0; i < engine.complex.size(); ++i) {
+      std::complex<double> cx{engine.complex[i][0], engine.complex[i][1]};
+      cx *= fct;
+      engine.complex[i][0] = cx.real();
+      engine.complex[i][1] = cx.imag();
+    }
+  }
+  // NOLINTEND(*-pointer-arithmetic)
+
+  // Execute c2r fft on modified spectrum
+  engine.execute_c2r();
+
+  {
+    // Construct the analytic signal
+    const double fct = 1. / static_cast<double>(n);
+    // NOLINTBEGIN(*-pointer-arithmetic)
+    for (auto i = 0; i < n; ++i) {
+      const auto real = x[i];
+      const auto imag = engine.real[i] * fct;
+      env[i] = std::abs(std::complex{real, imag});
+    }
+    // NOLINTEND(*-pointer-arithmetic)
+  }
+}
 } // namespace uspam::signal

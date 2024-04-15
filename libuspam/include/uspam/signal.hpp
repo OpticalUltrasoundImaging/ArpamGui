@@ -57,12 +57,15 @@ auto firwin2(int numtaps, const std::span<const double> freq,
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
 */
-auto hilbert(const arma::vec &input) -> arma::cx_vec;
 void hilbert_abs(const std::span<const double> x, const std::span<double> env);
 [[nodiscard]] inline auto hilbert_abs(const std::span<const double> x) {
   arma::vec env(x.size());
   hilbert_abs(x, env);
   return env;
 }
+
+
+void hilbert_abs_r2c(const std::span<const double> x,
+                     const std::span<double> env);
 
 } // namespace uspam::signal

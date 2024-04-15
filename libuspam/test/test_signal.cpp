@@ -103,6 +103,20 @@ TEST(Firwin2Test, ValidatesFreqStartsAtZero) {
   EXPECT_THROW(signal::firwin2(numtaps, freq, gain), std::invalid_argument);
 }
 
+#include <chrono>
+using namespace std::chrono;
+struct TimeIt {
+  TimeIt(std::string_view name)
+      : name(name), start(high_resolution_clock::now()) {}
+  ~TimeIt() {
+    auto elapsed = high_resolution_clock::now() - start;
+    auto ms = duration_cast<milliseconds>(elapsed).count();
+    std::cout << name << " " << ms << " ms\n";
+  }
+  std::string_view name;
+  steady_clock::time_point start;
+};
+
 TEST(Firwin2Test, NormalOperation) {
   // Compare results to scipy.signal.firwin2
   {
@@ -292,6 +306,31 @@ TEST(HilbertTest, CorrectEven1) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
   }
+
+  {
+    arma::vec env2(input.size(), arma::fill::none);
+    signal::hilbert_abs_r2c(input, env2);
+    for (int i = 0; i < env2.size(); ++i) {
+      EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
+    }
+  }
+
+  {
+    arma::vec env2(input.size(), arma::fill::none);
+    TimeIt timeit("hilbert_abs");
+    for (int i = 0; i < 100000; i++) {
+      signal::hilbert_abs(input, env2);
+    }
+  }
+
+  {
+    arma::vec env2(input.size(), arma::fill::none);
+    TimeIt timeit("hilbert_abs_r2c");
+    for (int i = 0; i < 100000; i++) {
+      signal::hilbert_abs_r2c(input, env2);
+    }
+  }
+
 }
 
 TEST(HilbertTest, CorrectEven2) {
@@ -340,6 +379,14 @@ TEST(HilbertTest, CorrectEven2) {
   {
     arma::vec env2(input.size(), arma::fill::none);
     signal::hilbert_abs(input, env2);
+    for (int i = 0; i < env2.size(); ++i) {
+      EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
+    }
+  }
+
+  {
+    arma::vec env2(input.size(), arma::fill::none);
+    signal::hilbert_abs_r2c(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -396,14 +443,35 @@ TEST(HilbertTest, CorrectOdd1) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
   }
+
+  {
+    arma::vec env2(input.size(), arma::fill::none);
+    signal::hilbert_abs_r2c(input, env2);
+    for (int i = 0; i < env2.size(); ++i) {
+      EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
+    }
+  }
 }
 
 #include "uspam/cudaSignal.cuh"
 
 TEST(CudaHilbertTest, CorrectOdd1) {
-  const arma::mat input(1024, 1024, arma::fill::randn);
+  // const arma::mat input(1024, 1024, arma::fill::randn);
+  const int N = 1024;
+  const arma::mat input = [&]() {
+    arma::mat input(N, N, arma::fill::none);
+    const arma::vec t = arma::linspace(0, 2 * arma::datum::pi, N);
+    // Generate each column as a sine wave
+    // with a carrier wave of increasing frequency
+    for (int j = 0; j < N; ++j) {
+      const double freq = 1 + j;
+      input.col(j) = arma::sin(freq * t) % arma::sin(t);
+    }
+    return input;
+  }();
+
   const arma::mat expected = [&]() {
-    arma::mat expected(1024, 1024, arma::fill::none);
+    arma::mat expected(N, N, arma::fill::none);
     for (int i = 0; i < expected.n_cols; ++i) {
       const auto src = input.unsafe_col(i);
       auto dst = expected.unsafe_col(i);
@@ -412,14 +480,17 @@ TEST(CudaHilbertTest, CorrectOdd1) {
     return expected;
   }();
 
-  arma::mat output(1024, 1024, arma::fill::zeros);
-
+  arma::mat output(N, N, arma::fill::zeros);
   hilbert2(input.memptr(), output.memptr(), input.n_rows, input.n_cols);
+
+  //input.save("hilbert_input.bin", arma::raw_binary);
+  //expected.save("hilbert_expected.bin", arma::raw_binary);
+  //output.save("hilbert_output.bin", arma::raw_binary);
 
   // TODO fix test
   for (int j = 0; j < expected.n_cols; ++j) {
     for (int i = 0; i < expected.n_rows; ++i) {
-      EXPECT_NEAR(output(i, j), input(i, j), 1.5e-8);
+      EXPECT_NEAR(output(i, j), expected(i, j), 1.5e-8);
     }
   }
 }
