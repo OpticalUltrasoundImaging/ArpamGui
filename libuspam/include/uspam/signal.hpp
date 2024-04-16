@@ -65,6 +65,10 @@ void hilbert_abs(const std::span<const double> x, const std::span<double> env);
 }
 
 
+/**
+@brief Compute the analytic signal, using the Hilbert transform.
+Optimized internally to use r2c transforms.
+*/
 void hilbert_abs_r2c(const std::span<const double> x,
                      const std::span<double> env);
 

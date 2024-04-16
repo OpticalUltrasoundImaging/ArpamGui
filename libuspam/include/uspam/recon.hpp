@@ -16,29 +16,31 @@
 
 #include <opencv2/opencv.hpp>
 
-namespace uspam::recon {
+namespace uspam {
+namespace recon {
 
 using fftconv::FloatOrDouble;
 
-auto recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env) {
+inline auto recon(const arma::mat &rf, const arma::vec &kernel,
+                  arma::mat &env) {
   // TODO FIR filter
 
-  //cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-  //  arma::vec rf_filt(rf.n_rows);
-  //  for (int i = range.start; i < range.end; ++i) {
-  //    const auto src = rf.unsafe_col(i);
-  //    auto dst = env.unsafe_col(i);
-  //    fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
-  //    signal::hilbert_abs(rf_filt, dst);
-  //  }
-  //});
-   arma::vec rf_filt(rf.n_rows);
-   for (int i = 0; i < rf.n_cols; ++i) {
-     const auto src = rf.unsafe_col(i);
-     auto dst = env.unsafe_col(i);
-     fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
-     signal::hilbert_abs(rf_filt, dst);
-   }
+  // cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
+  //   arma::vec rf_filt(rf.n_rows);
+  //   for (int i = range.start; i < range.end; ++i) {
+  //     const auto src = rf.unsafe_col(i);
+  //     auto dst = env.unsafe_col(i);
+  //     fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
+  //     signal::hilbert_abs(rf_filt, dst);
+  //   }
+  // });
+  arma::vec rf_filt(rf.n_rows);
+  for (int i = 0; i < rf.n_cols; ++i) {
+    const auto src = rf.unsafe_col(i);
+    auto dst = env.unsafe_col(i);
+    fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
+    signal::hilbert_abs_r2c(rf_filt, dst);
+  }
 }
 
 template <FloatOrDouble T>
@@ -57,7 +59,7 @@ auto logCompress(const arma::Mat<T> &x, arma::Mat<T> &xLog, const T noiseFloor,
       for (int i = 0; i < x.n_rows; ++i) {
         const auto val = x(i, j);
         T compressedValue = 20.0 * std::log10(val / noiseFloor);
-        compressedValue = std::max(compressedValue, 0.0);
+        compressedValue = std::max(compressedValue, T(0));
         compressedValue = std::min(compressedValue, desiredDynamicRangeDB);
         compressedValue /= desiredDynamicRangeDB;
 
@@ -84,7 +86,7 @@ auto logCompress(const std::span<const T> x, const std::span<T> xLog,
   // Apply log compression with clipping in a single pass
   std::transform(x.begin(), x.end(), xLog.begin(), [&](const T val) {
     T compressedValue = 20.0 * std::log10(val / noiseFloor);
-    compressedValue = std::max(compressedValue, 0.0);
+    compressedValue = std::max(compressedValue, T(0));
     compressedValue = std::min(compressedValue, desiredDynamicRangeDB);
     return compressedValue / desiredDynamicRangeDB;
   });
@@ -184,4 +186,5 @@ struct ReconParams2 {
   }
 };
 
-} // namespace uspam::recon
+} // namespace recon
+} // namespace uspam

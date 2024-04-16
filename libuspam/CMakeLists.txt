@@ -15,6 +15,13 @@ add_library(${LIB_NAME} STATIC
     src/cudaSignal.cu
 )
 target_include_directories(${LIB_NAME} PUBLIC include)
+
+set_property(TARGET ${LIB_NAME} PROPERTY CUDA_ARCHITECTURES 75)
+target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                       --use_fast_math
+                       --extended-lambda
+                       >)
+
 target_link_libraries(${LIB_NAME}
     PUBLIC
     fftconv
@@ -50,7 +57,11 @@ add_executable(test_libuspam
     test/test_io.cpp
     test/test_signal.cpp
     test/test_recon.cpp
- "include/uspam/cudaSignal.cuh")
+    test/test_cudaSignal.cu
+ )
+
+set_property(TARGET test_libuspam PROPERTY CUDA_ARCHITECTURES 75)
+
 target_link_libraries(test_libuspam
     PRIVATE
     libuspam
