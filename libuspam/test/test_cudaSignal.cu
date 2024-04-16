@@ -290,12 +290,14 @@ TEST(CudaLogCompressTest, Bench) {
   // d_in.begin());
   thrust::device_vector<double> d_out(N);
 
+  CUDA_RT_CALL(cudaStreamSynchronize(stream));
   bench(
       "logCompress CUDA", runs,
       [&]() {
         uspam::cuda::logCompress_device(thrust::raw_pointer_cast(d_in.data()),
                                         thrust::raw_pointer_cast(d_out.data()),
-                                        N, 1, 5);
+                                        N, 1, 5, stream);
+        CUDA_RT_CALL(cudaStreamSynchronize(stream));
       },
       true);
 
@@ -329,6 +331,7 @@ TEST(CudaReconTest, Bench) {
     thrust::device_vector<double> device_out(size * batchSize);
     thrust::device_vector<double> device_kernel(kernelSize);
 
+    CUDA_RT_CALL(cudaStreamSynchronize(stream));
     bench(
         "recon CUDA", n_runs,
         [&]() {
