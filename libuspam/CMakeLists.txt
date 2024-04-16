@@ -1,11 +1,21 @@
 cmake_minimum_required(VERSION 3.20)
-project(libuspam LANGUAGES CXX CUDA)
+project(libuspam LANGUAGES CXX)
+
+# Optionally find CUDA
+include(CheckLanguage)
+check_language(CUDA)
+if(CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    add_definitions(-DHAS_CUDA=1)
+    find_package(CUDA REQUIRED)
+else()
+    message(STATUS "No CUDA support")
+endif()
 
 find_package(Armadillo CONFIG REQUIRED)
 find_package(OpenBLAS CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 
-find_package(CUDA REQUIRED)
 
 # Define libuspam library
 set(LIB_NAME libuspam)
@@ -16,11 +26,18 @@ add_library(${LIB_NAME} STATIC
 )
 target_include_directories(${LIB_NAME} PUBLIC include)
 
-set_property(TARGET ${LIB_NAME} PROPERTY CUDA_ARCHITECTURES 75)
-target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
-                       --use_fast_math
-                       --extended-lambda
-                       >)
+if (CMAKE_CUDA_COMPILER)
+    target_sources(${LIB_NAME}
+        PRIVATE
+        src/cudaSignal.cu
+    )
+    set_property(TARGET ${LIB_NAME} PROPERTY CUDA_ARCHITECTURES 75)
+    target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                           --use_fast_math
+                           --extended-lambda
+                           >)
+endif()
+
 
 target_link_libraries(${LIB_NAME}
     PUBLIC

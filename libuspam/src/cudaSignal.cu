@@ -7,12 +7,11 @@ Everything here assumes column major for 2D arrays
 #include <array>
 #include <complex>
 #include <cuComplex.h>
+#include <cuda/std/cmath>
 #include <cuda_runtime.h>
 #include <cufft.h>
 #include <map>
 #include <tuple>
-
-#include <cuda/std/cmath>
 
 __global__ void convolve1DSame(const double *in, const double *kernel,
                                double *output, int inSize, int batchSize,
