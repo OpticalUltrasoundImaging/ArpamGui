@@ -10,6 +10,16 @@
 #include <string>
 #include <vector>
 
+/**
+Use RAII to time a code block.
+Example:
+
+{
+  Timeit timeit("Func name");
+  func();
+}
+
+*/
 struct TimeIt {
   using clock = std::chrono::high_resolution_clock;
   TimeIt(const std::string &name) : name(name), start(clock::now()) {}
@@ -23,6 +33,11 @@ struct TimeIt {
   clock::time_point start;
 };
 
+/**
+Simple benchmark function
+Example:
+auto nanos = bench("Func name", n_runs, [&]() { Func(); }, true);
+*/
 template <typename Func>
 auto bench(const std::string &name, const int runs, const Func &func,
            bool write_to_file = false) {

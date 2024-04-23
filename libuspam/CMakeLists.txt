@@ -74,8 +74,9 @@ add_executable(test_libuspam
     test/test_io.cpp
     test/test_signal.cpp
     test/test_recon.cpp
+    test/test_imutil.cpp
     test/test_cudaSignal.cu
- )
+)
 
 set_property(TARGET test_libuspam PROPERTY CUDA_ARCHITECTURES 75)
 

@@ -124,7 +124,7 @@ void MainGui::render() {
 
     auto ioparams = uspam::io::IOParams::system2024v1();
     auto rf = ioparams.load_rf<uint16_t>(filepath, 100);
-    auto rf_pair = ioparams.split_rf_PAUS(rf);
+    auto rf_pair = ioparams.splitRfPAUS(rf);
 
     //auto params = arpam::recon::ReconParams2::system2024v1();
     //params.reconOneScan()

@@ -5,7 +5,8 @@
 #include <armadillo>
 #include <fftw3.h>
 
-namespace uspam::signal {
+namespace uspam {
+namespace signal {
 
 void create_hamming_window(std::span<double> window);
 
@@ -64,7 +65,6 @@ void hilbert_abs(const std::span<const double> x, const std::span<double> env);
   return env;
 }
 
-
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
 Optimized internally to use r2c transforms.
@@ -72,4 +72,5 @@ Optimized internally to use r2c transforms.
 void hilbert_abs_r2c(const std::span<const double> x,
                      const std::span<double> env);
 
-} // namespace uspam::signal
+} // namespace signal
+} // namespace uspam

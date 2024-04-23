@@ -212,7 +212,7 @@ TEST(CudaFIRFilterTest, Bench) {
   //     },
   //     true);
 
-  runs = 100;
+  runs = 50;
   bench(
       "firfilt fftconv CPU", runs,
       [&]() {
@@ -224,13 +224,12 @@ TEST(CudaFIRFilterTest, Bench) {
       },
       true);
 
+  runs = 100;
+  cudaStream_t stream;
+  CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
   thrust::device_vector<double> device_in(in.begin(), in.end());
   thrust::device_vector<double> device_kernel(kernel.begin(), kernel.end());
   thrust::device_vector<double> device_out(N * batchSize);
-
-  cudaStream_t stream;
-  CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
-
   bench(
       "firfilt CUDA", runs,
       [&]() {
@@ -315,7 +314,7 @@ TEST(CudaReconTest, Bench) {
   arma::mat input(size, batchSize, arma::fill::randn);
   arma::vec kernel(kernelSize, arma::fill::randu);
 
-  const int n_runs = 20;
+  int n_runs = 10;
   {
     arma::mat env(size, batchSize, arma::fill::none);
     auto nanos = bench(
@@ -323,6 +322,7 @@ TEST(CudaReconTest, Bench) {
         true);
   }
 
+  n_runs = 20;
   {
     cudaStream_t stream;
     CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));

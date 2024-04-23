@@ -266,30 +266,24 @@ double uspam::cuda::logCompress_device(double *d_in, double *d_out, int size,
                                        double noiseFloor,
                                        double desiredDynamicRangeDB,
                                        cudaStream_t stream) {
-
-  cudaStream_t streamMax;
-  CUDA_RT_CALL(cudaStreamCreate(&streamMax));
-
   thrust::device_ptr<double> in(d_in);
   thrust::device_ptr<double> out(d_out);
 
-  const double peakLevel =
-      *thrust::max_element(thrust::cuda::par.on(streamMax), in, in + size);
-  const double dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
+  const auto peakIter =
+      thrust::max_element(thrust::cuda::par.on(stream), in, in + size);
 
   // Apply log compression with clipping
   thrust::transform(thrust::cuda::par.on(stream), in, in + size, out,
                     [=] __device__(const double val) {
-                      double compressedValue =
-                          20.0 * std::log10(val / noiseFloor);
-                      compressedValue = thrust::max(compressedValue, double(0));
-                      compressedValue =
-                          thrust::min(compressedValue, desiredDynamicRangeDB);
-                      return compressedValue / desiredDynamicRangeDB;
+                      double normVal = val / noiseFloor;
+                      double compVal = (normVal > 0 ? 20 * log10(normVal) : 0);
+                      compVal = max(compVal, 0.0);
+                      compVal = min(compVal, desiredDynamicRangeDB);
+                      return compVal / desiredDynamicRangeDB;
                     });
 
-  CUDA_RT_CALL(cudaGetLastError());
-  CUDA_RT_CALL(cudaStreamDestroy(streamMax));
+  const double peakLevel = *peakIter;
+  const double dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
 
   return dynamicRangeDB;
 }

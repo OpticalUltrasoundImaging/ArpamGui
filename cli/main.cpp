@@ -1,18 +1,19 @@
 #include <CLI/CLI.hpp>
+#include <armadillo>
 #include <chrono>
+#include <fftconv.hpp>
+#include <fftw3.h>
 #include <filesystem>
+#include <format>
 #include <indicators/progress_bar.hpp>
 #include <iostream>
-
-#include <fftconv.hpp>
 #include <mutex>
+#include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
-#include <fftw3.h>
 
-std::mutex fftw_mutex;
+#include <cuda_runtime.h>
 
 namespace fs = std::filesystem;
-
 namespace io = uspam::io;
 namespace recon = uspam::recon;
 
@@ -26,32 +27,20 @@ auto estimate_aline_background_from_file(const io::IOParams &ioparams,
     num_alines = std::min(num_alines, num_alines_all);
   }
 
-  arma::vec background =
-      arma::mean(arma::conv_to<arma::mat>::from(
-                     ioparams.load_rf<uint16_t>(fname, 1, 1, num_alines)),
-                 1);
+  arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, num_alines,
+                         arma::fill::none);
+  ioparams.load_rf<uint16_t>(fname, rf, 1, 1, num_alines);
+
+  arma::vec background = arma::mean(arma::conv_to<arma::mat>::from(rf), 1);
   return background;
 }
-
-using namespace std::chrono;
-struct TimeIt {
-  TimeIt(std::string_view name)
-      : name(name), start(high_resolution_clock::now()) {}
-  ~TimeIt() {
-    auto elapsed = high_resolution_clock::now() - start;
-    auto ms = duration_cast<milliseconds>(elapsed).count();
-    std::cout << name << " " << ms << " ms\n";
-  }
-  std::string_view name;
-  steady_clock::time_point start;
-};
 
 /**
 BType is the dtype stored in the binary file
 */
 template <typename BType>
-void cli_recon(const fs::path fname, int starti = 0, int nscans = 0,
-               const fs::path savedir = "images") {
+void cliRecon(const fs::path fname, int starti = 0, int nscans = 0,
+              const fs::path savedir = "images") {
   if (!fs::create_directory(savedir) && !fs::exists(savedir)) {
     std::cerr << " Failed to create savedir " << savedir << "\n";
     return;
@@ -60,22 +49,21 @@ void cli_recon(const fs::path fname, int starti = 0, int nscans = 0,
   const auto ioparams = uspam::io::IOParams::system2024v1();
   const auto params = recon::ReconParams2::system2024v1();
 
-  const auto num_scans_all = ioparams.get_num_scans<BType>(fname);
-  if (num_scans_all < 1) {
-    std::cerr << "No scans available in " << fname << "\n";
+  uspam::io::BinfileLoader<BType> loader(ioparams, fname);
+
+  if (starti >= loader.size()) {
+    std::cout << std::format("Error: starti({}) > size({})\n", starti,
+                             loader.size());
     return;
-  } else {
-    std::cout << "num_scans_all: " << num_scans_all << "\n";
   }
 
-  if (nscans < 1 || nscans > num_scans_all - starti) {
-    nscans = num_scans_all - starti;
+  if (nscans < 1 || starti + nscans > loader.size()) {
+    nscans = loader.size() - starti;
   }
 
-  // const auto background_aline =
-  //     estimate_aline_background_from_file(ioparams, fname, 50000);
-
-  // const auto background = ioparams.split_rf_PAUS(background_aline);
+  const arma::vec background_aline =
+      estimate_aline_background_from_file(ioparams, fname, 10000);
+  const auto background = ioparams.splitRfPAUS_aline(background_aline);
 
   // background_aline.save("background.bin", arma::raw_binary);
   // background.PA.save("PAbackground.bin", arma::raw_binary);
@@ -96,25 +84,31 @@ void cli_recon(const fs::path fname, int starti = 0, int nscans = 0,
   // auto rfPair = ioparams.allocate_split_pair<double>();
   // auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
 
+  using clock = std::chrono::high_resolution_clock;
+  using std::chrono::duration_cast;
+
   const int endi = nscans + starti;
+  arma::Mat<BType> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
+  auto rfPair = ioparams.allocateSplitPair<double>(1000);
+  auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
+
   for (int i = starti; i < endi; ++i) {
     const double pct = (double)(i - starti) / nscans;
     // bar.set_progress(pct);
-
-    const auto start = high_resolution_clock::now();
-
+    const auto start = clock::now();
     const bool flip{i % 2 != 0};
 
-    const auto rf_ = ioparams.load_rf<BType>(fname, i);
-    arma::mat rf = arma::conv_to<arma::mat>::from(rf_);
+    // Read next RF scan from file
+    loader.getNext(rf);
 
     // Background subtraction
-    rf.each_col() -= arma::mean(rf, 1);
+    // rf.each_col() -= arma::mean(rf, 1);
+    // rf.each_col() -= background_aline;
 
-    auto rfPair = ioparams.split_rf_PAUS(rf);
-    // rf_pair.US.each_col() -= background.US.col(0);
+    ioparams.splitRfPAUS(rf, rfPair);
+    // Background subtraction
+    rfPair.US.each_col() -= background.US.col(0);
 
-    auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
     {
       TimeIt timeit("reconOneScan");
       params.reconOneScan(rfPair, rfLog, flip);
@@ -129,8 +123,9 @@ void cli_recon(const fs::path fname, int starti = 0, int nscans = 0,
     const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
     const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
 
-    const auto elapsed = high_resolution_clock::now() - start;
-    std::cout << duration_cast<milliseconds>(elapsed).count() << " ms\n";
+    const auto elapsed = clock::now() - start;
+    std::cout << duration_cast<std::chrono::milliseconds>(elapsed).count()
+              << " ms\n";
 
     cv::imshow("tmp", USradial);
     cv::waitKey(1);
@@ -138,9 +133,6 @@ void cli_recon(const fs::path fname, int starti = 0, int nscans = 0,
 }
 
 int main(int argc, char **argv) {
-  fftconv::use_fftw_mutex(&fftw_mutex);
-  uspam::fft::use_fftw_mutex(&fftw_mutex);
-
   CLI::App app{"arpam - reconstruct images from binfiles"};
 
   std::string _binpath;
@@ -168,7 +160,7 @@ int main(int argc, char **argv) {
   std::cout << "binpath: " << binpath << "\n";
   std::cout << "nscans: " << nscans << "\n";
 
-  cli_recon<uint16_t>(binpath, starti, nscans, savedir);
+  cliRecon<uint16_t>(binpath, starti, nscans, savedir);
 
   return 0;
 }
