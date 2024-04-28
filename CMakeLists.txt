@@ -40,3 +40,5 @@ add_subdirectory(cli)
 # Build the ARPAM gui
 add_subdirectory(arpam_gui_glfw_vulkan)
 
+add_subdirectory(arpam_gui_qt)
+

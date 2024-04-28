@@ -1,0 +1,54 @@
+project(arpam-gui-qt VERSION 1.0.0 LANGUAGES CXX)
+
+set(EXE_NAME arpam-gui-qt)
+
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets)
+qt_standard_project_setup()
+set(CMAKE_AUTOMOC ON)
+
+qt_add_executable(${EXE_NAME}
+    src/main.cpp
+    src/MainWindow.hpp
+    src/MainWindow.cpp
+)
+
+target_include_directories(${EXE_NAME} PRIVATE src)
+
+target_link_libraries(${EXE_NAME}
+    PRIVATE
+    # libuspam
+    Qt::Widgets
+)
+
+set_target_properties(${EXE_NAME} PROPERTIES
+    CXX_STANDARD 20
+    CXX_EXTENSIONS OFF
+    # INTERPROCEDURAL_OPTIMIZATION TRUE
+    WIN32_EXECUTABLE ON
+    MACOSX_BUNDLE ON
+)
+
+if (WIN32)
+    # On Windows, call windeployqt create a deployable folder
+    # https://doc.qt.io/qt-6/windows-deployment.html
+
+    # Find windeployqt
+    get_target_property(_qt_bin_dir Qt::qmake IMPORTED_LOCATION)
+    get_filename_component(_qt_bin_dir "${_qt_bin_dir}" DIRECTORY)
+    find_program(WINDEPLOYQT_EXE NAMES windeployqt.exe HINTS "${_qt_bin_dir}")
+    find_program(WINDEPLOYQT_DEBUG_EXE NAMES windeployqt.debug.bat HINTS "${_qt_bin_dir}")
+
+    message("CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}")
+    message("_qt_bin_dir ${_qt_bin_dir}")
+    message("WINDEPLOYQT_EXE ${WINDEPLOYQT_EXE}")
+    message("WINDEPLOYQT_DEBUG_EXE ${WINDEPLOYQT_DEBUG_EXE}")
+
+    # Add post build command to call windeployqt
+    add_custom_command(TARGET ${EXE_NAME} POST_BUILD
+        COMMAND "$<IF:$<CONFIG:Debug>,${WINDEPLOYQT_DEBUG_EXE},${WINDEPLOYQT_EXE}>"
+        --verbose 0 
+        --no-compiler-runtime 
+        "$<TARGET_FILE:${EXE_NAME}>"
+    )
+
+endif()
