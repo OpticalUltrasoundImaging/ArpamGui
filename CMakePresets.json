@@ -71,6 +71,42 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "clang-cl",
+            "hidden": true,
+            "inherits": "base",
+            "generator": "Visual Studio 17 2022",
+            "toolset": "ClangCL",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang-cl",
+                "CMAKE_CXX_COMPILER": "clang-cl",
+                "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--format-style=file",
+                "CMAKE_C_COMPILER_TARGET": "x86_64-pc-windows-msvc",
+                "CMAKE_CXX_COMPILER_TARGET": "x86_64-pc-windows-msvc",
+                "CMAKE_CXX_FLAGS": "/arch:AVX2 /EHsc",
+                "CMAKE_C_FLAGS": "/arch:AVX2 /EHsc"
+            }
+        },
+        {
+            "name": "clang-cl-debug",
+            "displayName": "Clang-CL Debug",
+            "inherits": "clang-cl",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "clang-cl-release",
+            "displayName": "Clang-CL Release",
+            "inherits": "clang-cl",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         }
     ],
     "buildPresets": [
