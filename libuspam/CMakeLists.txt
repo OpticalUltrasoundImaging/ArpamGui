@@ -1,17 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(libuspam LANGUAGES CXX)
 
-# Optionally find CUDA
-include(CheckLanguage)
-check_language(CUDA)
-if(CMAKE_CUDA_COMPILER)
-    enable_language(CUDA)
-    add_definitions(-DHAS_CUDA=1)
-    find_package(CUDA REQUIRED)
-else()
-    message(STATUS "No CUDA support")
-endif()
-
 find_package(Armadillo CONFIG REQUIRED)
 find_package(OpenBLAS CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
@@ -22,23 +11,8 @@ set(LIB_NAME libuspam)
 add_library(${LIB_NAME} STATIC
     src/signal.cpp
     src/recon.cpp
-    src/cudaSignal.cu
 )
 target_include_directories(${LIB_NAME} PUBLIC include)
-
-if (CMAKE_CUDA_COMPILER)
-    target_sources(${LIB_NAME}
-        PRIVATE
-        src/cudaSignal.cu
-    )
-    set_property(TARGET ${LIB_NAME} PROPERTY CUDA_ARCHITECTURES 75)
-    target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
-                           --use_fast_math
-                           --extended-lambda
-                           >)
-endif()
-
-
 target_link_libraries(${LIB_NAME}
     PUBLIC
     fftconv
@@ -46,9 +20,6 @@ target_link_libraries(${LIB_NAME}
     OpenBLAS::OpenBLAS
     opencv_world
 )
-
-target_include_directories(${LIB_NAME} PUBLIC ${CUDA_INCLUDE_DIRS})
-target_link_libraries(${LIB_NAME} PUBLIC ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES})
 
 # Use strict C++20
 set_target_properties(${LIB_NAME} PROPERTIES
@@ -60,10 +31,47 @@ if(WIN32)
     target_compile_definitions(${LIB_NAME} PRIVATE _USE_MATH_DEFINES)
 endif()
 
-set_target_properties(${LIB_NAME} PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
-)
+# Optionally find CUDA
+include(CheckLanguage)
+check_language(CUDA)
+
+message("check_language(CUDA): CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
+
+if(CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+
+    set_target_properties(${LIB_NAME} PROPERTIES
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON
+        CUDA_ARCHITECTURES 75
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+
+    target_compile_definitions(${LIB_NAME} PUBLIC USPAM_HAS_CUDA=1)
+    target_sources(${LIB_NAME}
+        PRIVATE
+        src/cudaSignal.cu
+        src/cudaRecon.cu
+    )
+
+    target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                           --use_fast_math
+                           --extended-lambda
+                           >)
+
+    message("BEGIN CUDA::cudart")
+    get_target_property(CUDART_INCLUDE_DIRS CUDA::cudart INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(CUDART_LINK_LIBRARIES CUDA::cudart INTERFACE_LINK_LIBRARIES)
+    message("CUDA::cudart include directories: ${CUDART_INCLUDE_DIRS}")
+    message("CUDA::cudart link libraries: ${CUDART_LINK_LIBRARIES}")
+    message("END CUDA::cudart")
+
+    target_link_libraries(${LIB_NAME} PUBLIC CUDA::cudart CUDA::cublas CUDA::cufft)
+else()
+    message(STATUS "No CUDA support")
+endif()
 
 
 # Build tests
@@ -75,10 +83,27 @@ add_executable(test_libuspam
     test/test_signal.cpp
     test/test_recon.cpp
     test/test_imutil.cpp
-    test/test_cudaSignal.cu
 )
 
-set_property(TARGET test_libuspam PROPERTY CUDA_ARCHITECTURES 75)
+if (CMAKE_CUDA_COMPILER)
+    target_sources(test_libuspam
+        PRIVATE
+        test/test_cudaSignal.cu
+        test/test_cudaRecon.cu
+    )
+    target_compile_options(test_libuspam PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                           --use_fast_math
+                           --extended-lambda
+                           >)
+    set_target_properties(${LIB_NAME} PROPERTIES
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON
+        CUDA_ARCHITECTURES 75
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+endif()
+
 
 target_link_libraries(test_libuspam
     PRIVATE
@@ -87,5 +112,6 @@ target_link_libraries(test_libuspam
     GTest::gtest
     GTest::gtest_main
 )
+
 include(GoogleTest)
 gtest_discover_tests(test_libuspam)

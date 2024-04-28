@@ -1,15 +1,21 @@
 /**
 Everything here assumes column major for 2D arrays
 */
-#include "uspam/cudaSignal.cuh"
-#include "uspam/cudaUtil.cuh"
+// NOLINTBEGIN(*-pointer-arithmetic, *-trailing-return-type, *-const-cast)
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
-#include <array>
-#include <complex>
 #include <cuComplex.h>
 #include <cuda/std/cmath>
-#include <cuda_runtime.h>
 #include <cufft.h>
+#include <thrust/execution_policy.h>
+#include <thrust/extrema.h>
+#include <thrust/functional.h>
+#include <thrust/transform_reduce.h>
+
+#include "uspam/cudaSignal.h"
+#include "uspam/cudaUtil.h"
+#include <array>
 #include <map>
 #include <tuple>
 
@@ -22,7 +28,7 @@ __global__ void convolve1DSame(const double *in, const double *kernel,
   double sum = 0;
 
   if (i < inSize && j < batchSize) {
-    const int offset = j * inSize;
+    int offset = j * inSize;
     for (int k = 0; k < kernelSize; k++) {
       int idx = i + k_half - k; // Center the kernel on the current element
       if (idx >= 0 && idx < inSize) {
@@ -47,11 +53,12 @@ void uspam::cuda::firFilt2_same_device(const double *in, const double *kernel,
 }
 
 __global__ void kernelHilbert_r2c_freq_switch(cufftDoubleComplex *data,
-                                              const int rows, const int cols) {
-  const int i = blockIdx.x * blockDim.x + threadIdx.x; // row
-  const int j = blockIdx.y * blockDim.y + threadIdx.y; // col
+                                              const uint32_t rows,
+                                              const uint32_t cols) {
+  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x; // row
+  const uint32_t j = blockIdx.y * blockDim.y + threadIdx.y; // col
   if (i < rows && i < cols) {
-    const int idx = j * rows + i;
+    const uint32_t idx = j * rows + i;
     // data[idx] *= -1j;
     data[idx] = cuCmul(data[idx], make_cuDoubleComplex(0, -1));
   }
@@ -59,12 +66,12 @@ __global__ void kernelHilbert_r2c_freq_switch(cufftDoubleComplex *data,
 
 __global__ void kernelHilbert_r2c_scale_and_abs(const double *real,
                                                 const double *imag, double *out,
-                                                const int rows,
-                                                const int cols) {
-  const int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const int j = blockIdx.y * blockDim.y + threadIdx.y;
+                                                const uint32_t rows,
+                                                const uint32_t cols) {
+  const uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+  const uint32_t j = blockIdx.y * blockDim.y + threadIdx.y;
   if (i < rows && j < cols) {
-    const int idx = j * rows + i;
+    const uint32_t idx = j * rows + i;
     out[idx] = cuCabs(
         make_cuDoubleComplex(real[idx], imag[idx] / static_cast<double>(rows)));
   }
@@ -72,8 +79,8 @@ __global__ void kernelHilbert_r2c_scale_and_abs(const double *real,
 
 void uspam::cuda::hilbert2_ref(const double *in, double *out, const int fftSize,
                                const int batchSize, cudaStream_t stream) {
-  cufftHandle planr2c;
-  cufftHandle planc2r;
+  cufftHandle planr2c{};
+  cufftHandle planc2r{};
 
   std::array<int, 1> _fftSize = {fftSize};
   const int dist = fftSize;
@@ -96,9 +103,9 @@ void uspam::cuda::hilbert2_ref(const double *in, double *out, const int fftSize,
   CUFFT_CALL(cufftSetStream(planc2r, stream));
 
   // Create device arrays
-  cufftDoubleComplex *d_cx;
-  double *d_real;
-  double *d_imag;
+  cufftDoubleComplex *d_cx = nullptr;
+  double *d_real = nullptr;
+  double *d_imag = nullptr;
 
   CUDA_RT_CALL(
       cudaMalloc(&d_cx, fftSize * batchSize * sizeof(cufftDoubleComplex)));
@@ -144,15 +151,15 @@ void uspam::cuda::hilbert2_ref(const double *in, double *out, const int fftSize,
 using HilbertPlanKey = std::tuple<int, int>;
 struct HilbertPlan {
   // Plans
-  cufftHandle planr2c;
-  cufftHandle planc2r;
+  cufftHandle planr2c{};
+  cufftHandle planc2r{};
 
   // Device arrays
-  cufftDoubleComplex *d_cx;
-  double *d_real;
-  double *d_imag;
+  cufftDoubleComplex *d_cx{};
+  double *d_real{};
+  double *d_imag{};
 
-  HilbertPlan(const HilbertPlanKey &key) {
+  explicit HilbertPlan(const HilbertPlanKey &key) {
     const auto [_fftSize, batch_size] = key;
 
     std::array<int, 1> fftSize = {_fftSize};
@@ -192,7 +199,7 @@ struct HilbertPlan {
     CUDA_RT_CALL(cufftDestroy(planc2r));
   }
 
-  void setStream(cudaStream_t stream) {
+  void setStream(cudaStream_t stream) const {
     CUFFT_CALL(cufftSetStream(planr2c, stream));
     CUFFT_CALL(cufftSetStream(planc2r, stream));
   }
@@ -262,11 +269,11 @@ void uspam::cuda::hilbert2_device(const double *device_in, double *device_out,
       device_in, plan.d_imag, device_out, fftSize, batchSize);
 }
 
-double uspam::cuda::logCompress_device(double *d_in, double *d_out, int size,
-                                       double noiseFloor,
+double uspam::cuda::logCompress_device(const double *d_in, double *d_out,
+                                       int size, double noiseFloor,
                                        double desiredDynamicRangeDB,
                                        cudaStream_t stream) {
-  thrust::device_ptr<double> in(d_in);
+  thrust::device_ptr<const double> in(d_in);
   thrust::device_ptr<double> out(d_out);
 
   const auto peakIter =
@@ -288,50 +295,53 @@ double uspam::cuda::logCompress_device(double *d_in, double *d_out, int size,
   return dynamicRangeDB;
 }
 
-//__global__ void kernelLogCompress(double *d_in, double *d_out, int size,
-//                                  double noiseFloor,
-//                                  double desiredDynamicRangeDB) {
-//  const int i = blockIdx.x * blockDim.x + threadIdx.x;
-//
-//  if (i < size) {
-//    const double val = d_in[i];
-//    double compressed = 20.0 * log10(val / noiseFloor);
-//    compressed = max(compressed, double(0));
-//    compressed = min(compressed, desiredDynamicRangeDB);
-//    d_out[i] = compressed / desiredDynamicRangeDB;
-//  }
-//}
-//
+double
+uspam::cuda::logCompress_device(const thrust::device_vector<double> &d_in,
+                                thrust::device_vector<double> &d_out,
+                                double noiseFloor, double desiredDynamicRangeDB,
+                                cudaStream_t stream) {
+
+  d_out.resize(d_in.size());
+  return logCompress_device(thrust::raw_pointer_cast(d_in.data()),
+                            thrust::raw_pointer_cast(d_out.data()), d_in.size(),
+                            noiseFloor, desiredDynamicRangeDB, stream);
+}
+// __global__ void kernelLogCompress(double *d_in, double *d_out, int size,
+//                                   double noiseFloor,
+//                                   double desiredDynamicRangeDB) {
+//   const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+//   if (i < size) {
+//     const double val = d_in[i];
+//     double compressed = 20.0 * log10(val / noiseFloor);
+//     compressed = max(compressed, double(0));
+//     compressed = min(compressed, desiredDynamicRangeDB);
+//     d_out[i] = compressed / desiredDynamicRangeDB;
+//   }
+// }
+
 // double uspam::cuda::logCompress_device(double *_in, double *_out, int size,
-//                                       double noiseFloor,
-//                                       double desiredDynamicRangeDB,
-//                                       cudaStream_t stream) {
-//  //cudaStream_t streamMax;
-//  //CUDA_RT_CALL(cudaStreamCreate(&streamMax));
-//
-//  //const double peakLevel =
-//  //    *thrust::max_element(thrust::cuda::par.on(streamMax), _in, _in +
+//                                        double noiseFloor,
+//                                        double desiredDynamicRangeDB,
+//                                        cudaStream_t stream) {
+//   // cudaStream_t streamMax;
+//   // CUDA_RT_CALL(cudaStreamCreate(&streamMax));
+
+//   // const double peakLevel =
+//   //     *thrust::max_element(thrust::cuda::par.on(streamMax), _in, _in +
 //  size);
-//  //const double dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
+//  // const double dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
 //  const double dynamicRangeDB = 0.;
-//
+
 //  int blockSize = 512;
 //  int numBlocks = (size + blockSize - 1) / blockSize;
 //  kernelLogCompress<<<numBlocks, blockSize, 0, stream>>>(
 //      _in, _out, size, noiseFloor, desiredDynamicRangeDB);
-//
-//  //CUDA_RT_CALL(cudaGetLastError());
-//  //CUDA_RT_CALL(cudaStreamDestroy(streamMax));
-//
+
+//  // CUDA_RT_CALL(cudaGetLastError());
+//  // CUDA_RT_CALL(cudaStreamDestroy(streamMax));
+
 //  return dynamicRangeDB;
-//}
+// }
 
-void uspam::cuda::recon_device(const double *device_in, const double *kernel,
-                               double *device_out, const int size,
-                               const int kernelSize, const int batchSize,
-                               cudaStream_t stream) {
-
-  firFilt2_same_device(device_in, kernel, device_out, size, kernelSize,
-                       batchSize, stream);
-  hilbert2_device(device_out, device_out, size, batchSize, stream);
-}
+// NOLINTEND(*-pointer-arithmetic, *-trailing-return-type, *-const-cast)

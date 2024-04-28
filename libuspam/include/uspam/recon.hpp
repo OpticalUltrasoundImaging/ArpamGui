@@ -5,49 +5,25 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include <stdexcept>
 #include <vector>
 
 #include "fftconv.hpp"
-#include "opencv2/opencv.hpp"
-#include "uspam/fft.hpp"
+#include "uspam/imutil.hpp"
 #include "uspam/io.hpp"
 #include "uspam/signal.hpp"
-#include "uspam/imutil.hpp"
 
 #include <opencv2/opencv.hpp>
 
-namespace uspam {
-namespace recon {
+namespace uspam::recon {
 
 using fftconv::FloatOrDouble;
 
-inline auto recon(const arma::mat &rf, const arma::vec &kernel,
-                  arma::mat &env) {
-  // TODO FIR filter
-
-  // cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-  //   arma::vec rf_filt(rf.n_rows);
-  //   for (int i = range.start; i < range.end; ++i) {
-  //     const auto src = rf.unsafe_col(i);
-  //     auto dst = env.unsafe_col(i);
-  //     fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
-  //     signal::hilbert_abs(rf_filt, dst);
-  //   }
-  // });
-  arma::vec rf_filt(rf.n_rows);
-  for (int i = 0; i < rf.n_cols; ++i) {
-    const auto src = rf.unsafe_col(i);
-    auto dst = env.unsafe_col(i);
-    fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
-    signal::hilbert_abs_r2c(rf_filt, dst);
-  }
-}
+void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env);
 
 template <FloatOrDouble T>
 auto logCompress(const arma::Mat<T> &x, arma::Mat<T> &xLog, const T noiseFloor,
                  const T desiredDynamicRangeDB = 45.0) -> T {
-  assert(x.size() > 0);
+  assert(!x.empty());
   assert(x.size() == xLog.size());
 
   // Determine the peak signal value.
@@ -77,7 +53,7 @@ template <FloatOrDouble T>
 auto logCompress(const std::span<const T> x, const std::span<T> xLog,
                  const T noiseFloor, const T desiredDynamicRangeDB = 45.0)
     -> T {
-  assert(x.size() > 0);
+  assert(!x.empty());
   assert(x.size() == xLog.size());
 
   // Determine the peak signal value.
@@ -148,50 +124,11 @@ struct ReconParams2 {
 
   // FIR filter + Envelope detection + log compression
   void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,
-                    bool flip = false) const {
+                    bool flip = false) const;
 
-    if (flip) {
-      // Do flip
-      //rf.PA = arma::fliplr(rf.PA);
-      //rf.US = arma::fliplr(rf.US);
-      //imutil::fliplr_inplace(rf.PA);
-      //imutil::fliplr_inplace(rf.US);
-
-      // Do rotate
-      //const auto rotate_offset = this->aline_rotation_offset;
-      //rf.PA = arma::shift(rf.PA, rotate_offset, 1);
-      //rf.US = arma::shift(rf.US, rotate_offset, 1);
-    }
-
-    // compute filter kernels
-    const auto kernelPA = signal::firwin2(95, filter_freq_PA, filter_gain_PA);
-    const auto kernelUS = signal::firwin2(95, filter_freq_US, filter_gain_US);
-
-    auto env = io::PAUSpair<double>::empty_like(rf);
-
-    recon(rf.PA, kernelPA, env.PA);
-    logCompress<double>(env.PA, rfLog.PA, this->noise_floor_PA,
-                        this->desired_dynamic_range_PA);
-
-    recon(rf.US, kernelUS, env.US);
-    logCompress<double>(env.US, rfLog.US, this->noise_floor_US,
-                        this->desired_dynamic_range_US);
-
-    if (flip) {
-      imutil::fliplr_inplace(rfLog.PA);
-      imutil::fliplr_inplace(rfLog.US);
-      std::cout << "Did flip\n";
-    }
-
-  }
-
-  [[nodiscard]] inline auto reconOneScan(io::PAUSpair<double> &rf,
-                                         bool flip = false) const {
-    auto rfLog = io::PAUSpair<double>::zeros_like(rf);
-    reconOneScan(rf, rfLog, flip);
-    return rfLog;
-  }
+  [[nodiscard]] auto reconOneScan(io::PAUSpair<double> &rf,
+                                  bool flip = false) const
+      -> io::PAUSpair<double>;
 };
 
-} // namespace recon
-} // namespace uspam
+} // namespace uspam::recon

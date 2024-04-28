@@ -9,6 +9,7 @@
         "string": "cpp",
         "tuple": "cpp",
         "unordered_map": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "armadillo": "cpp"
     }
 }

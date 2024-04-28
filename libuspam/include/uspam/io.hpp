@@ -6,10 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <span>
-#include <string_view>
-#include <vector>
 
 #include <armadillo>
 
@@ -41,14 +38,14 @@ template <typename T> struct PAUSpair {
 };
 
 struct IOParams {
-  int rf_size_PA;
-  int rf_size_spacer;
+  int rf_size_PA{};
+  int rf_size_spacer{};
   // No. of samples in US RF. Must be twice rf_size_PA
-  int rf_size_US;
+  int rf_size_US{};
 
-  int offsetUS;
+  int offsetUS{};
   // Number of points
-  int offsetPA;
+  int offsetPA{};
 
   // Byte offset at beginning of file.
   int byte_offset = 0;

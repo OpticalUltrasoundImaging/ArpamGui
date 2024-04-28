@@ -7,11 +7,8 @@
 #include <format>
 #include <indicators/progress_bar.hpp>
 #include <iostream>
-#include <mutex>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
-
-#include <cuda_runtime.h>
 
 namespace fs = std::filesystem;
 namespace io = uspam::io;

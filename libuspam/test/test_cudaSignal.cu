@@ -1,19 +1,21 @@
-#include <armadillo>
-#include <cstdlib>
 #include <cuda_runtime.h>
+
+#include <armadillo>
 #include <fftconv.hpp>
-#include <fstream>
 #include <gtest/gtest.h>
 #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/generate.h>
 #include <thrust/host_vector.h>
 
-#include "uspam/cudaSignal.cuh"
-#include "uspam/cudaUtil.cuh"
+#include "uspam/cudaRecon.h"
+#include "uspam/cudaSignal.h"
+#include "uspam/cudaUtil.h"
 #include "uspam/recon.hpp"
 #include "uspam/signal.hpp"
 #include "uspam/timeit.hpp"
+
+// NOLINTBEGIN(*-non-const-global-variables, modernize-*, *-magic-numbers)
 
 namespace signal = uspam::signal;
 
@@ -78,7 +80,7 @@ TEST(CudaHilbertTest, Bench) {
   }
 
   {
-    cudaStream_t stream;
+    cudaStream_t stream{};
     CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
 
     arma::mat env(fft_size, batch_size, arma::fill::none);
@@ -95,7 +97,7 @@ TEST(CudaHilbertTest, Bench) {
   }
 
   {
-    cudaStream_t stream;
+    cudaStream_t stream{};
     CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
 
     thrust::device_vector<double> device_in(fft_size * batch_size);
@@ -150,7 +152,7 @@ TEST(CudaFIRFilterTest, Correct) {
   thrust::device_vector<double> device_kernel(kernel.begin(), kernel.end());
   thrust::device_vector<double> device_out(N * batchSize);
 
-  cudaStream_t stream;
+  cudaStream_t stream{};
   CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
 
   uspam::cuda::firFilt2_same_device(
@@ -164,10 +166,10 @@ TEST(CudaFIRFilterTest, Correct) {
   const arma::mat _out(thrust::raw_pointer_cast(out.data()), N, batchSize,
                        false, true);
 
-  in.save("firfilt_in.bin", arma::raw_binary);
-  kernel.save("firfilt_kernel.bin", arma::raw_binary);
-  expected.save("firfilt_expected.bin", arma::raw_binary);
-  _out.save("firfilt_out.bin", arma::raw_binary);
+  // in.save("firfilt_in.bin", arma::raw_binary);
+  // kernel.save("firfilt_kernel.bin", arma::raw_binary);
+  // expected.save("firfilt_expected.bin", arma::raw_binary);
+  // _out.save("firfilt_out.bin", arma::raw_binary);
 
   for (int j = 0; j < batchSize; ++j) {
     for (int i = 0; i < N; ++i) {
@@ -225,7 +227,7 @@ TEST(CudaFIRFilterTest, Bench) {
       true);
 
   runs = 100;
-  cudaStream_t stream;
+  cudaStream_t stream{};
   CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
   thrust::device_vector<double> device_in(in.begin(), in.end());
   thrust::device_vector<double> device_kernel(kernel.begin(), kernel.end());
@@ -280,7 +282,7 @@ TEST(CudaLogCompressTest, Bench) {
       "logCompress CPU", runs,
       [&]() { uspam::recon::logCompress<double>(in, expected, 1., 5.); }, true);
 
-  cudaStream_t stream;
+  cudaStream_t stream{};
   CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
 
   thrust::device_vector<double> d_in(in.begin(), in.end());
@@ -303,47 +305,4 @@ TEST(CudaLogCompressTest, Bench) {
   CUDA_RT_CALL(cudaStreamDestroy(stream));
 }
 
-TEST(CudaReconTest, Correct) {
-  // TODO
-}
-
-TEST(CudaReconTest, Bench) {
-  const int size = 8192;
-  const int batchSize = 1000;
-  const int kernelSize = 95;
-  arma::mat input(size, batchSize, arma::fill::randn);
-  arma::vec kernel(kernelSize, arma::fill::randu);
-
-  int n_runs = 10;
-  {
-    arma::mat env(size, batchSize, arma::fill::none);
-    auto nanos = bench(
-        "recon CPU", n_runs, [&]() { uspam::recon::recon(input, kernel, env); },
-        true);
-  }
-
-  n_runs = 20;
-  {
-    cudaStream_t stream;
-    CUDA_RT_CALL(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
-
-    thrust::device_vector<double> device_in(size * batchSize);
-    thrust::device_vector<double> device_out(size * batchSize);
-    thrust::device_vector<double> device_kernel(kernelSize);
-
-    CUDA_RT_CALL(cudaStreamSynchronize(stream));
-    bench(
-        "recon CUDA", n_runs,
-        [&]() {
-          uspam::cuda::recon_device(
-              thrust::raw_pointer_cast(device_in.data()),
-              thrust::raw_pointer_cast(device_kernel.data()),
-              thrust::raw_pointer_cast(device_out.data()), size, kernelSize,
-              batchSize, stream);
-          CUDA_RT_CALL(cudaStreamSynchronize(stream));
-        },
-        true);
-
-    CUDA_RT_CALL(cudaStreamDestroy(stream));
-  }
-}
+// NOLINTEND(*-non-const-global-variables, modernize-*, *-magic-numbers)

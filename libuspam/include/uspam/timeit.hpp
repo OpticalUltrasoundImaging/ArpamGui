@@ -42,14 +42,14 @@ template <typename Func>
 auto bench(const std::string &name, const int runs, const Func &func,
            bool write_to_file = false) {
   using namespace std::chrono;
-  high_resolution_clock clock{};
+  using clock = high_resolution_clock;
 
   // Time it and collect data
   std::vector<int64_t> nanos(runs);
   for (int i = 0; i < runs; ++i) {
-    const auto start = clock.now();
+    const auto start = clock::now();
     func();
-    nanos[i] = duration_cast<nanoseconds>(clock.now() - start).count();
+    nanos[i] = duration_cast<nanoseconds>(clock::now() - start).count();
   }
 
   // Compute statistics
@@ -88,8 +88,8 @@ auto bench(const std::string &name, const int runs, const Func &func,
 
   // Print message
   std::cout << name << " " << std::fixed << std::setprecision(2) << mean / scale
-            << " " << unit << " ± " << std / scale << " " << unit
-            << " per loop (mean ± std. dev. of " << runs << " runs)\n";
+            << " " << unit << " ï¿½ " << std / scale << " " << unit
+            << " per loop (mean ï¿½ std. dev. of " << runs << " runs)\n";
 
   if (write_to_file) {
     std::ofstream fs(name, std::ios::binary);

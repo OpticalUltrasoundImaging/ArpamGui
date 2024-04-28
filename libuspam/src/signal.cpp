@@ -5,13 +5,14 @@
 #include "uspam/signal.hpp"
 
 namespace uspam::signal {
+constexpr double PI = 3.1415926535897932384626;
 
 void create_hamming_window(const std::span<double> window) {
   const auto numtaps = window.size();
   for (int i = 0; i < numtaps; ++i) {
     // NOLINTBEGIN(*-magic-numbers)
     window[i] =
-        0.54 - 0.46 * std::cos(2 * M_PI * i / static_cast<double>(numtaps - 1));
+        0.54 - 0.46 * std::cos(2 * PI * i / static_cast<double>(numtaps - 1));
     // NOLINTEND(*-magic-numbers)
   }
 }
@@ -87,7 +88,7 @@ auto firwin2(int numtaps, const std::span<const double> freq,
   // Adjust phase of the coefficients so that the first `ntaps` of the
   // inverse FFT are the desired filter coefficients
   arma::cx_vec shift = arma::exp(-static_cast<double>(numtaps - 1) / 2 *
-                                 std::complex<double>(0, 1) * M_PI * x / nyq);
+                                 std::complex<double>(0, 1) * PI * x / nyq);
   fx %= shift;
 
   // Compute the inverse fft
@@ -118,17 +119,15 @@ void hilbert_abs(const std::span<const double> x, const std::span<double> env) {
   auto &engine = fft::fftw_engine_1d::get(n);
 
   // Copy input to real buffer
-  // NOLINTBEGIN(*-pointer-arithmetic)
+  // NOLINTBEGIN(*-pointer-arithmetic, *-magic-numbers)
   for (int i = 0; i < n; ++i) {
     engine.in[i][0] = x[i];
     engine.in[i][1] = 0.;
   }
-  // NOLINTEND(*-pointer-arithmetic)
 
   // Execute r2c fft
   engine.execute_forward();
 
-  // NOLINTBEGIN(*-pointer-arithmetic)
   // Zero negative frequencies (half-Hermitian to Hermitian conversion)
   // Double the magnitude of positive frequencies
   const auto n_half = n / 2;
@@ -149,20 +148,18 @@ void hilbert_abs(const std::span<const double> x, const std::span<double> env) {
     engine.out[i][0] = 0.;
     engine.out[i][1] = 0.;
   }
-  // NOLINTEND(*-pointer-arithmetic)
 
   // Execute c2r fft on modified spectrum
   engine.execute_backward();
 
   // Construct the analytic signal
   const double fct = 1. / static_cast<double>(n);
-  // NOLINTBEGIN(*-pointer-arithmetic)
   for (auto i = 0; i < n; ++i) {
     const auto real = x[i];
     const auto imag = engine.in[i][1] * fct;
     env[i] = std::abs(std::complex{real, imag});
   }
-  // NOLINTEND(*-pointer-arithmetic)
+  // NOLINTEND(*-pointer-arithmetic, *-magic-numbers)
 }
 
 void hilbert_abs_r2c(const std::span<const double> x,
