@@ -3,6 +3,7 @@
     "name": "arpam-gui",
     "version": "0.1",
     "dependencies": [
+        "qtbase",
         "jsoncpp",
         "glslang",
         "glfw3",
