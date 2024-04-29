@@ -19,8 +19,12 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
   static std::ofstream sLogStream = []() {
     std::ofstream os("arpam-gui.log", std::ios::app);
     os << "\n";
+
+    const auto appDirPath = QCoreApplication::applicationDirPath();
+
     addDatetime(os);
-    os << "Application launched\n";
+    os << "Application launched (" << appDirPath.toStdString() << ")\n";
+
     return os;
   }();
 
@@ -31,26 +35,24 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
   addDatetime(sLogStream);
   switch (type) {
   case QtDebugMsg:
-    sLogStream << "Debug: " << localMsg.constData() << "(" << file << ":"
-               << context.line << ")\n";
+    sLogStream << "Debug: ";
     break;
   case QtInfoMsg:
-    sLogStream << "Info: " << localMsg.constData() << " (" << file << ":"
-               << context.line << ")\n";
+    sLogStream << "Info: ";
     break;
   case QtWarningMsg:
-    sLogStream << "Warning: " << localMsg.constData() << "(" << file << ":"
-               << context.line << ")\n";
+    sLogStream << "Warning: ";
     break;
   case QtCriticalMsg:
-    sLogStream << "Critical: " << localMsg.constData() << "(" << file << ":"
-               << context.line << ")\n";
+    sLogStream << "Critical: ";
     break;
   case QtFatalMsg:
-    sLogStream << "Fatal: " << localMsg.constData() << "(" << file << ":"
-               << context.line << ")\n";
+    sLogStream << "Fatal: ";
     break;
   }
+
+  sLogStream << localMsg.constData() << "(" << file << ":" << context.line
+             << ")\n";
 }
 
 auto main(int argc, char **argv) -> int {
