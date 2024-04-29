@@ -10,6 +10,7 @@
         "tuple": "cpp",
         "unordered_map": "cpp",
         "variant": "cpp",
-        "armadillo": "cpp"
+        "armadillo": "cpp",
+        "format": "cpp"
     }
 }

@@ -2,15 +2,14 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QtWidgets>
-#include <chrono>
 #include <ctime>
 #include <format>
 #include <fstream>
 
 void addDatetime(std::ostream &os) {
-  auto const time =
-      std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-  os << "[" << std::format("{:%Y-%m-%d %X}", time) << "] ";
+  std::time_t t = std::time(nullptr);
+  std::tm tm = *std::localtime(&t);
+  os << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] ";
 }
 
 // Log handler
