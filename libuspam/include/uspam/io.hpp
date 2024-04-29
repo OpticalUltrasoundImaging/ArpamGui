@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <span>
+#include <string>
 
 #include <armadillo>
 
@@ -173,7 +174,9 @@ public:
       : file(filename, std::ios::binary | std::ios::ate),
         byteOffset(ioparams.byte_offset), alinesPerBscan(alinesPerBscan) {
     if (!file.is_open()) {
-      throw std::runtime_error("Failed to open file\n");
+      throw std::runtime_error(
+          std::string("[BinfileLoader] Failed to open file ") +
+          filename.generic_string());
     }
     const std::streamsize fsize = file.tellg();
     numScans = (fsize - ioparams.byte_offset) / scanSizeBytes();

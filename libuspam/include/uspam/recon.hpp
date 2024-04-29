@@ -20,6 +20,7 @@ using fftconv::FloatOrDouble;
 
 void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env);
 
+// Log compress to range of 0 - 1
 template <FloatOrDouble T>
 auto logCompress(const arma::Mat<T> &x, arma::Mat<T> &xLog, const T noiseFloor,
                  const T desiredDynamicRangeDB = 45.0) -> T {

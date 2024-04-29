@@ -10,13 +10,24 @@ qt_add_executable(${EXE_NAME}
     src/main.cpp
     src/MainWindow.hpp
     src/MainWindow.cpp
+    src/ImshowCanvas.hpp
+    src/ImshowCanvas.cpp
+    src/CoregDisplay.hpp
+    src/CoregDisplay.cpp
+    src/DataProcessingThread.hpp
+    src/DataProcessingThread.cpp
+)
+qt_add_resources(${EXE_NAME} imageresources
+    PREFIX "/"
+    FILES 
+    resources/images/radial_380.png
 )
 
 target_include_directories(${EXE_NAME} PRIVATE src)
 
 target_link_libraries(${EXE_NAME}
     PRIVATE
-    # libuspam
+    libuspam
     Qt::Widgets
 )
 
