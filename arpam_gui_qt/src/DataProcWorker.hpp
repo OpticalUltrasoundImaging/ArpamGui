@@ -2,17 +2,18 @@
 
 #include <QImage>
 #include <QMutex>
-#include <QThread>
+#include <QObject>
 #include <QWaitCondition>
+#include <atomic>
 #include <uspam/io.hpp>
 #include <uspam/recon.hpp>
 #include <uspam/uspam.hpp>
 
-class DataProcessingThread : public QThread {
+class DataProcWorker : public QObject {
   Q_OBJECT
 
 public:
-  DataProcessingThread() {
+  DataProcWorker() {
     // ioparams = uspam::io::IOParams::system2024v1();
     // params = uspam::recon::ReconParams2::system2024v1();
   }
@@ -24,11 +25,15 @@ public:
 
 public slots:
   void setBinfile(const QString &binfile);
-  void stopCurentWork();
-  void threadShouldStop();
 
-protected:
-  void run() override;
+  // Begin post processing data using the currentBinfile
+  void doPostProcess();
+
+  // Returns true if the worker is ready to start new work.
+  bool isReady() { return _ready; };
+
+  // Abort the current work (only works when ready=false. Updates ready=true)
+  void abortCurrentWork();
 
 signals:
   void resultReady(QImage img1, QImage img2);
@@ -38,14 +43,13 @@ signals:
 private:
   void processCurrentBinfile();
 
-  bool _shouldStopThread{false};
-  bool _abortCurrent{false};
-  bool _ready{false};
+  std::atomic<bool> _abortCurrent{false};
+  std::atomic<bool> _ready{true};
+
   QMutex _mutex;
   QWaitCondition _condition;
 
   QString currentBinfile;
-
   // static uspam::recon::ReconParams2 params;
   // static uspam::io::IOParams ioparams;
 };

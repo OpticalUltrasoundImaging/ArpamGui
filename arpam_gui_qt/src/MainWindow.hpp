@@ -10,14 +10,14 @@
 #include <QVBoxLayout>
 
 #include "CoregDisplay.hpp"
-#include "DataProcessingThread.hpp"
+#include "DataProcWorker.hpp"
 #include "ImshowCanvas.hpp"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
 public:
   MainWindow(QWidget *parent = nullptr);
-  ~MainWindow();
+  ~MainWindow() = default;
 
 public slots:
   // Log error message to a text box on screen
@@ -28,12 +28,12 @@ public slots:
   // Opens a file dialog to select a bin file and then launches a
   // worker thread to process images and display
   void openBinFile();
+  void abortCurrentWorkInThread();
 
   void handleNewImages(QImage img1, QImage img2);
 
 signals:
   void setProcWorkerBinfile(QString binfile);
-  void stopCurrWorkInProcThread();
   void stopProcThread();
 
 private:
@@ -41,5 +41,7 @@ private:
 
   QPlainTextEdit *textEdit;
   CoregDisplay *coregDisplay;
-  DataProcessingThread dataProcessingThread;
+
+  QThread workerThread;
+  DataProcWorker *worker;
 };

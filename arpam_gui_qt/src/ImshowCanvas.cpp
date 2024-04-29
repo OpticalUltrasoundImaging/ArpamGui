@@ -24,7 +24,6 @@ void ImshowCanvas::imshow(const QImage &img) {
 }
 
 void ImshowCanvas::imshow(const QPixmap &pixmap) {
-  qDebug() << "ImshowCanvas imshow label size " << this->size();
   auto size = this->size();
   size = size.expandedTo(QSize(500, 500));
   this->setPixmap(

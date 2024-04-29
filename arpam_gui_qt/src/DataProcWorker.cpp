@@ -1,4 +1,4 @@
-#include "DataProcessingThread.hpp"
+#include "DataProcWorker.hpp"
 #include <QtDebug>
 #include <QtLogging>
 #include <armadillo>
@@ -92,44 +92,37 @@ struct ReconPerformanceStats {
   float reconTimeMs;
 };
 
-void DataProcessingThread::setBinfile(const QString &binfile) {
-  qInfo() << "DataProcessingThread set currentBinfile to" << binfile;
+void DataProcWorker::setBinfile(const QString &binfile) {
+  qInfo() << "DataProcWorker set currentBinfile to" << binfile;
   currentBinfile = binfile;
-  _ready = true;
-  _abortCurrent = false;
-  _condition.wakeOne();
+  doPostProcess();
 }
 
-void DataProcessingThread::run() {
-  QMutexLocker locker(&_mutex);
+void DataProcWorker::doPostProcess() {
+  _abortCurrent = false;
+  _ready = false;
 
-  while (!_abortCurrent) {
-    if (!_ready) {
-      _condition.wait(&_mutex); // Wait until a task is set
-    }
-    if (_shouldStopThread) {
-      break;
-    }
-
-    locker.unlock();
-
+  try {
     this->processCurrentBinfile();
-    emit finishedOneFile();
+  } catch (const std::runtime_error &e) {
+    const auto msg = QString::fromStdString(e.what());
+    qWarning() << "processCurrentBinfile exception: " << msg;
+    emit error("processCurrentBinfile exception: " + msg);
+  }
+
+  _abortCurrent = false;
+  _ready = true;
+
+  emit finishedOneFile();
+}
+
+void DataProcWorker::abortCurrentWork() {
+  if (!_ready) {
+    _abortCurrent = true;
   }
 }
 
-void DataProcessingThread::stopCurentWork() {
-  _abortCurrent = true;
-  _condition.wakeOne();
-}
-
-void DataProcessingThread::threadShouldStop() {
-  _abortCurrent = true;
-  _shouldStopThread = true;
-  _condition.wakeOne();
-}
-
-void DataProcessingThread::processCurrentBinfile() {
+void DataProcWorker::processCurrentBinfile() {
   qDebug() << "Processing binfile: " << currentBinfile;
   const fs::path binpath = qString2Path(currentBinfile);
   const fs::path savedir = binpath.parent_path() / "images";
@@ -146,69 +139,71 @@ void DataProcessingThread::processCurrentBinfile() {
   const auto ioparams = uspam::io::IOParams::system2024v1();
   const auto params = uspam::recon::ReconParams2::system2024v1();
 
-  try {
-    uspam::io::BinfileLoader<uint16_t> loader(ioparams, binpath);
+  uspam::io::BinfileLoader<uint16_t> loader(ioparams, binpath);
 
-    const arma::vec background_aline =
-        estimate_aline_background_from_file(ioparams, binpath, 1000);
-    const auto background = ioparams.splitRfPAUS_aline(background_aline);
+  const arma::vec background_aline =
+      estimate_aline_background_from_file(ioparams, binpath, 1000);
+  const auto background = ioparams.splitRfPAUS_aline(background_aline);
 
-    arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
-    auto rfPair = ioparams.allocateSplitPair<double>(1000);
-    auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
+  arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
+  auto rfPair = ioparams.allocateSplitPair<double>(1000);
+  auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
 
-    const int starti = 0;
-    const int nscans = loader.size();
-    const int endi = starti + nscans;
-    int i = 0;
+  const int starti = 0;
+  const int nscans = loader.size();
+  const int endi = starti + nscans;
+  int i = 0;
 
-    while (!_abortCurrent && i < endi) {
-      const bool flip{i % 2 != 0};
+  while (!_abortCurrent && i < endi) {
+    const bool flip{i % 2 != 0};
 
-      const auto start_time = std::chrono::high_resolution_clock::now();
+    const auto start_time = std::chrono::high_resolution_clock::now();
 
-      // Read next RF scan from file
-      loader.getNext(rf);
+    // Read next RF scan from file
+    loader.getNext(rf);
 
-      // Split RF into PA and US scan lines
-      ioparams.splitRfPAUS(rf, rfPair);
+    // Split RF into PA and US scan lines
+    ioparams.splitRfPAUS(rf, rfPair);
 
-      // Background subtraction
-      rfPair.US.each_col() -= background.US.col(0);
+    // Background subtraction
+    rfPair.US.each_col() -= background.US.col(0);
 
-      // Recon
-      params.reconOneScan(rfPair, rfLog, flip);
+    // Recon
+    params.reconOneScan(rfPair, rfLog, flip);
 
-      // Results here are 64F
-      const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
-      const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
+    // Results here are 64F
+    const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
+    const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
 
-      cv::Mat PAradial_normalize = PAradial * 255;
-      cv::Mat PAradial_u8;
-      PAradial_normalize.convertTo(PAradial_u8, CV_8U);
+    cv::Mat PAradial_normalize = PAradial * 255;
+    cv::Mat PAradial_u8;
+    PAradial_normalize.convertTo(PAradial_u8, CV_8U);
 
-      cv::Mat USradial_normalize = USradial * 255;
-      cv::Mat USradial_u8;
-      USradial_normalize.convertTo(USradial_u8, CV_8U);
+    cv::Mat USradial_normalize = USradial * 255;
+    cv::Mat USradial_u8;
+    USradial_normalize.convertTo(USradial_u8, CV_8U);
 
-      const QImage PAradial_img = cvMatToQImage(PAradial_u8);
-      const QImage USradial_img = cvMatToQImage(USradial_u8);
+    const QImage PAradial_img = cvMatToQImage(PAradial_u8);
+    const QImage USradial_img = cvMatToQImage(USradial_u8);
 
-      emit resultReady(PAradial_img, USradial_img);
+    emit resultReady(PAradial_img, USradial_img);
 
-      const auto elapsed =
-          std::chrono::duration_cast<std::chrono::milliseconds>(
-              std::chrono::high_resolution_clock::now() - start_time)
-              .count();
+    const auto elapsed =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - start_time)
+            .count();
 
-      emit error(QString("Processed image %1. Took %2 ms").arg(i).arg(elapsed));
+    emit error(QString("Processed image %1/%2. Took %3 ms")
+                   .arg(i)
+                   .arg(endi)
+                   .arg(elapsed));
 
-      ++i;
-    }
+    ++i;
+  }
 
-  } catch (const std::runtime_error &e) {
-    auto msg = QString::fromStdString(e.what());
-    qWarning() << "DataProcessingThread runtime_error: " << msg;
-    emit error(msg);
+  if (_abortCurrent) {
+    emit error("Aborted.");
+  } else {
+    emit error("processCurrentBinfile finished.");
   }
 }

@@ -9,7 +9,25 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
-      coregDisplay(new CoregDisplay(this)) {
+      coregDisplay(new CoregDisplay(this)), worker(new DataProcWorker) {
+
+  /**
+   * Setup worker thread
+   */
+  {
+    worker->moveToThread(&workerThread);
+
+    connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
+
+    connect(this, &MainWindow::setProcWorkerBinfile, worker,
+            &DataProcWorker::setBinfile);
+
+    connect(worker, &DataProcWorker::resultReady, this,
+            &MainWindow::handleNewImages);
+    connect(worker, &DataProcWorker::error, this, &MainWindow::logError);
+
+    workerThread.start();
+  }
 
   /**
    * Setup GUI
@@ -38,6 +56,12 @@ MainWindow::MainWindow(QWidget *parent)
     auto *btnPickFile = new QPushButton("Load bin file");
     connect(btnPickFile, &QPushButton::clicked, this, &MainWindow::openBinFile);
     dock_layout->addWidget(btnPickFile);
+
+    auto *btnStopProcEarly = new QPushButton("Stop");
+
+    connect(btnStopProcEarly, &QPushButton::clicked, this,
+            &MainWindow::abortCurrentWorkInThread);
+    dock_layout->addWidget(btnStopProcEarly);
   }
 
   // Central scroll area
@@ -62,40 +86,17 @@ MainWindow::MainWindow(QWidget *parent)
 
   auto pixmap = QPixmap(":/resources/images/radial_380.png");
   coregDisplay->canvas1->imshow(pixmap);
-
-  /**
-   * Setup worker thread
-   */
-  {
-    connect(&dataProcessingThread, &DataProcessingThread::resultReady, this,
-            &MainWindow::handleNewImages);
-
-    connect(&dataProcessingThread, &DataProcessingThread::error, this,
-            &MainWindow::logError);
-
-    connect(this, &MainWindow::setProcWorkerBinfile, &dataProcessingThread,
-            &DataProcessingThread::setBinfile);
-    connect(this, &MainWindow::stopProcThread, &dataProcessingThread,
-            &DataProcessingThread::threadShouldStop);
-    connect(this, &MainWindow::stopCurrWorkInProcThread, &dataProcessingThread,
-            &DataProcessingThread::stopCurentWork);
-
-    dataProcessingThread.start();
-  }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-
   // Stop the worker thread
-  emit stopProcThread();
-  if (dataProcessingThread.isRunning()) {
-    dataProcessingThread.quit();
-    dataProcessingThread.wait();
+  if (workerThread.isRunning()) {
+    abortCurrentWorkInThread();
+    workerThread.quit();
+    workerThread.wait();
   }
   event->accept();
 }
-
-MainWindow::~MainWindow() {}
 
 void MainWindow::logError(const QString &message) {
   textEdit->appendPlainText(message);
@@ -108,11 +109,18 @@ void MainWindow::switchMode() {
 }
 
 void MainWindow::openBinFile() {
+
   QString filename = QFileDialog::getOpenFileName(
       this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
-  qInfo() << "Selected binfile" << filename;
 
-  emit setProcWorkerBinfile(filename);
+  if (!filename.isEmpty()) {
+    qInfo() << "Selected binfile" << filename;
+    emit setProcWorkerBinfile(filename);
+  }
+}
+
+void MainWindow::abortCurrentWorkInThread() {
+  this->worker->abortCurrentWork();
 }
 
 void MainWindow::handleNewImages(QImage img1, QImage img2) {

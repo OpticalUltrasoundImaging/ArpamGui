@@ -14,8 +14,8 @@ qt_add_executable(${EXE_NAME}
     src/ImshowCanvas.cpp
     src/CoregDisplay.hpp
     src/CoregDisplay.cpp
-    src/DataProcessingThread.hpp
-    src/DataProcessingThread.cpp
+    src/DataProcWorker.hpp
+    src/DataProcWorker.cpp
 )
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"
