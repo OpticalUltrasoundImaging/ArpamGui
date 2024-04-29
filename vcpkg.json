@@ -12,7 +12,6 @@
         {
             "name": "opencv4",
             "features": [
-                "eigen",
                 "dnn",
                 "png",
                 "vulkan",
