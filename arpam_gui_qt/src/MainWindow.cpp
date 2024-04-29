@@ -61,7 +61,6 @@ MainWindow::MainWindow(QWidget *parent)
   layout->addWidget(coregDisplay);
 
   auto pixmap = QPixmap(":/resources/images/radial_380.png");
-  qInfo() << pixmap.size();
   coregDisplay->canvas1->imshow(pixmap);
 
   /**
@@ -111,7 +110,7 @@ void MainWindow::switchMode() {
 void MainWindow::openBinFile() {
   QString filename = QFileDialog::getOpenFileName(
       this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
-  qInfo() << "Open bin file" << filename;
+  qInfo() << "Selected binfile" << filename;
 
   emit setProcWorkerBinfile(filename);
 }
