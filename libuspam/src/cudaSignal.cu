@@ -269,15 +269,24 @@ void uspam::cuda::hilbert2_device(const double *device_in, double *device_out,
       device_in, plan.d_imag, device_out, fftSize, batchSize);
 }
 
-double uspam::cuda::logCompress_device(const double *d_in, double *d_out,
-                                       int size, double noiseFloor,
-                                       double desiredDynamicRangeDB,
-                                       cudaStream_t stream) {
+double calcDynamicRange_device(const double *d_in, int size, double noiseFloor,
+                               cudaStream_t stream) {
   thrust::device_ptr<const double> in(d_in);
-  thrust::device_ptr<double> out(d_out);
 
   const auto peakIter =
       thrust::max_element(thrust::cuda::par.on(stream), in, in + size);
+  const double peakLevel = *peakIter;
+  const double dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
+
+  return dynamicRangeDB;
+}
+
+void uspam::cuda::logCompress_device(const double *d_in, double *d_out,
+                                     int size, double noiseFloor,
+                                     double desiredDynamicRangeDB,
+                                     cudaStream_t stream) {
+  thrust::device_ptr<const double> in(d_in);
+  thrust::device_ptr<double> out(d_out);
 
   // Apply log compression with clipping
   thrust::transform(thrust::cuda::par.on(stream), in, in + size, out,
@@ -288,24 +297,20 @@ double uspam::cuda::logCompress_device(const double *d_in, double *d_out,
                       compVal = min(compVal, desiredDynamicRangeDB);
                       return compVal / desiredDynamicRangeDB;
                     });
-
-  const double peakLevel = *peakIter;
-  const double dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
-
-  return dynamicRangeDB;
 }
 
-double
-uspam::cuda::logCompress_device(const thrust::device_vector<double> &d_in,
-                                thrust::device_vector<double> &d_out,
-                                double noiseFloor, double desiredDynamicRangeDB,
-                                cudaStream_t stream) {
+void uspam::cuda::logCompress_device(const thrust::device_vector<double> &d_in,
+                                     thrust::device_vector<double> &d_out,
+                                     double noiseFloor,
+                                     double desiredDynamicRangeDB,
+                                     cudaStream_t stream) {
 
   d_out.resize(d_in.size());
-  return logCompress_device(thrust::raw_pointer_cast(d_in.data()),
-                            thrust::raw_pointer_cast(d_out.data()), d_in.size(),
-                            noiseFloor, desiredDynamicRangeDB, stream);
+  logCompress_device(thrust::raw_pointer_cast(d_in.data()),
+                     thrust::raw_pointer_cast(d_out.data()), d_in.size(),
+                     noiseFloor, desiredDynamicRangeDB, stream);
 }
+
 // __global__ void kernelLogCompress(double *d_in, double *d_out, int size,
 //                                   double noiseFloor,
 //                                   double desiredDynamicRangeDB) {

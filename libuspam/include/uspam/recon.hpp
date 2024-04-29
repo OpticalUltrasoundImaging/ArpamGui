@@ -20,55 +20,56 @@ using fftconv::FloatOrDouble;
 
 void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env);
 
+template <typename T>
+auto logCompress(T val, T noiseFloor, T desiredDynamicRangeDB) {
+  T compressedVal = 20.0 * std::log10(val / noiseFloor);
+  compressedVal = std::max(compressedVal, T(0));
+  compressedVal = std::min(compressedVal, desiredDynamicRangeDB);
+  return compressedVal / desiredDynamicRangeDB;
+}
+
 // Log compress to range of 0 - 1
-template <FloatOrDouble T>
-auto logCompress(const arma::Mat<T> &x, arma::Mat<T> &xLog, const T noiseFloor,
-                 const T desiredDynamicRangeDB = 45.0) -> T {
+template <FloatOrDouble T, typename Tout>
+void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
+                 const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
   assert(!x.empty());
   assert(x.size() == xLog.size());
-
-  // Determine the peak signal value.
-  const T peakLevel = *std::max_element(x.begin(), x.end());
-  const T dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
 
   // Apply log compression with clipping in a single pass
   cv::parallel_for_(cv::Range(0, x.n_cols), [&](const cv::Range &range) {
     for (int j = range.start; j < range.end; ++j) {
       for (int i = 0; i < x.n_rows; ++i) {
         const auto val = x(i, j);
-        T compressedValue = 20.0 * std::log10(val / noiseFloor);
-        compressedValue = std::max(compressedValue, T(0));
-        compressedValue = std::min(compressedValue, desiredDynamicRangeDB);
-        compressedValue /= desiredDynamicRangeDB;
-
-        xLog(i, j) = compressedValue;
+        const auto compressedVal =
+            logCompress(val, noiseFloor, desiredDynamicRangeDB);
+        if constexpr (std::is_same_v<T, Tout>)
+          xLog(i, j) = compressedVal;
+        else
+          xLog(i, j) = static_cast<Tout>(compressedVal);
       }
     }
     //}(cv::Range(0, x.n_cols));
   });
-
-  return dynamicRangeDB;
 }
 
 template <FloatOrDouble T>
-auto logCompress(const std::span<const T> x, const std::span<T> xLog,
-                 const T noiseFloor, const T desiredDynamicRangeDB = 45.0)
-    -> T {
+void logCompress(const std::span<const T> x, const std::span<T> xLog,
+                 const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
   assert(!x.empty());
   assert(x.size() == xLog.size());
 
+  // Apply log compression with clipping in a single pass
+  std::transform(x.begin(), x.end(), xLog.begin(), [&](const T val) {
+    return logCompress(val, noiseFloor, desiredDynamicRangeDB);
+  });
+}
+
+// Determine the dynamic range (dB) for a given signal with a known noiseFloor
+template <FloatOrDouble T>
+auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
   // Determine the peak signal value.
   const T peakLevel = *std::max_element(x.begin(), x.end());
   const T dynamicRangeDB = 20.0 * std::log10(peakLevel / noiseFloor);
-
-  // Apply log compression with clipping in a single pass
-  std::transform(x.begin(), x.end(), xLog.begin(), [&](const T val) {
-    T compressedValue = 20.0 * std::log10(val / noiseFloor);
-    compressedValue = std::max(compressedValue, T(0));
-    compressedValue = std::min(compressedValue, desiredDynamicRangeDB);
-    return compressedValue / desiredDynamicRangeDB;
-  });
-
   return dynamicRangeDB;
 }
 

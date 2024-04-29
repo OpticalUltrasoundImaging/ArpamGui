@@ -104,6 +104,7 @@ void cliRecon(const fs::path fname, int starti = 0, int nscans = 0,
 
     ioparams.splitRfPAUS(rf, rfPair);
     // Background subtraction
+    rfPair.PA.each_col() -= background.PA.col(0);
     rfPair.US.each_col() -= background.US.col(0);
 
     {

@@ -24,12 +24,15 @@ void hilbert2(const double *in, double *out, int fftSize, int batchSize,
 void hilbert2_device(const double *device_in, double *device_out, int fftSize,
                      int batchSize, cudaStream_t stream = nullptr);
 
-double logCompress_device(const double *d_in, double *d_out, int size,
-                          double noiseFloor, double desiredDynamicRangeDB,
-                          cudaStream_t stream = nullptr);
-double logCompress_device(const thrust::device_vector<double> &d_in,
-                          thrust::device_vector<double> &d_out,
-                          double noiseFloor, double desiredDynamicRangeDB,
-                          cudaStream_t stream = nullptr);
+void logCompress_device(const double *d_in, double *d_out, int size,
+                        double noiseFloor, double desiredDynamicRangeDB,
+                        cudaStream_t stream = nullptr);
+void logCompress_device(const thrust::device_vector<double> &d_in,
+                        thrust::device_vector<double> &d_out, double noiseFloor,
+                        double desiredDynamicRangeDB,
+                        cudaStream_t stream = nullptr);
+
+double calcDynamicRange_device(const double *d_in, int size, double noiseFloor,
+                               cudaStream_t stream = nullptr);
 
 } // namespace uspam::cuda
