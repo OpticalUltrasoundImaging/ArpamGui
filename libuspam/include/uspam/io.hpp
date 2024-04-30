@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <span>
 #include <string>
 
@@ -167,8 +168,8 @@ private:
   int byteOffset = 0;
   int numScans = 0;
   int alinesPerBscan = 0;
-
   int currScanIdx = 0;
+  std::mutex mtx;
 
 public:
   BinfileLoader(const IOParams &ioparams, const fs::path filename,
@@ -184,19 +185,27 @@ public:
     numScans = (fsize - ioparams.byte_offset) / scanSizeBytes();
     file.seekg(ioparams.byte_offset, std::ios::beg);
   }
+
   // (bytes) Raw RF size of one PAUS scan
   auto scanSizeBytes() const {
     return RF_ALINE_SIZE * alinesPerBscan * sizeof(TypeInBin);
   }
+
   auto size() const { return numScans; }
+
   void setCurrIdx(int idx) {
-    assert(idx >= 0);
-    assert(idx < numScans);
+    std::lock_guard lock(mtx);
+    assert(idx >= 0 && idx < numScans);
     currScanIdx = idx;
   }
-  bool hasMoreScans() { return currScanIdx < numScans; }
+
+  bool hasMoreScans() {
+    std::lock_guard lock(mtx);
+    return currScanIdx < numScans;
+  }
 
   bool get(arma::Mat<TypeInBin> &rf) {
+    std::lock_guard lock(mtx);
     assert(currScanIdx < numScans);
     assert(rf.size() * sizeof(TypeInBin) == scanSizeBytes());
 
@@ -207,8 +216,10 @@ public:
     // Read file
     return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
   }
+
   auto getNext(arma::Mat<TypeInBin> &rfStorage) {
     get(rfStorage);
+    std::lock_guard lock(mtx);
     currScanIdx++;
   }
 };
