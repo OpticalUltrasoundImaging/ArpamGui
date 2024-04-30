@@ -6,6 +6,11 @@
 #include <format>
 #include <fstream>
 
+#include <fftconv.hpp>
+#include <fftw3.h>
+#include <mutex>
+#include <uspam/fft.hpp>
+
 void addDatetime(std::ostream &os) {
   std::time_t t = std::time(nullptr);
   std::tm tm = *std::localtime(&t);
@@ -54,7 +59,10 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
              << ")\n";
 }
 
+std::mutex fftw_mutex;
+
 auto main(int argc, char **argv) -> int {
+  fftw_make_planner_thread_safe();
   qInstallMessageHandler(myMessageHandler);
 
   QApplication app(argc, argv);

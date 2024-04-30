@@ -11,25 +11,17 @@
         "openblas",
         {
             "name": "opencv4",
-            "features": [
-                "dnn",
-                "png",
-                "vulkan",
-                "tbb",
-                "png",
-                "world"
-            ]
+            "features": ["dnn", "png", "vulkan", "tbb", "png", "world"]
         },
         {
             "name": "fftw3",
             "platform": "x64",
-            "features": [
-                "avx2"
-            ]
+            "features": ["avx2", "threads"]
         },
         {
             "name": "fftw3",
-            "platform": "!x64"
+            "platform": "!x64",
+            "features": ["threads"]
         },
         {
             "name": "cuda",

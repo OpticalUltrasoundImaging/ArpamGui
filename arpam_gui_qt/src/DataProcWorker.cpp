@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <chrono>
 #include <filesystem>
+#include <future>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
 
@@ -122,6 +123,19 @@ void DataProcWorker::abortCurrentWork() {
   }
 }
 
+namespace {
+
+void procOne(const uspam::recon::ReconParams &params,
+             const arma::Mat<double> &background, arma::Mat<double> &rf,
+             arma::Mat<uint8_t> &rfLog, bool flip, QImage &radial_qimg) {
+  rf.each_col() -= background.col(0);
+  params.reconOneScan(rf, rfLog, flip);
+  const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog);
+  radial_qimg = cvMatToQImage(PAradial);
+}
+
+} // namespace
+
 void DataProcWorker::processCurrentBinfile() {
   qDebug() << "Processing binfile: " << currentBinfile;
   const fs::path binpath = qString2Path(currentBinfile);
@@ -138,6 +152,8 @@ void DataProcWorker::processCurrentBinfile() {
 
   const auto ioparams = uspam::io::IOParams::system2024v1();
   const auto params = uspam::recon::ReconParams2::system2024v1();
+  const auto paramsPA = params.getPA();
+  const auto paramsUS = params.getUS();
 
   uspam::io::BinfileLoader<uint16_t> loader(ioparams, binpath);
 
@@ -165,19 +181,36 @@ void DataProcWorker::processCurrentBinfile() {
     // Split RF into PA and US scan lines
     ioparams.splitRfPAUS(rf, rfPair);
 
-    // Background subtraction
-    rfPair.PA.each_col() -= background.PA.col(0);
-    rfPair.US.each_col() -= background.US.col(0);
-
     // Recon
-    params.reconOneScan(rfPair, rfLog, flip);
+    // rfPair.PA.each_col() -= background.PA.col(0);
+    // paramsPA.reconOneScan(rfPair.PA, rfLog.PA, flip);
+    // const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
+    // const QImage PAradial_img = cvMatToQImage(PAradial);
 
-    const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
-    const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
+    // rfPair.US.each_col() -= background.US.col(0);
+    // paramsUS.reconOneScan(rfPair.US, rfLog.US, flip);
+    // const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
+    // const QImage USradial_img = cvMatToQImage(USradial);
+    QImage USradial_img, PAradial_img;
 
-    const QImage PAradial_img = cvMatToQImage(PAradial);
-    const QImage USradial_img = cvMatToQImage(USradial);
+    // procOne(paramsPA, background.PA, rfPair.PA, rfLog.PA, flip,
+    // PAradial_img);
 
+    // procOne(paramsUS, background.US, rfPair.US, rfLog.US, flip,
+    // USradial_img);
+
+    const auto a1 =
+        std::async(std::launch::async, procOne, std::ref(paramsPA),
+                   std::ref(background.PA), std::ref(rfPair.PA),
+                   std::ref(rfLog.PA), flip, std::ref(PAradial_img));
+
+    const auto a2 =
+        std::async(std::launch::async, procOne, std::ref(paramsUS),
+                   std::ref(background.US), std::ref(rfPair.US),
+                   std::ref(rfLog.US), flip, std::ref(USradial_img));
+
+    a1.wait();
+    a2.wait();
     emit resultReady(PAradial_img, USradial_img);
 
     const auto elapsed =

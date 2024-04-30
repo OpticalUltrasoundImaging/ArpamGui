@@ -114,6 +114,17 @@ template <FloatOrDouble T> struct FIRFilterParams {
   }
 };
 
+struct ReconParams {
+  std::vector<double> filter_freq;
+  std::vector<double> filter_gain;
+  int noise_floor;
+  int desired_dynamic_range;
+  int rotate_offset;
+
+  void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
+                    bool flip) const;
+};
+
 struct ReconParams2 {
   std::vector<double> filter_freq_PA;
   std::vector<double> filter_gain_PA;
@@ -147,6 +158,19 @@ struct ReconParams2 {
   [[nodiscard]] auto reconOneScan(io::PAUSpair<double> &rf,
                                   bool flip = false) const
       -> io::PAUSpair<uint8_t>;
+
+  void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
+                    bool flip = false) const;
+
+  inline ReconParams getPA() const {
+    return ReconParams{filter_freq_PA, filter_gain_PA, noise_floor_PA,
+                       desired_dynamic_range_PA, aline_rotation_offset};
+  }
+
+  inline ReconParams getUS() const {
+    return ReconParams{filter_freq_US, filter_gain_US, noise_floor_US,
+                       desired_dynamic_range_US, aline_rotation_offset};
+  }
 };
 
 } // namespace uspam::recon

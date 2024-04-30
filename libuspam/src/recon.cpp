@@ -58,4 +58,23 @@ auto ReconParams2::reconOneScan(io::PAUSpair<double> &rf, bool flip) const
   return rfLog;
 }
 
+void ReconParams::reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
+                               bool flip) const {
+  if (flip) {
+    // Do flip
+    imutil::fliplr_inplace(rf);
+
+    // Do rotate
+    rf = arma::shift(rf, rotate_offset, 1);
+  }
+
+  // compute filter kernels
+  const auto kernel = signal::firwin2(95, filter_freq, filter_gain);
+
+  arma::Mat<double> env(rf.n_rows, rf.n_cols, arma::fill::none);
+
+  recon(rf, kernel, env);
+  logCompress<double>(env, rfLog, noise_floor, desired_dynamic_range);
+}
+
 } // namespace uspam::recon

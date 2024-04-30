@@ -3,13 +3,23 @@
 #include <mutex>
 #include <span>
 #include <unordered_map>
+#include <iostream>
 
 #include <fftw3.h>
 
 namespace uspam::fft {
 
-static std::mutex *_fftw_mutex;
-inline void use_fftw_mutex(std::mutex *fftw_mutex) { _fftw_mutex = fftw_mutex; }
+inline static std::mutex *_fftw_mutex;
+inline void use_fftw_mutex(std::mutex *fftw_mutex) {
+    if (!fftw_mutex){
+        std::cerr << "Warning: passed a nullptr to uspam::fft::use_fftw_mutex!\n";
+    }
+    _fftw_mutex = fftw_mutex;
+}
+
+inline std::mutex* get_fftw_mutex() {
+    return _fftw_mutex;
+}
 
 // In memory cache with key type K and value type V
 // additionally accepts a mutex to guard the V constructor
@@ -26,7 +36,6 @@ auto get_cached_vlock(Key key, std::mutex *V_mutex) {
 
     val = std::make_unique<Val>(key);
   }
-
   return val.get();
 }
 
@@ -39,7 +48,7 @@ struct fftw_engine_r2c_1d {
   static auto get(size_t n) -> auto & {
     thread_local static auto cache =
         get_cached_vlock<size_t, fftw_engine_r2c_1d>;
-    return *cache(n, _fftw_mutex);
+    return *cache(n, get_fftw_mutex());
   }
 
   explicit fftw_engine_r2c_1d(size_t n)
@@ -68,7 +77,7 @@ struct fftw_engine_c2r_1d {
   static auto get(size_t n) -> auto & {
     thread_local static auto cache =
         get_cached_vlock<size_t, fftw_engine_c2r_1d>;
-    return *cache(n, _fftw_mutex);
+    return *cache(n, get_fftw_mutex());
   }
 
   explicit fftw_engine_c2r_1d(size_t n)
@@ -76,7 +85,11 @@ struct fftw_engine_c2r_1d {
         complex(fftw_alloc_complex(n / 2 + 1), n / 2 + 1),
         plan(fftw_plan_dft_c2r_1d(static_cast<int>(n), complex.data(),
                                   real.data(), FFTW_ESTIMATE)) {
-    {}
+    {
+        if (plan == nullptr) {
+            int n = 0;
+        }
+    }
   }
   ~fftw_engine_c2r_1d() {
     fftw_destroy_plan(plan);
@@ -100,7 +113,7 @@ struct fftw_engine_half_cx_1d {
   static auto get(size_t n) -> auto & {
     thread_local static auto cache =
         get_cached_vlock<size_t, fftw_engine_half_cx_1d>;
-    return *cache(n, _fftw_mutex);
+    return *cache(n, get_fftw_mutex());
   }
 
   explicit fftw_engine_half_cx_1d(size_t n)
@@ -134,9 +147,8 @@ struct fftw_engine_1d {
   fftw_plan plan_b;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache =
-        get_cached_vlock<size_t, fftw_engine_1d>;
-    return *cache(n, _fftw_mutex);
+    thread_local static auto cache = get_cached_vlock<size_t, fftw_engine_1d>;
+    return *cache(n, get_fftw_mutex());
   }
 
   explicit fftw_engine_1d(size_t n)
