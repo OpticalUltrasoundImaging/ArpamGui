@@ -23,7 +23,7 @@ void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env) {
 }
 
 void ReconParams2::reconOneScan(io::PAUSpair<double> &rf,
-                                io::PAUSpair<double> &rfLog, bool flip) const {
+                                io::PAUSpair<uint8_t> &rfLog, bool flip) const {
 
   if (flip) {
     // Do flip
@@ -52,8 +52,8 @@ void ReconParams2::reconOneScan(io::PAUSpair<double> &rf,
 }
 
 auto ReconParams2::reconOneScan(io::PAUSpair<double> &rf, bool flip) const
-    -> io::PAUSpair<double> {
-  auto rfLog = io::PAUSpair<double>::zeros_like(rf);
+    -> io::PAUSpair<uint8_t> {
+  auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rf);
   reconOneScan(rf, rfLog, flip);
   return rfLog;
 }

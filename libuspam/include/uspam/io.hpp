@@ -26,12 +26,14 @@ template <typename T> struct PAUSpair {
   arma::Mat<T> PA;
   arma::Mat<T> US;
 
-  static auto zeros_like(const PAUSpair &other) {
+  template <typename Tother>
+  static auto zeros_like(const PAUSpair<Tother> &other) {
     return PAUSpair{arma::Mat<T>(other.PA.n_rows, other.PA.n_cols),
                     arma::Mat<T>(other.US.n_rows, other.US.n_cols)};
   }
 
-  static auto empty_like(const PAUSpair &other) {
+  template <typename Tother>
+  static auto empty_like(const PAUSpair<Tother> &other) {
     return PAUSpair{
         arma::Mat<T>(other.PA.n_rows, other.PA.n_cols, arma::fill::none),
         arma::Mat<T>(other.US.n_rows, other.US.n_cols, arma::fill::none)};
@@ -199,7 +201,6 @@ public:
     assert(rf.size() * sizeof(TypeInBin) == scanSizeBytes());
 
     const auto sizeBytes = scanSizeBytes();
-
     const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
     file.seekg(start_pos, std::ios::beg);
 

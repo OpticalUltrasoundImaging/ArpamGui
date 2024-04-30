@@ -28,6 +28,20 @@ auto logCompress(T val, T noiseFloor, T desiredDynamicRangeDB) {
   return compressedVal / desiredDynamicRangeDB;
 }
 
+template <FloatOrDouble Tin, typename Tout> Tin logCompressFct();
+template <> inline consteval double logCompressFct<double, double>() {
+  return 1.0;
+}
+template <> inline consteval float logCompressFct<float, float>() {
+  return 1.0f;
+}
+template <> inline consteval double logCompressFct<double, uint8_t>() {
+  return 255.0;
+}
+template <> inline consteval float logCompressFct<float, uint8_t>() {
+  return 255.0;
+}
+
 // Log compress to range of 0 - 1
 template <FloatOrDouble T, typename Tout>
 void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
@@ -41,7 +55,9 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
       for (int i = 0; i < x.n_rows; ++i) {
         const auto val = x(i, j);
         const auto compressedVal =
-            logCompress(val, noiseFloor, desiredDynamicRangeDB);
+            logCompress(val, noiseFloor, desiredDynamicRangeDB) *
+            logCompressFct<T, Tout>();
+
         if constexpr (std::is_same_v<T, Tout>)
           xLog(i, j) = compressedVal;
         else
@@ -125,12 +141,12 @@ struct ReconParams2 {
   }
 
   // FIR filter + Envelope detection + log compression
-  void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,
+  void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<uint8_t> &rfLog,
                     bool flip = false) const;
 
   [[nodiscard]] auto reconOneScan(io::PAUSpair<double> &rf,
                                   bool flip = false) const
-      -> io::PAUSpair<double>;
+      -> io::PAUSpair<uint8_t>;
 };
 
 } // namespace uspam::recon

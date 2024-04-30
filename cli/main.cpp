@@ -87,7 +87,7 @@ void cliRecon(const fs::path fname, int starti = 0, int nscans = 0,
   const int endi = nscans + starti;
   arma::Mat<BType> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
   auto rfPair = ioparams.allocateSplitPair<double>(1000);
-  auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
+  auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
 
   for (int i = starti; i < endi; ++i) {
     const double pct = (double)(i - starti) / nscans;

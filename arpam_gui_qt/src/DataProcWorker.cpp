@@ -147,7 +147,7 @@ void DataProcWorker::processCurrentBinfile() {
 
   arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
   auto rfPair = ioparams.allocateSplitPair<double>(1000);
-  auto rfLog = io::PAUSpair<double>::zeros_like(rfPair);
+  auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
 
   const int starti = 0;
   const int nscans = loader.size();
@@ -172,20 +172,11 @@ void DataProcWorker::processCurrentBinfile() {
     // Recon
     params.reconOneScan(rfPair, rfLog, flip);
 
-    // Results here are 64F
     const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
     const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
 
-    cv::Mat PAradial_normalize = PAradial * 255;
-    cv::Mat PAradial_u8;
-    PAradial_normalize.convertTo(PAradial_u8, CV_8U);
-
-    cv::Mat USradial_normalize = USradial * 255;
-    cv::Mat USradial_u8;
-    USradial_normalize.convertTo(USradial_u8, CV_8U);
-
-    const QImage PAradial_img = cvMatToQImage(PAradial_u8);
-    const QImage USradial_img = cvMatToQImage(USradial_u8);
+    const QImage PAradial_img = cvMatToQImage(PAradial);
+    const QImage USradial_img = cvMatToQImage(USradial);
 
     emit resultReady(PAradial_img, USradial_img);
 

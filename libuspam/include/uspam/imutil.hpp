@@ -3,19 +3,27 @@
 #include "uspam/io.hpp"
 #include <armadillo>
 #include <opencv2/opencv.hpp>
+#include <type_traits>
 
 namespace uspam::imutil {
 
-inline auto makeRectangular(const arma::mat &mat) {
+template <typename T> int getCvType();
+template <> inline consteval int getCvType<double>() { return CV_64F; }
+template <> inline consteval int getCvType<float>() { return CV_32F; }
+template <> inline consteval int getCvType<uint8_t>() { return CV_8U; }
+
+template <typename T> auto makeRectangular(const arma::Mat<T> &mat) {
   // Create a cv::mat that uses the same data
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, CV_64F, (void *)mat.memptr());
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
   cv::resize(cv_mat, cv_mat, {640, 1000});
   cv_mat.convertTo(cv_mat, CV_8U, 255.0);
   return cv_mat;
 }
 
-inline auto makeRadial(const arma::mat &mat, int final_size = 0) {
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, CV_64F, (void *)mat.memptr());
+template <typename T>
+auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+
   const int r = std::min(cv_mat.rows, cv_mat.cols);
   cv::resize(cv_mat, cv_mat, {r * 2, r * 2});
   cv::warpPolar(cv_mat, cv_mat, {r * 2, r * 2}, {(float)r, (float)r}, (double)r,
