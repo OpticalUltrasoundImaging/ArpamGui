@@ -62,4 +62,12 @@ if (WIN32)
         "$<TARGET_FILE:${EXE_NAME}>"
     )
 
+
+    # On Windows, also copy the system runtime libraries
+    include(InstallRequiredSystemLibraries)
+    foreach(_file ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+        add_custom_command(TARGET ${EXE_NAME} POST_BUILD
+                           COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                           ${_file} $<TARGET_FILE_DIR:${EXE_NAME}>)
+    endforeach()
 endif()
