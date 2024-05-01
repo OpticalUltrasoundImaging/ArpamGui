@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <future>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
@@ -127,11 +128,30 @@ namespace {
 
 void procOne(const uspam::recon::ReconParams &params,
              const arma::Mat<double> &background, arma::Mat<double> &rf,
-             arma::Mat<uint8_t> &rfLog, bool flip, QImage &radial_qimg) {
+             arma::Mat<uint8_t> &rfLog, bool flip, cv::Mat &radial_img,
+             QImage &radial_qimg) {
   rf.each_col() -= background.col(0);
   params.reconOneScan(rf, rfLog, flip);
-  const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog);
-  radial_qimg = cvMatToQImage(PAradial);
+  radial_img = uspam::imutil::makeRadial(rfLog);
+  radial_qimg = cvMatToQImage(radial_img);
+}
+
+// Make PAUS overlay image.
+// US and PA are CV_8U1C, PAUS will be CV_8U3C
+void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS) {
+  cv::Mat USclr;
+  cv::cvtColor(US, USclr, cv::COLOR_GRAY2BGR);
+
+  cv::applyColorMap(PA, PAUS, cv::COLORMAP_HOT);
+
+  cv::Mat mask;
+  cv::threshold(PA, mask, 10, 1, cv::THRESH_BINARY);
+  cv::bitwise_and(USclr, USclr, USclr, mask);
+
+  cv::bitwise_not(mask, mask);
+  cv::bitwise_and(PAUS, PAUS, PAUS, mask);
+
+  cv::bitwise_or(PAUS, USclr, PAUS, mask);
 }
 
 } // namespace
@@ -139,7 +159,7 @@ void procOne(const uspam::recon::ReconParams &params,
 void DataProcWorker::processCurrentBinfile() {
   qDebug() << "Processing binfile: " << currentBinfile;
   const fs::path binpath = qString2Path(currentBinfile);
-  const fs::path savedir = binpath.parent_path() / "images";
+  const fs::path savedir = binpath.parent_path() / binpath.stem();
 
   {
     QString msg = tr("binpath ") + path2QString(binpath);
@@ -192,6 +212,7 @@ void DataProcWorker::processCurrentBinfile() {
     // const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
     // const QImage USradial_img = cvMatToQImage(USradial);
     QImage USradial_img, PAradial_img;
+    cv::Mat USradial, PAradial;
 
     // procOne(paramsPA, background.PA, rfPair.PA, rfLog.PA, flip,
     // PAradial_img);
@@ -199,19 +220,48 @@ void DataProcWorker::processCurrentBinfile() {
     // procOne(paramsUS, background.US, rfPair.US, rfLog.US, flip,
     // USradial_img);
 
-    const auto a1 =
-        std::async(std::launch::async, procOne, std::ref(paramsPA),
-                   std::ref(background.PA), std::ref(rfPair.PA),
-                   std::ref(rfLog.PA), flip, std::ref(PAradial_img));
+    const auto a1 = std::async(std::launch::async, procOne, std::ref(paramsPA),
+                               std::ref(background.PA), std::ref(rfPair.PA),
+                               std::ref(rfLog.PA), flip, std::ref(PAradial),
+                               std::ref(PAradial_img));
 
-    const auto a2 =
-        std::async(std::launch::async, procOne, std::ref(paramsUS),
-                   std::ref(background.US), std::ref(rfPair.US),
-                   std::ref(rfLog.US), flip, std::ref(USradial_img));
+    const auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
+                               std::ref(background.US), std::ref(rfPair.US),
+                               std::ref(rfLog.US), flip, std::ref(USradial),
+                               std::ref(USradial_img));
 
     a1.wait();
     a2.wait();
-    emit resultReady(PAradial_img, USradial_img);
+
+    cv::Mat PAUSradial; // CV_8U3C
+    makeOverlay(USradial, PAradial, PAUSradial);
+    QImage PAUSradial_img = cvMatToQImage(PAUSradial);
+
+    // Send images to GUI thread
+    emit resultReady(USradial_img, PAUSradial_img);
+
+    // Save to file
+    // USradial_img.save(path2QString(savedir / std::format("US_{:03d}.png",
+    // i)));
+    const std::array futures = {
+        std::async(std::launch::async,
+                   [&]() {
+                     USradial_img.save(path2QString(
+                         savedir / std::format("US_{:03d}.png", i)));
+                   }),
+        std::async(std::launch::async,
+                   [&]() {
+                     PAradial_img.save(path2QString(
+                         savedir / std::format("PA_{:03d}.png", i)));
+                   }),
+        std::async(std::launch::async, [&]() {
+          PAUSradial_img.save(
+              path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
+        })};
+
+    for (const auto &future : futures) {
+      future.wait();
+    }
 
     const auto elapsed =
         std::chrono::duration_cast<std::chrono::milliseconds>(
