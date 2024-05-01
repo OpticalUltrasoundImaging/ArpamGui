@@ -198,7 +198,9 @@ void DataProcWorker::processCurrentBinfile() {
   }
 
   if (!fs::create_directory(savedir) && !fs::exists(savedir)) {
-    emit error(tr("Failed to create savedir") + path2QString(savedir));
+    emit error(tr("Failed to create savedir ") + path2QString(savedir));
+  } else {
+    emit error(tr("Saving images to ") + path2QString(savedir));
   }
 
   const auto ioparams = uspam::io::IOParams::system2024v1();
@@ -321,7 +323,7 @@ void DataProcWorker::processCurrentBinfile() {
     auto msg = QString("Processed image %1/%2. Took %3 ms total. ")
                    .arg(i)
                    .arg(endi)
-                   .arg(elapsed);
+                   .arg(static_cast<int>(elapsed));
     msg += perfMetrics.toString();
 
     emit error(msg);
