@@ -69,6 +69,7 @@ auto main(int argc, char **argv) -> int {
 
   QApplication app(argc, argv);
   MainWindow mainWindow;
+  mainWindow.setWindowTitle("ARPAM GUI QT");
   mainWindow.showMaximized();
   return app.exec();
 }
