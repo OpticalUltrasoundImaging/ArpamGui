@@ -108,7 +108,7 @@ void cliRecon(const fs::path fname, int starti = 0, int nscans = 0,
     rfPair.US.each_col() -= background.US.col(0);
 
     {
-      TimeIt timeit("reconOneScan");
+      uspam::TimeIt<true> timeit("reconOneScan");
       params.reconOneScan(rfPair, rfLog, flip);
     }
 

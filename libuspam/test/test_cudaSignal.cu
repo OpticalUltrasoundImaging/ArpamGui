@@ -15,6 +15,8 @@
 #include "uspam/signal.hpp"
 #include "uspam/timeit.hpp"
 
+using uspam::bench;
+
 // NOLINTBEGIN(*-non-const-global-variables, modernize-*, *-magic-numbers)
 
 namespace signal = uspam::signal;

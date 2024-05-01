@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+namespace uspam {
 /**
 Use RAII to time a code block.
 Example:
@@ -20,14 +21,20 @@ Example:
 }
 
 */
-struct TimeIt {
+template <bool PrintStdOut = false> struct TimeIt {
   using clock = std::chrono::high_resolution_clock;
-  TimeIt(const std::string &name) : name(name), start(clock::now()) {}
-  ~TimeIt() {
+  TimeIt(const std::string &name = {}) : name(name), start(clock::now()) {}
+  float get_ms() const {
     using namespace std::chrono;
     const auto elapsed = clock::now() - start;
     const auto nano = duration_cast<nanoseconds>(elapsed).count();
-    std::cout << name << " " << (double)nano / 1.0e6 << " ms\n";
+    return static_cast<float>(nano) / 1.0e6;
+  }
+  ~TimeIt() {
+    if constexpr (PrintStdOut) {
+      const auto ms = get_ms();
+      std::cout << name << " " << ms << " ms\n";
+    }
   }
   std::string name;
   clock::time_point start;
@@ -100,3 +107,4 @@ auto bench(const std::string &name, const int runs, const Func &func,
 
   return nanos;
 }
+} // namespace uspam

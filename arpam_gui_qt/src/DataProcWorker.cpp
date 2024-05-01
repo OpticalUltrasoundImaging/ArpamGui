@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <format>
 #include <future>
+#include <sstream>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
 
@@ -154,6 +155,24 @@ void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS) {
   cv::bitwise_or(PAUS, USclr, PAUS, mask);
 }
 
+struct PerformanceMetrics {
+  float fileloader_ms{};
+  float splitRfPAUS_ms{};
+  float reconUSPA_ms{};
+  float makeOverlay_ms{};
+  float writeImages_ms{};
+
+  [[nodiscard]] auto toString() const -> std::string {
+    std::stringstream ss;
+    ss << "fileloader " << (int)fileloader_ms;
+    ss << ", splitRfPAUS " << (int)splitRfPAUS_ms;
+    ss << ", reconUSPA " << (int)reconUSPA_ms;
+    ss << ", makeOverlay " << (int)makeOverlay_ms;
+    ss << ", writeImages " << (int)writeImages_ms;
+    return ss.str();
+  }
+};
+
 } // namespace
 
 void DataProcWorker::processCurrentBinfile() {
@@ -193,13 +212,22 @@ void DataProcWorker::processCurrentBinfile() {
   while (!_abortCurrent && i < endi) {
     const bool flip{i % 2 != 0};
 
-    const auto start_time = std::chrono::high_resolution_clock::now();
+    PerformanceMetrics perfMetrics{};
+    uspam::TimeIt timeit;
 
     // Read next RF scan from file
-    loader.getNext(rf);
+    {
+      const uspam::TimeIt timeit;
+      loader.getNext(rf);
+      perfMetrics.fileloader_ms = timeit.get_ms();
+    }
 
     // Split RF into PA and US scan lines
-    ioparams.splitRfPAUS(rf, rfPair);
+    {
+      const uspam::TimeIt timeit;
+      ioparams.splitRfPAUS(rf, rfPair);
+      perfMetrics.splitRfPAUS_ms = timeit.get_ms();
+    }
 
     // Recon
     // rfPair.PA.each_col() -= background.PA.col(0);
@@ -220,58 +248,78 @@ void DataProcWorker::processCurrentBinfile() {
     // procOne(paramsUS, background.US, rfPair.US, rfLog.US, flip,
     // USradial_img);
 
-    const auto a1 = std::async(std::launch::async, procOne, std::ref(paramsPA),
-                               std::ref(background.PA), std::ref(rfPair.PA),
-                               std::ref(rfLog.PA), flip, std::ref(PAradial),
-                               std::ref(PAradial_img));
+    {
+      const uspam::TimeIt timeit;
+      const auto a1 = std::async(std::launch::async, procOne,
+                                 std::ref(paramsPA), std::ref(background.PA),
+                                 std::ref(rfPair.PA), std::ref(rfLog.PA), flip,
+                                 std::ref(PAradial), std::ref(PAradial_img));
 
-    const auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
-                               std::ref(background.US), std::ref(rfPair.US),
-                               std::ref(rfLog.US), flip, std::ref(USradial),
-                               std::ref(USradial_img));
+      const auto a2 = std::async(std::launch::async, procOne,
+                                 std::ref(paramsUS), std::ref(background.US),
+                                 std::ref(rfPair.US), std::ref(rfLog.US), flip,
+                                 std::ref(USradial), std::ref(USradial_img));
 
-    a1.wait();
-    a2.wait();
+      a1.wait();
+      a2.wait();
+
+      perfMetrics.reconUSPA_ms = timeit.get_ms();
+    }
 
     cv::Mat PAUSradial; // CV_8U3C
-    makeOverlay(USradial, PAradial, PAUSradial);
+    {
+      const uspam::TimeIt timeit;
+      makeOverlay(USradial, PAradial, PAUSradial);
+      perfMetrics.makeOverlay_ms = timeit.get_ms();
+    }
+
     QImage PAUSradial_img = cvMatToQImage(PAUSradial);
 
     // Send images to GUI thread
     emit resultReady(USradial_img, PAUSradial_img);
 
     // Save to file
-    // USradial_img.save(path2QString(savedir / std::format("US_{:03d}.png",
-    // i)));
-    const std::array futures = {
-        std::async(std::launch::async,
-                   [&]() {
-                     USradial_img.save(path2QString(
-                         savedir / std::format("US_{:03d}.png", i)));
-                   }),
-        std::async(std::launch::async,
-                   [&]() {
-                     PAradial_img.save(path2QString(
-                         savedir / std::format("PA_{:03d}.png", i)));
-                   }),
-        std::async(std::launch::async, [&]() {
-          PAUSradial_img.save(
-              path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
-        })};
+    {
+      const uspam::TimeIt timeit;
 
-    for (const auto &future : futures) {
-      future.wait();
+      const std::array futures = {
+          std::async(std::launch::async,
+                     [&]() {
+                       USradial_img.save(path2QString(
+                           savedir / std::format("US_{:03d}.png", i)));
+                     }),
+          std::async(std::launch::async,
+                     [&]() {
+                       PAradial_img.save(path2QString(
+                           savedir / std::format("PA_{:03d}.png", i)));
+                     }),
+          std::async(std::launch::async, [&]() {
+            PAUSradial_img.save(
+                path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
+          })};
+      for (const auto &future : futures) {
+        future.wait();
+      }
+
+      // USradial_img.save(
+      //     path2QString(savedir / std::format("US_{:03d}.png", i)));
+      // PAradial_img.save(
+      //     path2QString(savedir / std::format("PA_{:03d}.png", i)));
+      // PAUSradial_img.save(
+      //     path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
+
+      perfMetrics.writeImages_ms = timeit.get_ms();
     }
 
-    const auto elapsed =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start_time)
-            .count();
+    const auto elapsed = timeit.get_ms();
 
-    emit error(QString("Processed image %1/%2. Took %3 ms")
+    auto msg = QString("Processed image %1/%2. Took %3 ms total. ")
                    .arg(i)
                    .arg(endi)
-                   .arg(elapsed));
+                   .arg(elapsed);
+    msg += perfMetrics.toString();
+
+    emit error(msg);
 
     ++i;
   }

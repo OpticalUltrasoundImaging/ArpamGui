@@ -10,6 +10,8 @@
 #include <thrust/generate.h>
 #include <thrust/host_vector.h>
 
+using uspam::bench;
+
 // NOLINTBEGIN(*-non-const-global-variables, modernize-*, *-magic-numbers)
 
 TEST(CudaReconTest, Correct) {
