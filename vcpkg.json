@@ -27,6 +27,16 @@
             "name": "cuda",
             "platform": "x64"
         },
+        {
+            "name": "itk",
+            "platform": "x64",
+            "features": ["cuda", "cufftw", "opencv", "tbb"]
+        },
+        {
+            "name": "itk",
+            "platform": "!x64",
+            "features": ["opencv", "tbb"]
+        },
         "gtest",
         "cli11",
         "indicators"
