@@ -1,4 +1,5 @@
 #include "DataProcWorker.hpp"
+#include <QThreadPool>
 #include <QtDebug>
 #include <QtLogging>
 #include <armadillo>
@@ -9,6 +10,7 @@
 #include <sstream>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
+#include <utility>
 
 namespace fs = std::filesystem;
 namespace io = uspam::io;
@@ -155,6 +157,16 @@ void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS) {
   cv::bitwise_or(PAUS, USclr, PAUS, mask);
 }
 
+class ImageWriteTask : public QRunnable {
+  QImage img;
+  QString fname;
+
+public:
+  ImageWriteTask(QImage img, QString fname)
+      : img(std::move(img)), fname(std::move(fname)) {}
+  void run() override { img.save(fname); }
+};
+
 struct PerformanceMetrics {
   float fileloader_ms{};
   float splitRfPAUS_ms{};
@@ -250,6 +262,7 @@ void DataProcWorker::processCurrentBinfile() {
 
     {
       const uspam::TimeIt timeit;
+
       const auto a1 = std::async(std::launch::async, procOne,
                                  std::ref(paramsPA), std::ref(background.PA),
                                  std::ref(rfPair.PA), std::ref(rfLog.PA), flip,
@@ -282,31 +295,23 @@ void DataProcWorker::processCurrentBinfile() {
     {
       const uspam::TimeIt timeit;
 
-      const std::array futures = {
-          std::async(std::launch::async,
-                     [&]() {
-                       USradial_img.save(path2QString(
-                           savedir / std::format("US_{:03d}.png", i)));
-                     }),
-          std::async(std::launch::async,
-                     [&]() {
-                       PAradial_img.save(path2QString(
-                           savedir / std::format("PA_{:03d}.png", i)));
-                     }),
-          std::async(std::launch::async, [&]() {
-            PAUSradial_img.save(
-                path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
-          })};
-      for (const auto &future : futures) {
-        future.wait();
-      }
-
       // USradial_img.save(
       //     path2QString(savedir / std::format("US_{:03d}.png", i)));
       // PAradial_img.save(
       //     path2QString(savedir / std::format("PA_{:03d}.png", i)));
       // PAUSradial_img.save(
       //     path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
+
+      auto *pool = QThreadPool::globalInstance();
+      pool->start(new ImageWriteTask(
+          USradial_img,
+          path2QString(savedir / std::format("US_{:03d}.png", i))));
+      pool->start(new ImageWriteTask(
+          PAradial_img,
+          path2QString(savedir / std::format("PA_{:03d}.png", i))));
+      pool->start(new ImageWriteTask(
+          PAUSradial_img,
+          path2QString(savedir / std::format("PAUS_{:03d}.png", i))));
 
       perfMetrics.writeImages_ms = timeit.get_ms();
     }
