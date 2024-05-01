@@ -4,6 +4,7 @@
 #include <QtLogging>
 #include <armadillo>
 #include <chrono>
+#include <cstdio>
 #include <filesystem>
 #include <format>
 #include <future>
@@ -305,15 +306,20 @@ void DataProcWorker::processCurrentBinfile() {
       //     path2QString(savedir / std::format("PAUS_{:03d}.png", i)));
 
       auto *pool = QThreadPool::globalInstance();
-      pool->start(new ImageWriteTask(
-          USradial_img,
-          path2QString(savedir / std::format("US_{:03d}.png", i))));
-      pool->start(new ImageWriteTask(
-          PAradial_img,
-          path2QString(savedir / std::format("PA_{:03d}.png", i))));
-      pool->start(new ImageWriteTask(
-          PAUSradial_img,
-          path2QString(savedir / std::format("PAUS_{:03d}.png", i))));
+
+      // using snprintf because apple clang doesn't support std::format yet...
+      char _buf[64];
+      std::snprintf(_buf, sizeof(_buf), "US_%03d.png", i);
+      auto fname = path2QString(savedir / std::string(_buf));
+      pool->start(new ImageWriteTask(USradial_img, fname));
+
+      std::snprintf(_buf, sizeof(_buf), "PA_%03d.png", i);
+      fname = path2QString(savedir / std::string(_buf));
+      pool->start(new ImageWriteTask(PAradial_img, fname));
+
+      std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", i);
+      fname = path2QString(savedir / std::string(_buf));
+      pool->start(new ImageWriteTask(PAUSradial_img, fname));
 
       perfMetrics.writeImages_ms = timeit.get_ms();
     }
