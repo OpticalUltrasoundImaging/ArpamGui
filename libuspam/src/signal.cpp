@@ -5,7 +5,7 @@
 #include "uspam/signal.hpp"
 
 namespace uspam::signal {
-constexpr double PI = 3.1415926535897932384626;
+inline constexpr double PI = 3.1415926535897932384626;
 
 void create_hamming_window(const std::span<double> window) {
   const auto numtaps = window.size();

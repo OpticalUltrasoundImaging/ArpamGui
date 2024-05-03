@@ -11,7 +11,7 @@ public:
   explicit DoubleListValidator(QObject *parent = nullptr) : QValidator(parent) {
     // Regex to match a list of doubles separated by commas.
     // It handles optional whitespace around commas and after the last number.
-    regex = QRegularExpression("^\s*-?\d+(\.\d+)?\s*(,\s*-?\d+(\.\d+)?\s*)*$");
+    regex = QRegularExpression("");
     regex.optimize();
   }
 

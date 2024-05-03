@@ -10,6 +10,7 @@
 #include <future>
 #include <sstream>
 #include <tuple>
+#include <uspam/imutil.hpp>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
 #include <utility>
@@ -137,24 +138,6 @@ void procOne(const uspam::recon::ReconParams &params, arma::Mat<double> &rf,
   params.reconOneScan(rf, rfLog, flip);
   radial_img = uspam::imutil::makeRadial(rfLog);
   radial_qimg = cvMatToQImage(radial_img);
-}
-
-// Make PAUS overlay image.
-// US and PA are CV_8U1C, PAUS will be CV_8U3C
-void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS) {
-  cv::Mat USclr;
-  cv::cvtColor(US, USclr, cv::COLOR_GRAY2BGR);
-
-  cv::applyColorMap(PA, PAUS, cv::COLORMAP_HOT);
-
-  cv::Mat mask;
-  cv::threshold(PA, mask, 10, 1, cv::THRESH_BINARY);
-  cv::bitwise_and(USclr, USclr, USclr, mask);
-
-  cv::bitwise_not(mask, mask);
-  cv::bitwise_and(PAUS, PAUS, PAUS, mask);
-
-  cv::bitwise_or(PAUS, USclr, PAUS, mask);
 }
 
 class ImageWriteTask : public QRunnable {
@@ -290,7 +273,7 @@ void DataProcWorker::processCurrentBinfile() {
     cv::Mat PAUSradial; // CV_8U3C
     {
       const uspam::TimeIt timeit;
-      makeOverlay(USradial, PAradial, PAUSradial);
+      uspam::imutil::makeOverlay(USradial, PAradial, PAUSradial);
       perfMetrics.makeOverlay_ms = timeit.get_ms();
     }
 
