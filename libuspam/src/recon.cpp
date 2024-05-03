@@ -1,25 +1,18 @@
 #include "uspam/recon.hpp"
-
+#include "uspam/signal.hpp"
+#include <opencv2/opencv.hpp>
 namespace uspam::recon {
 
 void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env) {
-  // cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-  //   arma::vec rf_filt(rf.n_rows);
-  //   for (int i = range.start; i < range.end; ++i) {
-  //     const auto src = rf.unsafe_col(i);
-  //     auto dst = env.unsafe_col(i);
-  //     fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
-  //     signal::hilbert_abs(rf_filt, dst);
-  //   }
-  // });
-
-  arma::vec rf_filt(rf.n_rows);
-  for (int i = 0; i < rf.n_cols; ++i) {
-    const auto src = rf.unsafe_col(i);
-    auto dst = env.unsafe_col(i);
-    fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
-    signal::hilbert_abs_r2c(rf_filt, dst);
-  }
+  cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
+    arma::vec rf_filt(rf.n_rows);
+    for (int i = range.start; i < range.end; ++i) {
+      const auto src = rf.unsafe_col(i);
+      auto dst = env.unsafe_col(i);
+      fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
+      signal::hilbert_abs_r2c(rf_filt, dst);
+    }
+  });
 }
 
 void ReconParams2::reconOneScan(io::PAUSpair<double> &rf,
