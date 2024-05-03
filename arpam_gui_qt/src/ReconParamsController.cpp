@@ -71,6 +71,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *noiseFloor = new QSpinBox();
       noiseFloor->setRange(0, 2000);
       noiseFloor->setValue(params.noiseFloorPA);
+      connect(noiseFloor, &QSpinBox::valueChanged, this,
+              &ReconParamsController::noiseFloorPA_changed);
       layout->addWidget(noiseFloorLabel, row, 1);
       layout->addWidget(noiseFloor, row, 2);
       row++;
@@ -108,6 +110,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *noiseFloor = new QSpinBox();
       noiseFloor->setRange(0, 2000);
       noiseFloor->setValue(params.noiseFloorUS);
+      connect(noiseFloor, &QSpinBox::valueChanged, this,
+              &ReconParamsController::noiseFloorUS_changed);
       layout->addWidget(noiseFloorLabel, row, 1);
       layout->addWidget(noiseFloor, row, 2);
       row++;
