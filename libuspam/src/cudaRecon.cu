@@ -37,16 +37,16 @@ void reconOneScan_device(const recon::ReconParams2 &params,
     imutil::fliplr_inplace(rf.US);
 
     // Do rotate
-    const auto rotate_offset = params.aline_rotation_offset;
+    const auto rotate_offset = params.alineRotationOffset;
     rf.PA = arma::shift(rf.PA, rotate_offset, 1);
     rf.US = arma::shift(rf.US, rotate_offset, 1);
   }
 
   // compute filter kernels and move to device
   const auto kernelPA =
-      signal::firwin2(95, params.filter_freq_PA, params.filter_gain_PA);
+      signal::firwin2(95, params.filterFreqPA, params.filterGainPA);
   const auto kernelUS =
-      signal::firwin2(95, params.filter_freq_US, params.filter_gain_US);
+      signal::firwin2(95, params.filterFreqUS, params.filterGainUS);
 
   thrust::device_vector<double> kernelPA_device(kernelPA.size());
   thrust::device_vector<double> kernelUS_device(kernelUS.size());
@@ -75,10 +75,10 @@ void reconOneScan_device(const recon::ReconParams2 &params,
                kernelUS_device.size(), stream);
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
 
-  logCompress_device(rf_env_PA, rf_log_PA, params.noise_floor_PA,
-                     params.desired_dynamic_range_PA);
-  logCompress_device(rf_env_US, rf_log_US, params.noise_floor_US,
-                     params.desired_dynamic_range_US);
+  logCompress_device(rf_env_PA, rf_log_PA, params.noiseFloorPA,
+                     params.desiredDynamicRangePA);
+  logCompress_device(rf_env_US, rf_log_US, params.noiseFloorUS,
+                     params.desiredDynamicRangeUS);
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
 
   // Copy result to host

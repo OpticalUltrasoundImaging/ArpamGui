@@ -115,29 +115,29 @@ template <FloatOrDouble T> struct FIRFilterParams {
 };
 
 struct ReconParams {
-  std::vector<double> filter_freq;
-  std::vector<double> filter_gain;
-  int noise_floor;
-  int desired_dynamic_range;
-  int rotate_offset;
+  std::vector<double> filterFreq;
+  std::vector<double> filterGain;
+  int noiseFloor;
+  int desiredDynamicRange;
+  int rotateOffset;
 
   void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
                     bool flip) const;
 };
 
 struct ReconParams2 {
-  std::vector<double> filter_freq_PA;
-  std::vector<double> filter_gain_PA;
-  std::vector<double> filter_freq_US;
-  std::vector<double> filter_gain_US;
+  std::vector<double> filterFreqPA;
+  std::vector<double> filterGainPA;
+  std::vector<double> filterFreqUS;
+  std::vector<double> filterGainUS;
 
-  int noise_floor_PA;
-  int noise_floor_US;
+  int noiseFloorPA;
+  int noiseFloorUS;
 
-  int desired_dynamic_range_PA;
-  int desired_dynamic_range_US;
+  int desiredDynamicRangePA;
+  int desiredDynamicRangeUS;
 
-  int aline_rotation_offset;
+  int alineRotationOffset;
 
   static inline ReconParams2 system2024v1() {
     return ReconParams2{{0, 0.03, 0.035, 0.2, 0.22, 1},
@@ -148,7 +148,7 @@ struct ReconParams2 {
                         200,
                         40,
                         48,
-                        22};
+                        26};
   }
 
   // FIR filter + Envelope detection + log compression
@@ -163,13 +163,13 @@ struct ReconParams2 {
                     bool flip = false) const;
 
   inline ReconParams getPA() const {
-    return ReconParams{filter_freq_PA, filter_gain_PA, noise_floor_PA,
-                       desired_dynamic_range_PA, aline_rotation_offset};
+    return ReconParams{filterFreqPA, filterGainPA, noiseFloorPA,
+                       desiredDynamicRangePA, alineRotationOffset};
   }
 
   inline ReconParams getUS() const {
-    return ReconParams{filter_freq_US, filter_gain_US, noise_floor_US,
-                       desired_dynamic_range_US, aline_rotation_offset};
+    return ReconParams{filterFreqUS, filterGainUS, noiseFloorUS,
+                       desiredDynamicRangeUS, alineRotationOffset};
   }
 };
 

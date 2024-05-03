@@ -9,6 +9,7 @@
 #include <format>
 #include <future>
 #include <sstream>
+#include <tuple>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
 #include <utility>
@@ -130,11 +131,9 @@ void DataProcWorker::abortCurrentWork() {
 
 namespace {
 
-void procOne(const uspam::recon::ReconParams &params,
-             const arma::Mat<double> &background, arma::Mat<double> &rf,
+void procOne(const uspam::recon::ReconParams &params, arma::Mat<double> &rf,
              arma::Mat<uint8_t> &rfLog, bool flip, cv::Mat &radial_img,
              QImage &radial_qimg) {
-  rf.each_col() -= background.col(0);
   params.reconOneScan(rf, rfLog, flip);
   radial_img = uspam::imutil::makeRadial(rfLog);
   radial_qimg = cvMatToQImage(radial_img);
@@ -204,19 +203,18 @@ void DataProcWorker::processCurrentBinfile() {
     emit error(tr("Saving images to ") + path2QString(savedir));
   }
 
-  const auto ioparams = uspam::io::IOParams::system2024v1();
-  const auto params = uspam::recon::ReconParams2::system2024v1();
-  const auto paramsPA = params.getPA();
-  const auto paramsUS = params.getUS();
-
   uspam::io::BinfileLoader<uint16_t> loader(ioparams, binpath);
-
-  const arma::vec background_aline =
-      estimate_aline_background_from_file(ioparams, binpath, 1000);
-  const auto background = ioparams.splitRfPAUS_aline(background_aline);
-
   arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
-  auto rfPair = ioparams.allocateSplitPair<double>(1000);
+
+  auto [background_aline, background, rfPair] = [&]() {
+    QMutexLocker lock(&_mutex);
+    const arma::vec background_aline =
+        estimate_aline_background_from_file(ioparams, binpath, 1000);
+    const auto background = ioparams.splitRfPAUS_aline(background_aline);
+    auto rfPair = ioparams.allocateSplitPair<double>(1000);
+    return std::tuple(background_aline, background, rfPair);
+  }();
+
   auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
 
   const int starti = 0;
@@ -237,12 +235,21 @@ void DataProcWorker::processCurrentBinfile() {
       perfMetrics.fileloader_ms = timeit.get_ms();
     }
 
-    // Split RF into PA and US scan lines
-    {
-      const uspam::TimeIt timeit;
-      ioparams.splitRfPAUS(rf, rfPair);
-      perfMetrics.splitRfPAUS_ms = timeit.get_ms();
-    }
+    const auto [paramsPA, paramsUS] = [&] {
+      // this->params and this->ioparams are used in this block
+      // lock with _mutex
+      QMutexLocker lock(&_mutex);
+      {
+        // Split RF into PA and US scan lines
+        const uspam::TimeIt timeit;
+        ioparams.splitRfPAUS_sub(rf, background_aline, rfPair);
+        perfMetrics.splitRfPAUS_ms = timeit.get_ms();
+      }
+
+      const auto paramsPA = params.getPA();
+      const auto paramsUS = params.getUS();
+      return std::tuple(paramsPA, paramsUS);
+    }();
 
     // Recon
     // rfPair.PA.each_col() -= background.PA.col(0);
@@ -257,24 +264,22 @@ void DataProcWorker::processCurrentBinfile() {
     QImage USradial_img, PAradial_img;
     cv::Mat USradial, PAradial;
 
-    // procOne(paramsPA, background.PA, rfPair.PA, rfLog.PA, flip,
+    // procOne(paramsPA, rfPair.PA, rfLog.PA, flip,
     // PAradial_img);
 
-    // procOne(paramsUS, background.US, rfPair.US, rfLog.US, flip,
+    // procOne(paramsUS, rfPair.US, rfLog.US, flip,
     // USradial_img);
 
     {
       const uspam::TimeIt timeit;
 
-      const auto a1 = std::async(std::launch::async, procOne,
-                                 std::ref(paramsPA), std::ref(background.PA),
-                                 std::ref(rfPair.PA), std::ref(rfLog.PA), flip,
-                                 std::ref(PAradial), std::ref(PAradial_img));
+      const auto a1 = std::async(
+          std::launch::async, procOne, std::ref(paramsPA), std::ref(rfPair.PA),
+          std::ref(rfLog.PA), flip, std::ref(PAradial), std::ref(PAradial_img));
 
-      const auto a2 = std::async(std::launch::async, procOne,
-                                 std::ref(paramsUS), std::ref(background.US),
-                                 std::ref(rfPair.US), std::ref(rfLog.US), flip,
-                                 std::ref(USradial), std::ref(USradial_img));
+      const auto a2 = std::async(
+          std::launch::async, procOne, std::ref(paramsUS), std::ref(rfPair.US),
+          std::ref(rfLog.US), flip, std::ref(USradial), std::ref(USradial_img));
 
       a1.wait();
       a2.wait();

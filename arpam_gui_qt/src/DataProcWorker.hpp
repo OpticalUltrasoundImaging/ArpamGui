@@ -2,6 +2,7 @@
 
 #include <QImage>
 #include <QMutex>
+#include <QMutexLocker>
 #include <QObject>
 #include <QWaitCondition>
 #include <atomic>
@@ -14,8 +15,8 @@ class DataProcWorker : public QObject {
 
 public:
   DataProcWorker() {
-    // ioparams = uspam::io::IOParams::system2024v1();
-    // params = uspam::recon::ReconParams2::system2024v1();
+    ioparams = uspam::io::IOParams::system2024v1();
+    params = uspam::recon::ReconParams2::system2024v1();
   }
 
   // static void setReconParams(const uspam::recon::ReconParams2 &p) {
@@ -30,10 +31,20 @@ public slots:
   void doPostProcess();
 
   // Returns true if the worker is ready to start new work.
-  bool isReady() { return _ready; };
+  inline bool isReady() { return _ready; };
 
   // Abort the current work (only works when ready=false. Updates ready=true)
   void abortCurrentWork();
+
+  // This slot must be called in the calling thread (not in the worker thread)
+  inline void updateParams(uspam::recon::ReconParams2 params,
+                           uspam::io::IOParams ioparams) {
+
+    emit error("DataProcWorker updateParams");
+    QMutexLocker lock(&_mutex);
+    this->params = std::move(params);
+    this->ioparams = std::move(ioparams);
+  }
 
 signals:
   void resultReady(QImage img1, QImage img2);
@@ -50,6 +61,7 @@ private:
   QWaitCondition _condition;
 
   QString currentBinfile;
-  // static uspam::recon::ReconParams2 params;
-  // static uspam::io::IOParams ioparams;
+
+  uspam::recon::ReconParams2 params;
+  uspam::io::IOParams ioparams;
 };

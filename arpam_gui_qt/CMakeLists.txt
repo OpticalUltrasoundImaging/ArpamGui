@@ -16,6 +16,8 @@ qt_add_executable(${EXE_NAME}
     src/CoregDisplay.cpp
     src/DataProcWorker.hpp
     src/DataProcWorker.cpp
+    src/ReconParamsController.hpp
+    src/ReconParamsController.cpp
 )
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"

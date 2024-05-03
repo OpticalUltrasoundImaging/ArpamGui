@@ -31,24 +31,24 @@ void ReconParams2::reconOneScan(io::PAUSpair<double> &rf,
     imutil::fliplr_inplace(rf.US);
 
     // Do rotate
-    const auto rotate_offset = this->aline_rotation_offset;
+    const auto rotate_offset = this->alineRotationOffset;
     rf.PA = arma::shift(rf.PA, rotate_offset, 1);
     rf.US = arma::shift(rf.US, rotate_offset, 1);
   }
 
   // compute filter kernels
-  const auto kernelPA = signal::firwin2(95, filter_freq_PA, filter_gain_PA);
-  const auto kernelUS = signal::firwin2(95, filter_freq_US, filter_gain_US);
+  const auto kernelPA = signal::firwin2(95, filterFreqPA, filterGainPA);
+  const auto kernelUS = signal::firwin2(95, filterFreqUS, filterGainUS);
 
   auto env = io::PAUSpair<double>::empty_like(rf);
 
   recon(rf.PA, kernelPA, env.PA);
-  logCompress<double>(env.PA, rfLog.PA, this->noise_floor_PA,
-                      this->desired_dynamic_range_PA);
+  logCompress<double>(env.PA, rfLog.PA, this->noiseFloorPA,
+                      this->desiredDynamicRangePA);
 
   recon(rf.US, kernelUS, env.US);
-  logCompress<double>(env.US, rfLog.US, this->noise_floor_US,
-                      this->desired_dynamic_range_US);
+  logCompress<double>(env.US, rfLog.US, this->noiseFloorUS,
+                      this->desiredDynamicRangeUS);
 }
 
 auto ReconParams2::reconOneScan(io::PAUSpair<double> &rf, bool flip) const
@@ -65,16 +65,16 @@ void ReconParams::reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
     imutil::fliplr_inplace(rf);
 
     // Do rotate
-    rf = arma::shift(rf, rotate_offset, 1);
+    rf = arma::shift(rf, rotateOffset, 1);
   }
 
   // compute filter kernels
-  const auto kernel = signal::firwin2(95, filter_freq, filter_gain);
+  const auto kernel = signal::firwin2(95, filterFreq, filterGain);
 
   arma::Mat<double> env(rf.n_rows, rf.n_cols, arma::fill::none);
 
   recon(rf, kernel, env);
-  logCompress<double>(env, rfLog, noise_floor, desired_dynamic_range);
+  logCompress<double>(env, rfLog, noiseFloor, desiredDynamicRange);
 }
 
 } // namespace uspam::recon

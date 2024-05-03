@@ -11,6 +11,7 @@
 #include <string>
 
 #include <armadillo>
+#include <opencv2/opencv.hpp>
 
 namespace uspam::io {
 namespace fs = std::filesystem;
@@ -56,7 +57,8 @@ struct IOParams {
 
   // System parameters from early 2024
   static inline IOParams system2024v1() {
-    return IOParams{2650, 87, 5300, 350, 215, 1};
+    // return IOParams{2650, 87, 5300, 350, 215, 1};
+    return IOParams{2650, 87, 5300, 600, 215, 1};
   }
 
   template <typename T>
@@ -86,21 +88,58 @@ struct IOParams {
       for (int i = 0; i < this->rf_size_US; ++i) {
         split.US(i, j) = static_cast<T2>(rf(i + USstart, j));
       }
-    }
 
-    for (int i = 0; i < rf.n_cols; ++i) {
       {
-        auto ptr = split.PA.colptr(i);
+        auto ptr = split.PA.colptr(j);
         std::rotate(ptr, ptr + this->offsetPA, ptr + split.PA.n_rows);
         // rfPA.rows(0, this->offset_PA - 1).zeros();
       }
       {
-        auto ptr = split.US.colptr(i);
+        auto ptr = split.US.colptr(j);
         std::rotate(ptr, ptr + this->offsetUS, ptr + split.US.n_rows);
         // rfUS.rows(0, this->offset_US - 1).zeros();
       }
     }
   }
+
+  template <typename T1, typename Tb, typename Tout>
+  auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
+                       PAUSpair<Tout> &split) const {
+    const auto USstart = this->rf_size_PA + this->rf_size_spacer;
+    const auto USend = USstart + this->rf_size_US;
+    const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+
+    assert(split.PA.size() == this->rf_size_PA * rf.n_cols);
+    assert(split.US.size() == (USend - USstart) * rf.n_cols);
+
+    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
+      for (int j = range.start; j < range.end; ++j) {
+
+        // PA
+        for (int i = 0; i < this->rf_size_PA; ++i) {
+          // split.PA(i, j) = static_cast<Tout>(rf(i, j));
+          split.PA(i, j) =
+              static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
+        }
+        // US
+        for (int i = 0; i < this->rf_size_US; ++i) {
+          split.US(i, j) = static_cast<Tout>(
+              static_cast<Tb>(rf(i + USstart, j)) - background(i + USstart));
+        }
+
+        {
+          auto ptr = split.PA.colptr(j);
+          std::rotate(ptr, ptr + this->offsetPA, ptr + split.PA.n_rows);
+          // rfPA.rows(0, this->offset_PA - 1).zeros();
+        }
+        {
+          auto ptr = split.US.colptr(j);
+          std::rotate(ptr, ptr + this->offsetUS, ptr + split.US.n_rows);
+          // rfUS.rows(0, this->offset_US - 1).zeros();
+        }
+      }
+    });
+  };
 
   // Split a single Aline
   template <typename T> auto splitRfPAUS_aline(const arma::Col<T> &rf) const {

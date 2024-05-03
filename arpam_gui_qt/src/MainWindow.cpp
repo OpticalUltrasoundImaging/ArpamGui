@@ -1,15 +1,24 @@
 #include "MainWindow.hpp"
+#include "ReconParamsController.hpp"
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QScrollArea>
+#include <QSlider>
 #include <QtDebug>
 #include <QtLogging>
 #include <format>
 #include <opencv2/opencv.hpp>
+namespace {
+void setGlobalStyle(QLayout *layout) {
+  layout->setSpacing(0);
+  layout->setContentsMargins(0, 0, 0, 0);
+}
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
-      coregDisplay(new CoregDisplay(this)), worker(new DataProcWorker) {
+      canvasLeft(new ImshowCanvas(this)), canvasRight(new ImshowCanvas(this)),
+      worker(new DataProcWorker) {
 
   /**
    * Setup worker thread
@@ -33,20 +42,20 @@ MainWindow::MainWindow(QWidget *parent)
    * Setup GUI
    */
   // Config params and testing dock
-  auto *dock_layout = new QHBoxLayout;
+  auto *dockLayout = new QHBoxLayout;
   {
     auto *dock = new QDockWidget("Config Widget", this);
-    auto *dock_widget = new QWidget;
-    dock_widget->setLayout(dock_layout);
-    dock->setWidget(dock_widget);
+    auto *dockWidget = new QWidget;
+    dockWidget->setLayout(dockLayout);
+    dock->setWidget(dockWidget);
     dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable |
                                           QDockWidget::DockWidgetFloatable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
 
-    dock_layout->addWidget(new QLabel("This is the config dock."));
+    dockLayout->addWidget(new QLabel("This is the config dock."));
 
     // Error box
-    dock_layout->addWidget(textEdit);
+    dockLayout->addWidget(textEdit);
     textEdit->setReadOnly(true);
     textEdit->setPlainText("Application started...\n");
   }
@@ -55,13 +64,38 @@ MainWindow::MainWindow(QWidget *parent)
   {
     auto *btnPickFile = new QPushButton("Load bin file");
     connect(btnPickFile, &QPushButton::clicked, this, &MainWindow::openBinFile);
-    dock_layout->addWidget(btnPickFile);
+    dockLayout->addWidget(btnPickFile);
 
     auto *btnStopProcEarly = new QPushButton("Stop");
 
     connect(btnStopProcEarly, &QPushButton::clicked, this,
             &MainWindow::abortCurrentWorkInThread);
-    dock_layout->addWidget(btnStopProcEarly);
+    dockLayout->addWidget(btnStopProcEarly);
+
+    // Controls to update the recon parameters
+
+    // Slider to select scan in the sequence
+    auto *scanSlider = new QSlider(Qt::Horizontal);
+    dockLayout->addWidget(scanSlider);
+  }
+
+  // Recon parameters controller
+  {
+    auto *reconParamsController = new ReconParamsController;
+    dockLayout->addWidget(reconParamsController);
+
+    // connect(reconParamsController, &ReconParamsController::paramsUpdated,
+    //         worker, &DataProcWorker::updateParams);
+
+    connect(reconParamsController, &ReconParamsController::paramsUpdated,
+            [this](uspam::recon::ReconParams2 params,
+                   uspam::io::IOParams ioparams) {
+              this->worker->updateParams(std::move(params),
+                                         std::move(ioparams));
+            });
+
+    connect(reconParamsController, &ReconParamsController::error, this,
+            &MainWindow::logError);
   }
 
   // Central scroll area
@@ -69,23 +103,44 @@ MainWindow::MainWindow(QWidget *parent)
   centralWidget->setWidgetResizable(true);
   this->setCentralWidget(centralWidget);
 
-  auto *layout = new QVBoxLayout(centralWidget);
-  centralWidget->setLayout(layout);
+  auto *centralLayout = new QVBoxLayout(centralWidget);
+  centralWidget->setLayout(centralLayout);
 
-  auto *modeSwitchButton = new QPushButton("Switch Mode", this);
-  connect(modeSwitchButton, &QPushButton::clicked, this,
-          &MainWindow::switchMode);
-  layout->addWidget(modeSwitchButton);
+  // auto *modeSwitchButton = new QPushButton("Switch Mode", this);
+  // connect(modeSwitchButton, &QPushButton::clicked, this,
+  //         &MainWindow::switchMode);
+  // layout->addWidget(modeSwitchButton);
 
   // Add mode views
   // stackedWidget->addWidget(new RealTimeView());
   // stackedWidget->addWidget(new PostProcessingView());
 
   //   layout->addWidget(modeSwitchButton);
-  layout->addWidget(coregDisplay);
 
-  auto pixmap = QPixmap(":/resources/images/radial_380.png");
-  coregDisplay->canvas1->imshow(pixmap);
+  // Image Canvas
+  {
+    // centralLayout->addWidget(coregDisplay);
+    auto *layout = new QHBoxLayout;
+    centralLayout->addLayout(layout);
+
+    layout->addWidget(canvasLeft);
+
+    auto *scrollBarLeft = new QSlider(Qt::Vertical);
+    layout->addWidget(scrollBarLeft);
+
+    canvasRight->setStyleSheet("border: 1px solid black");
+    layout->addWidget(canvasRight);
+
+    auto *scrollBarRight = new QSlider(Qt::Vertical);
+    layout->addWidget(scrollBarRight);
+
+    auto pixmap = QPixmap(":/resources/images/radial_380.png");
+    canvasLeft->imshow(pixmap);
+  }
+
+  // Set global style
+  setGlobalStyle(dockLayout);
+  setGlobalStyle(centralLayout);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -124,6 +179,6 @@ void MainWindow::abortCurrentWorkInThread() {
 }
 
 void MainWindow::handleNewImages(QImage img1, QImage img2) {
-  coregDisplay->canvas1->imshow(img1);
-  coregDisplay->canvas2->imshow(img2);
+  canvasLeft->imshow(img1);
+  canvasRight->imshow(img2);
 }

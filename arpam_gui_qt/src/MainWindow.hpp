@@ -34,13 +34,14 @@ public slots:
 
 signals:
   void setProcWorkerBinfile(QString binfile);
-  void stopProcThread();
 
 private:
   void closeEvent(QCloseEvent *event) override;
 
   QPlainTextEdit *textEdit;
-  CoregDisplay *coregDisplay;
+  // CoregDisplay *coregDisplay;
+  ImshowCanvas *canvasLeft;
+  ImshowCanvas *canvasRight;
 
   QThread workerThread;
   DataProcWorker *worker;
