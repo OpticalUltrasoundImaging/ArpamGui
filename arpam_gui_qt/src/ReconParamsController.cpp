@@ -35,17 +35,18 @@ private:
 ReconParamsController::ReconParamsController(QWidget *parent)
     : QWidget(parent), params(uspam::recon::ReconParams2::system2024v1()),
       ioparams(uspam::io::IOParams::system2024v1()) {
-  auto *layout = new QVBoxLayout();
+  auto *layout = new QHBoxLayout();
   this->setLayout(layout);
 
+  auto *doubleListValidator = new DoubleListValidator(this);
+
+  // PA params
   {
     auto *gb = new QGroupBox(tr("PA recon params"));
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
     int row = 1;
-
-    auto *doubleListValidator = new DoubleListValidator(this);
 
     {
       auto *filtFreqLabel = new QLabel("Freq");
@@ -76,6 +77,44 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
   }
 
+  // US params
+  {
+    auto *gb = new QGroupBox(tr("US recon params"));
+    layout->addWidget(gb);
+    auto *layout = new QGridLayout;
+    gb->setLayout(layout);
+    int row = 1;
+
+    {
+      auto *filtFreqLabel = new QLabel("Freq");
+      auto *filtFreq = new QLineEdit();
+      filtFreq->setValidator(doubleListValidator);
+      layout->addWidget(filtFreqLabel, row, 1);
+      layout->addWidget(filtFreq, row, 2);
+      row++;
+    }
+
+    {
+      auto *filtGainLabel = new QLabel("Gain");
+      auto *filtGain = new QLineEdit();
+      filtGain->setValidator(doubleListValidator);
+      layout->addWidget(filtGainLabel, row, 1);
+      layout->addWidget(filtGain, row, 2);
+      row++;
+    }
+
+    {
+      auto *noiseFloorLabel = new QLabel("Noise floor");
+      auto *noiseFloor = new QSpinBox();
+      noiseFloor->setRange(0, 2000);
+      noiseFloor->setValue(params.noiseFloorUS);
+      layout->addWidget(noiseFloorLabel, row, 1);
+      layout->addWidget(noiseFloor, row, 2);
+      row++;
+    }
+  }
+
+  // Registration params
   {
     auto *gb = new QGroupBox(tr("Registration params"));
     layout->addWidget(gb);

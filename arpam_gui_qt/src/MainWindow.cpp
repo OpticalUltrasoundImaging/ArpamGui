@@ -52,8 +52,6 @@ MainWindow::MainWindow(QWidget *parent)
                                           QDockWidget::DockWidgetFloatable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
 
-    dockLayout->addWidget(new QLabel("This is the config dock."));
-
     // Error box
     dockLayout->addWidget(textEdit);
     textEdit->setReadOnly(true);
@@ -99,12 +97,13 @@ MainWindow::MainWindow(QWidget *parent)
   }
 
   // Central scroll area
-  auto *centralWidget = new QScrollArea(this);
-  centralWidget->setWidgetResizable(true);
-  this->setCentralWidget(centralWidget);
-
-  auto *centralLayout = new QVBoxLayout(centralWidget);
-  centralWidget->setLayout(centralLayout);
+  auto *centralLayout = new QVBoxLayout;
+  {
+    auto *centralWidget = new QScrollArea(this);
+    centralWidget->setWidgetResizable(true);
+    this->setCentralWidget(centralWidget);
+    centralWidget->setLayout(centralLayout);
+  }
 
   // auto *modeSwitchButton = new QPushButton("Switch Mode", this);
   // connect(modeSwitchButton, &QPushButton::clicked, this,
@@ -123,19 +122,22 @@ MainWindow::MainWindow(QWidget *parent)
     auto *layout = new QHBoxLayout;
     centralLayout->addLayout(layout);
 
-    layout->addWidget(canvasLeft);
+    {
+      canvasLeft->setStyleSheet("border: 1px solid black");
+      layout->addWidget(canvasLeft);
+      auto *sliderLeft = new QSlider(Qt::Vertical);
+      layout->addWidget(sliderLeft);
+    }
 
-    auto *scrollBarLeft = new QSlider(Qt::Vertical);
-    layout->addWidget(scrollBarLeft);
+    {
+      canvasRight->setStyleSheet("border: 1px solid black");
+      layout->addWidget(canvasRight);
+      auto *scrollBarRight = new QSlider(Qt::Vertical);
+      layout->addWidget(scrollBarRight);
+    }
 
-    canvasRight->setStyleSheet("border: 1px solid black");
-    layout->addWidget(canvasRight);
-
-    auto *scrollBarRight = new QSlider(Qt::Vertical);
-    layout->addWidget(scrollBarRight);
-
-    auto pixmap = QPixmap(":/resources/images/radial_380.png");
-    canvasLeft->imshow(pixmap);
+    // auto pixmap = QPixmap(":/resources/images/radial_380.png");
+    // canvasLeft->imshow(pixmap);
   }
 
   // Set global style
