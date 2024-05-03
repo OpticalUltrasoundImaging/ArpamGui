@@ -30,6 +30,7 @@ public:
 private:
   QRegularExpression regex;
 };
+
 } // namespace
 
 ReconParamsController::ReconParamsController(QWidget *parent)
@@ -49,31 +50,28 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     int row = 1;
 
     {
-      auto *filtFreqLabel = new QLabel("Freq");
+      layout->addWidget(new QLabel("Freq"), row, 1);
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
-      layout->addWidget(filtFreqLabel, row, 1);
       layout->addWidget(filtFreq, row, 2);
       row++;
     }
 
     {
-      auto *filtGainLabel = new QLabel("Gain");
+      layout->addWidget(new QLabel("Gain"), row, 1);
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
-      layout->addWidget(filtGainLabel, row, 1);
       layout->addWidget(filtGain, row, 2);
       row++;
     }
 
     {
-      auto *noiseFloorLabel = new QLabel("Noise floor");
+      layout->addWidget(new QLabel("Noise floor"), row, 1);
       auto *noiseFloor = new QSpinBox();
       noiseFloor->setRange(0, 2000);
       noiseFloor->setValue(params.noiseFloorPA);
       connect(noiseFloor, &QSpinBox::valueChanged, this,
               &ReconParamsController::noiseFloorPA_changed);
-      layout->addWidget(noiseFloorLabel, row, 1);
       layout->addWidget(noiseFloor, row, 2);
       row++;
     }
@@ -88,31 +86,28 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     int row = 1;
 
     {
-      auto *filtFreqLabel = new QLabel("Freq");
+      layout->addWidget(new QLabel("Freq"), row, 1);
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
-      layout->addWidget(filtFreqLabel, row, 1);
       layout->addWidget(filtFreq, row, 2);
       row++;
     }
 
     {
-      auto *filtGainLabel = new QLabel("Gain");
+      layout->addWidget(new QLabel("Gain"), row, 1);
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
-      layout->addWidget(filtGainLabel, row, 1);
       layout->addWidget(filtGain, row, 2);
       row++;
     }
 
     {
-      auto *noiseFloorLabel = new QLabel("Noise floor");
+      layout->addWidget(new QLabel("Noise floor"), row, 1);
       auto *noiseFloor = new QSpinBox();
       noiseFloor->setRange(0, 2000);
       noiseFloor->setValue(params.noiseFloorUS);
       connect(noiseFloor, &QSpinBox::valueChanged, this,
               &ReconParamsController::noiseFloorUS_changed);
-      layout->addWidget(noiseFloorLabel, row, 1);
       layout->addWidget(noiseFloor, row, 2);
       row++;
     }
@@ -127,49 +122,45 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     int row = 0;
 
     {
-      auto *rotOffsetLabel = new QLabel("Rotation offset");
+      layout->addWidget(new QLabel("Rotation offset"), row, 0);
       auto *rotOffset = new QSpinBox();
       connect(rotOffset, &QSpinBox::valueChanged, this,
               &ReconParamsController::rotOffset_changed);
       rotOffset->setRange(-500, 500);
       rotOffset->setValue(params.alineRotationOffset);
-      layout->addWidget(rotOffsetLabel, row, 0);
       layout->addWidget(rotOffset, row, 1);
       row++;
     }
 
     {
-      auto *spacerLabel = new QLabel("PAUS spacer");
+      layout->addWidget(new QLabel("PAUS spacer"), row, 0);
       auto *spacer = new QSpinBox();
       connect(spacer, &QSpinBox::valueChanged, this,
               &ReconParamsController::PAUSspacer_changed);
       spacer->setRange(0, 200);
       spacer->setValue(this->ioparams.rf_size_spacer);
-      layout->addWidget(spacerLabel, row, 0);
       layout->addWidget(spacer, row, 1);
       row++;
     }
 
     {
-      auto *offsetUSLabel = new QLabel("OffsetUS");
+      layout->addWidget(new QLabel("OffsetUS"), row, 0);
       auto *offsetUS = new QSpinBox();
       connect(offsetUS, &QSpinBox::valueChanged, this,
               &ReconParamsController::offsetUS_changed);
       offsetUS->setRange(-500, 1000);
       offsetUS->setValue(ioparams.offsetUS);
-      layout->addWidget(offsetUSLabel, row, 0);
       layout->addWidget(offsetUS, row, 1);
       row++;
     }
 
     {
-      auto *offsetPALabel = new QLabel("OffsetPA");
+      layout->addWidget(new QLabel("OffsetPA"), row, 0);
       auto *offsetPA = new QSpinBox();
       connect(offsetPA, &QSpinBox::valueChanged, this,
               &ReconParamsController::offsetPA_changed);
       offsetPA->setRange(-500, 1000);
       offsetPA->setValue(ioparams.offsetPA);
-      layout->addWidget(offsetPALabel, row, 0);
       layout->addWidget(offsetPA, row, 1);
       row++;
     }
