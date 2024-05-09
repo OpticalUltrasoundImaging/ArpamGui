@@ -75,6 +75,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(noiseFloor, row, 2);
       row++;
     }
+
+    {
+      layout->addWidget(new QLabel("Dynamic range"), row, 1);
+      auto *dr = new QSpinBox();
+      dr->setRange(10, 70);
+      dr->setValue(params.desiredDynamicRangePA);
+      connect(dr, &QSpinBox::valueChanged, this,
+              &ReconParamsController::dynamicRangePA_changed);
+      layout->addWidget(dr, row, 2);
+      row++;
+    }
   }
 
   // US params
@@ -109,6 +120,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       connect(noiseFloor, &QSpinBox::valueChanged, this,
               &ReconParamsController::noiseFloorUS_changed);
       layout->addWidget(noiseFloor, row, 2);
+      row++;
+    }
+
+    {
+      layout->addWidget(new QLabel("Dynamic range"), row, 1);
+      auto *dr = new QSpinBox();
+      dr->setRange(10, 70);
+      dr->setValue(params.desiredDynamicRangeUS);
+      connect(dr, &QSpinBox::valueChanged, this,
+              &ReconParamsController::dynamicRangeUS_changed);
+      layout->addWidget(dr, row, 2);
       row++;
     }
   }

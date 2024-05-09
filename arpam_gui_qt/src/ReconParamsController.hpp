@@ -27,10 +27,7 @@ signals:
   void error(QString err);
 
 private:
-  inline void _paramsUpdatedInternal() {
-    emit error("paramsUpdatedInternal");
-    emit paramsUpdated(params, ioparams);
-  }
+  inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
 
 public slots:
 
