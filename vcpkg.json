@@ -4,14 +4,22 @@
     "version": "0.1",
     "dependencies": [
         "qtbase",
-        "jsoncpp",
+        "rapidjson",
         "glslang",
         "glfw3",
         "armadillo",
         "openblas",
         {
             "name": "opencv4",
-            "features": ["dnn", "png", "vulkan", "tbb", "png", "world"]
+            "features": [
+                "contrib",
+                "dnn",
+                "png",
+                "vulkan",
+                "tbb",
+                "png",
+                "world"
+            ]
         },
         {
             "name": "fftw3",
