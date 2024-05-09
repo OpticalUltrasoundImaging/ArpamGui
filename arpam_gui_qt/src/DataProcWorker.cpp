@@ -206,7 +206,7 @@ void DataProcWorker::processCurrentBinfile() {
   int i = 0;
 
   while (!_abortCurrent && i < endi) {
-    const bool flip{i % 2 != 0};
+    const bool flip{i % 2 == 0};
 
     PerformanceMetrics perfMetrics{};
     uspam::TimeIt timeit;
