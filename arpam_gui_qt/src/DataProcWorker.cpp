@@ -189,14 +189,20 @@ void DataProcWorker::processCurrentBinfile() {
   uspam::io::BinfileLoader<uint16_t> loader(ioparams, binpath);
   arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, 1000, arma::fill::none);
 
-  auto [background_aline, background, rfPair] = [&]() {
+  // auto [background_aline, background, rfPair] = [&]() {
+  //   QMutexLocker lock(&_mutex);
+  //   const arma::vec background_aline =
+  //       estimate_aline_background_from_file(ioparams, binpath, 1000);
+  //   const auto background = ioparams.splitRfPAUS_aline(background_aline);
+  //   auto rfPair = ioparams.allocateSplitPair<double>(1000);
+  //   return std::tuple(background_aline, background, rfPair);
+  // }();
+
+  uspam::io::PAUSpair<double> rfPair;
+  {
     QMutexLocker lock(&_mutex);
-    const arma::vec background_aline =
-        estimate_aline_background_from_file(ioparams, binpath, 1000);
-    const auto background = ioparams.splitRfPAUS_aline(background_aline);
-    auto rfPair = ioparams.allocateSplitPair<double>(1000);
-    return std::tuple(background_aline, background, rfPair);
-  }();
+    rfPair = ioparams.allocateSplitPair<double>(1000);
+  }
 
   auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
 
@@ -219,13 +225,17 @@ void DataProcWorker::processCurrentBinfile() {
     }
 
     const auto [paramsPA, paramsUS] = [&] {
+      // Estimate background from current RF
+      const auto rf_f64 = arma::conv_to<arma::mat>::from(rf);
+      const arma::vec background_aline = arma::mean(rf_f64, 1);
+
       // this->params and this->ioparams are used in this block
       // lock with _mutex
       QMutexLocker lock(&_mutex);
       {
         // Split RF into PA and US scan lines
         const uspam::TimeIt timeit;
-        ioparams.splitRfPAUS_sub(rf, background_aline, rfPair);
+        ioparams.splitRfPAUS_sub(rf_f64, background_aline, rfPair);
         perfMetrics.splitRfPAUS_ms = timeit.get_ms();
       }
 
