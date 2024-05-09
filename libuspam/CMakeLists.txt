@@ -11,6 +11,7 @@ set(LIB_NAME libuspam)
 add_library(${LIB_NAME} STATIC
     src/signal.cpp
     src/recon.cpp
+    src/imutil.cpp
 )
 target_include_directories(${LIB_NAME} PUBLIC include)
 target_link_libraries(${LIB_NAME}
