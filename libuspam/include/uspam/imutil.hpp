@@ -43,4 +43,9 @@ template <typename T> void fliplr_inplace(arma::Mat<T> &mat) {
   }
 }
 
+// Make PAUS overlay image.
+// US and PA are CV_8UC1, PAUS will be CV_8UC3
+void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS,
+                 const uint8_t PAthresh = 10);
+
 } // namespace uspam::imutil
