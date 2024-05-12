@@ -1,10 +1,13 @@
 #include <armadillo>
 #include <filesystem>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <sstream>
 
 #include "uspam/io.hpp"
 #include "uspam/recon.hpp"
+
+namespace fs = std::filesystem;
 
 // NOLINTBEGIN(*-magic-numbers,*-constant-array-index)
 
@@ -39,3 +42,65 @@
 // }
 //
 //  NOLINTEND(*-magic-numbers,*-constant-array-index)
+
+TEST(ReconParams2Serialize, ToString) {
+  const auto params_true = uspam::recon::ReconParams2::system2024v1();
+  {
+    const auto jsonString = params_true.serialize();
+
+    uspam::recon::ReconParams2 params{};
+
+    ASSERT_NE(params_true.filterFreqPA, params.filterFreqPA);
+    ASSERT_NE(params_true.filterFreqUS, params.filterFreqUS);
+    ASSERT_NE(params_true.filterGainPA, params.filterGainPA);
+    ASSERT_NE(params_true.filterGainUS, params.filterGainUS);
+    ASSERT_NE(params_true.noiseFloorPA, params.noiseFloorPA);
+    ASSERT_NE(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
+    ASSERT_NE(params_true.noiseFloorUS, params.noiseFloorUS);
+    ASSERT_NE(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
+    ASSERT_NE(params_true.alineRotationOffset, params.alineRotationOffset);
+
+    params.deserialize(jsonString);
+    ASSERT_EQ(params_true.filterFreqPA, params.filterFreqPA);
+    ASSERT_EQ(params_true.filterFreqUS, params.filterFreqUS);
+    ASSERT_EQ(params_true.filterGainPA, params.filterGainPA);
+    ASSERT_EQ(params_true.filterGainUS, params.filterGainUS);
+    ASSERT_EQ(params_true.noiseFloorPA, params.noiseFloorPA);
+    ASSERT_EQ(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
+    ASSERT_EQ(params_true.noiseFloorUS, params.noiseFloorUS);
+    ASSERT_EQ(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
+    ASSERT_EQ(params_true.alineRotationOffset, params.alineRotationOffset);
+  }
+}
+
+TEST(ReconParams2Serialize, ToFile) {
+  const auto params_true = uspam::recon::ReconParams2::system2024v1();
+  fs::path jsonFile = "tmp.json";
+  {
+    ASSERT_TRUE(params_true.serializeToFile(jsonFile));
+
+    uspam::recon::ReconParams2 params{};
+
+    ASSERT_NE(params_true.filterFreqPA, params.filterFreqPA);
+    ASSERT_NE(params_true.filterFreqUS, params.filterFreqUS);
+    ASSERT_NE(params_true.filterGainPA, params.filterGainPA);
+    ASSERT_NE(params_true.filterGainUS, params.filterGainUS);
+    ASSERT_NE(params_true.noiseFloorPA, params.noiseFloorPA);
+    ASSERT_NE(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
+    ASSERT_NE(params_true.noiseFloorUS, params.noiseFloorUS);
+    ASSERT_NE(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
+    ASSERT_NE(params_true.alineRotationOffset, params.alineRotationOffset);
+
+    ASSERT_TRUE(params.deserializeFromFile(jsonFile));
+    ASSERT_EQ(params_true.filterFreqPA, params.filterFreqPA);
+    ASSERT_EQ(params_true.filterFreqUS, params.filterFreqUS);
+    ASSERT_EQ(params_true.filterGainPA, params.filterGainPA);
+    ASSERT_EQ(params_true.filterGainUS, params.filterGainUS);
+    ASSERT_EQ(params_true.noiseFloorPA, params.noiseFloorPA);
+    ASSERT_EQ(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
+    ASSERT_EQ(params_true.noiseFloorUS, params.noiseFloorUS);
+    ASSERT_EQ(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
+    ASSERT_EQ(params_true.alineRotationOffset, params.alineRotationOffset);
+  }
+  fs::remove(jsonFile);
+}
