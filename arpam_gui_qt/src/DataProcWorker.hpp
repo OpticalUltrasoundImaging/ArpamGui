@@ -4,11 +4,13 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QObject>
-#include <QWaitCondition>
 #include <atomic>
+#include <filesystem>
 #include <uspam/io.hpp>
 #include <uspam/recon.hpp>
 #include <uspam/uspam.hpp>
+
+namespace fs = std::filesystem;
 
 class DataProcWorker : public QObject {
   Q_OBJECT
@@ -41,26 +43,42 @@ public slots:
                            uspam::io::IOParams ioparams) {
 
     emit error("DataProcWorker updateParams");
-    QMutexLocker lock(&_mutex);
+    QMutexLocker lock(&paramsMutex);
     this->params = std::move(params);
     this->ioparams = std::move(ioparams);
   }
 
 signals:
+  void updateMaxFrames(int);
+  void updateFrameIdx(int);
+
   void resultReady(QImage img1, QImage img2);
   void finishedOneFile();
   void error(QString err);
 
 private:
   void processCurrentBinfile();
+  void processCurrentFrame();
 
+private:
+  int frameIdx{0};
+
+  // Post processing binfile
+  uspam::io::BinfileLoader<uint16_t> loader;
+  fs::path binfilePath;
+  fs::path imageSaveDir;
+
+  // Buffers;
+  arma::Mat<uint16_t> rf;
+  uspam::io::PAUSpair<double> rfPair;
+  uspam::io::PAUSpair<uint8_t> rfLog;
+
+  // Atomic states
   std::atomic<bool> _abortCurrent{false};
   std::atomic<bool> _ready{true};
 
-  QMutex _mutex;
-  QWaitCondition _condition;
-
-  QString currentBinfile;
+  // mutex for ReconParams2 and IOParams
+  QMutex paramsMutex;
 
   uspam::recon::ReconParams2 params;
   uspam::io::IOParams ioparams;

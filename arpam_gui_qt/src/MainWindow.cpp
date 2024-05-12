@@ -1,9 +1,12 @@
 #include "MainWindow.hpp"
+#include "FrameController.hpp"
 #include "ReconParamsController.hpp"
 #include <QDockWidget>
-#include <QFileDialog>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QScrollArea>
 #include <QSlider>
+#include <QVBoxLayout>
 #include <QtDebug>
 #include <QtLogging>
 #include <format>
@@ -27,9 +30,6 @@ MainWindow::MainWindow(QWidget *parent)
     worker->moveToThread(&workerThread);
 
     connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
-
-    connect(this, &MainWindow::setProcWorkerBinfile, worker,
-            &DataProcWorker::setBinfile);
 
     connect(worker, &DataProcWorker::resultReady, this,
             &MainWindow::handleNewImages);
@@ -58,23 +58,20 @@ MainWindow::MainWindow(QWidget *parent)
     textEdit->setPlainText("Application started...\n");
   }
 
-  // Post processing controller
+  // Frame controller
   {
-    auto *btnPickFile = new QPushButton("Load bin file");
-    connect(btnPickFile, &QPushButton::clicked, this, &MainWindow::openBinFile);
-    dockLayout->addWidget(btnPickFile);
+    auto *frameController = new FrameController;
+    dockLayout->addWidget(frameController);
+    // TODO connect signals
+    connect(frameController, &FrameController::openBinFile, worker,
+            &DataProcWorker::setBinfile);
+    connect(frameController, &FrameController::abortCurrentWorkInThread, this,
+            [&]() { worker->abortCurrentWork(); });
 
-    auto *btnStopProcEarly = new QPushButton("Stop");
-
-    connect(btnStopProcEarly, &QPushButton::clicked, this,
-            &MainWindow::abortCurrentWorkInThread);
-    dockLayout->addWidget(btnStopProcEarly);
-
-    // Controls to update the recon parameters
-
-    // Slider to select scan in the sequence
-    auto *scanSlider = new QSlider(Qt::Horizontal);
-    dockLayout->addWidget(scanSlider);
+    connect(worker, &DataProcWorker::updateMaxFrames, frameController,
+            &FrameController::updateMaxFrameNum);
+    connect(worker, &DataProcWorker::updateFrameIdx, frameController,
+            &FrameController::updateFrameNum);
   }
 
   // Recon parameters controller
@@ -135,9 +132,6 @@ MainWindow::MainWindow(QWidget *parent)
       auto *scrollBarRight = new QSlider(Qt::Vertical);
       layout->addWidget(scrollBarRight);
     }
-
-    // auto pixmap = QPixmap(":/resources/images/radial_380.png");
-    // canvasLeft->imshow(pixmap);
   }
 
   // Set global style
@@ -148,7 +142,7 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::closeEvent(QCloseEvent *event) {
   // Stop the worker thread
   if (workerThread.isRunning()) {
-    abortCurrentWorkInThread();
+    this->worker->abortCurrentWork();
     workerThread.quit();
     workerThread.wait();
   }
@@ -163,21 +157,6 @@ void MainWindow::switchMode() {
   //   int currentIndex = stackedWidget->currentIndex();
   //   stackedWidget->setCurrentIndex(1 - currentIndex); // Toggle between 0 and
   //   1
-}
-
-void MainWindow::openBinFile() {
-
-  QString filename = QFileDialog::getOpenFileName(
-      this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
-
-  if (!filename.isEmpty()) {
-    qInfo() << "Selected binfile" << filename;
-    emit setProcWorkerBinfile(filename);
-  }
-}
-
-void MainWindow::abortCurrentWorkInThread() {
-  this->worker->abortCurrentWork();
 }
 
 void MainWindow::handleNewImages(QImage img1, QImage img2) {
