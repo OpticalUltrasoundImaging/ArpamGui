@@ -65,8 +65,12 @@ MainWindow::MainWindow(QWidget *parent)
     // TODO connect signals
     connect(frameController, &FrameController::openBinFile, worker,
             &DataProcWorker::setBinfile);
-    connect(frameController, &FrameController::abortCurrentWorkInThread, this,
-            [&]() { worker->abortCurrentWork(); });
+    connect(frameController, &FrameController::frameNumUpdated, worker,
+            &DataProcWorker::playOne);
+    connect(frameController, &FrameController::play, worker,
+            &DataProcWorker::play);
+    connect(frameController, &FrameController::pause, this,
+            [&]() { worker->pause(); });
 
     connect(worker, &DataProcWorker::updateMaxFrames, frameController,
             &FrameController::updateMaxFrameNum);
@@ -142,7 +146,7 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::closeEvent(QCloseEvent *event) {
   // Stop the worker thread
   if (workerThread.isRunning()) {
-    this->worker->abortCurrentWork();
+    this->worker->pause();
     workerThread.quit();
     workerThread.wait();
   }

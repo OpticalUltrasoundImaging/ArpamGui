@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
+#include <QToolTip>
 #include <QVBoxLayout>
 #include <cassert>
 
@@ -22,10 +23,14 @@ FrameController::FrameController(QWidget *parent) : QWidget(parent) {
       connect(btnPickFile, &QPushButton::clicked, this,
               &FrameController::s_openBinFile);
 
-      auto *btnStopProcEarly = new QPushButton("Stop");
+      auto *btnPlay = new QPushButton("Play");
+      hlayout->addWidget(btnPlay);
+      connect(btnPlay, &QPushButton::clicked, this, [&]() { emit play(); });
+
+      auto *btnStopProcEarly = new QPushButton("Pause");
       hlayout->addWidget(btnStopProcEarly);
       connect(btnStopProcEarly, &QPushButton::clicked, this,
-              &FrameController::s_abortCurrentWorkInThread);
+              [&]() { emit pause(); });
     }
 
     {
@@ -44,6 +49,19 @@ FrameController::FrameController(QWidget *parent) : QWidget(parent) {
       frameSlider = new QSlider(Qt::Horizontal);
       vlayout->addWidget(frameSlider);
       frameSlider->setDisabled(true);
+      frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
+
+      connect(frameSlider, &QSlider::sliderPressed, this, [&] {
+        emit pause();
+        QToolTip::showText(QCursor::pos(),
+                           QString("%1").arg(frameSlider->value()), nullptr);
+      });
+      connect(frameSlider, &QSlider::sliderMoved, this, [&] {
+        QToolTip::showText(QCursor::pos(),
+                           QString("%1").arg(frameSlider->value()), nullptr);
+      });
+      connect(frameSlider, &QSlider::sliderReleased, this,
+              [&] { emit frameNumUpdated(frameSlider->value()); });
     }
   }
 }
@@ -58,12 +76,6 @@ void FrameController::s_openBinFile() {
   }
 }
 
-void FrameController::s_abortCurrentWorkInThread() {
-  emit abortCurrentWorkInThread();
-  frameNumSpinBox->setDisabled(true);
-  frameSlider->setDisabled(true);
-}
-
 void FrameController::updateFrameNum(int frameNum) {
   frameNumSpinBox->setValue(frameNum);
   frameSlider->setValue(frameNum);
@@ -72,9 +84,9 @@ void FrameController::updateFrameNum(int frameNum) {
 void FrameController::updateMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   frameSlider->setMinimum(0);
-  frameSlider->setMaximum(maxFrameNum);
+  frameSlider->setMaximum(maxFrameNum - 1);
   frameNumSpinBox->setMinimum(0);
-  frameNumSpinBox->setMaximum(maxFrameNum);
+  frameNumSpinBox->setMaximum(maxFrameNum - 1);
 
   frameNumSpinBox->setEnabled(true);
   frameSlider->setEnabled(true);

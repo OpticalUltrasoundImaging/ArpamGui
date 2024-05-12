@@ -12,7 +12,6 @@ public:
 
 private slots:
   void s_openBinFile();
-  void s_abortCurrentWorkInThread();
 
 public slots:
   void updateFrameNum(int frameNum);
@@ -20,7 +19,8 @@ public slots:
 
 signals:
   void openBinFile(QString path);
-  void abortCurrentWorkInThread();
+  void play();
+  void pause();
   void frameNumUpdated(int frameNum);
 
 private:

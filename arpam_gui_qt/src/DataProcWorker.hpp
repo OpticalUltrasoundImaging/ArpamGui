@@ -4,6 +4,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QObject>
+#include <QWaitCondition>
 #include <atomic>
 #include <filesystem>
 #include <uspam/io.hpp>
@@ -26,17 +27,22 @@ public:
   // }
   // static void setIOParams(const uspam::io::IOParams &p) { ioparams = p; }
 
-public slots:
-  void setBinfile(const QString &binfile);
-
-  // Begin post processing data using the currentBinfile
-  void doPostProcess();
-
   // Returns true if the worker is ready to start new work.
   inline bool isReady() { return _ready; };
 
+public slots:
+  // Begin post processing data using the currentBinfile
+  void setBinfile(const QString &binfile);
+
+  // Start processing frames sequentially
+  // By default start playing at current frameIdx
+  void play();
+  // Process frame at idx.
+  void playOne(int idx);
+
+  // If .play() called, pause. This needs to be called in the caller thread
   // Abort the current work (only works when ready=false. Updates ready=true)
-  void abortCurrentWork();
+  void pause();
 
   // This slot must be called in the calling thread (not in the worker thread)
   inline void updateParams(uspam::recon::ReconParams2 params,
@@ -57,7 +63,6 @@ signals:
   void error(QString err);
 
 private:
-  void processCurrentBinfile();
   void processCurrentFrame();
 
 private:
@@ -79,6 +84,7 @@ private:
 
   // mutex for ReconParams2 and IOParams
   QMutex paramsMutex;
+  QWaitCondition waitCondition;
 
   uspam::recon::ReconParams2 params;
   uspam::io::IOParams ioparams;

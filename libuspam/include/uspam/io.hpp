@@ -291,7 +291,7 @@ public:
 
   inline bool get(arma::Mat<TypeInBin> &rf, int idx) {
     setCurrIdx(idx);
-    get(rf);
+    return get(rf);
   }
 
   auto getNext(arma::Mat<TypeInBin> &rfStorage) {

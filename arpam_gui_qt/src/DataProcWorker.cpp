@@ -103,32 +103,61 @@ void DataProcWorker::setBinfile(const QString &binfile) {
   binfilePath = qString2Path(binfile);
   imageSaveDir = binfilePath.parent_path() / binfilePath.stem();
 
-  doPostProcess();
-}
+  qInfo() << "Processing binfile: " << path2QString(binfilePath);
 
-void DataProcWorker::doPostProcess() {
-  _abortCurrent = false;
-  _ready = false;
-
-  try {
-    this->processCurrentBinfile();
-  } catch (const std::runtime_error &e) {
-    const auto msg = QString::fromStdString(e.what());
-    qWarning() << "processCurrentBinfile exception: " << msg;
-    emit error("processCurrentBinfile exception: " + msg);
+  if (!fs::create_directory(imageSaveDir) && !fs::exists(imageSaveDir)) {
+    emit error(tr("Failed to create imageSaveDir ") +
+               path2QString(imageSaveDir));
+  } else {
+    emit error(tr("Saving images to ") + path2QString(imageSaveDir));
   }
 
-  _abortCurrent = false;
-  _ready = true;
+  try {
+    // Init loader
+    loader.setParams(ioparams);
+    loader.open(binfilePath);
+    emit updateMaxFrames(loader.size());
+
+    // Init buffers
+    {
+      QMutexLocker lock(&paramsMutex);
+      rfPair = ioparams.allocateSplitPair<double>(loader.getAlinesPerBscan());
+    }
+    rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
+
+    // Start processing
+    this->play();
+  } catch (const std::runtime_error &e) {
+    const auto msg = QString::fromStdString(e.what());
+    qWarning() << "DataProcWorker exception: " << msg;
+    emit error("DataProcWorker exception: " + msg);
+  }
 
   emit finishedOneFile();
 }
 
-void DataProcWorker::abortCurrentWork() {
-  if (!_ready) {
-    _abortCurrent = true;
+void DataProcWorker::play() {
+  _abortCurrent = false;
+
+  while (!_abortCurrent && frameIdx < loader.size()) {
+    playOne(frameIdx);
+    frameIdx++;
+  }
+
+  if (_abortCurrent) {
+    emit error("DataProcWorker::play Paused.");
+  } else {
+    emit error("DataProcWorker::play Finished.");
   }
 }
+
+void DataProcWorker::playOne(int idx) {
+  frameIdx = idx;
+
+  processCurrentFrame();
+}
+
+void DataProcWorker::pause() { _abortCurrent = true; }
 
 namespace {
 
@@ -169,54 +198,6 @@ struct PerformanceMetrics {
 };
 
 } // namespace
-
-void DataProcWorker::processCurrentBinfile() {
-  qInfo() << "Processing binfile: " << path2QString(binfilePath);
-
-  if (!fs::create_directory(imageSaveDir) && !fs::exists(imageSaveDir)) {
-    emit error(tr("Failed to create imageSaveDir ") +
-               path2QString(imageSaveDir));
-  } else {
-    emit error(tr("Saving images to ") + path2QString(imageSaveDir));
-  }
-
-  // uspam::io::BinfileLoader<uint16_t> loader(ioparams, binpath);
-  loader.setParams(ioparams);
-  loader.open(binfilePath);
-
-  // auto [background_aline, background, rfPair] = [&]() {
-  //   QMutexLocker lock(&paramsMutex);
-  //   const arma::vec background_aline =
-  //       estimate_aline_background_from_file(ioparams, binpath, 1000);
-  //   const auto background = ioparams.splitRfPAUS_aline(background_aline);
-  //   auto rfPair = ioparams.allocateSplitPair<double>(1000);
-  //   return std::tuple(background_aline, background, rfPair);
-  // }();
-
-  {
-    QMutexLocker lock(&paramsMutex);
-    rfPair = ioparams.allocateSplitPair<double>(loader.getAlinesPerBscan());
-  }
-  rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
-
-  const int starti = 0;
-  const int nscans = loader.size();
-  const int endi = starti + nscans;
-  frameIdx = 0;
-
-  emit updateMaxFrames(nscans);
-
-  while (!_abortCurrent && frameIdx < endi) {
-    processCurrentFrame();
-    frameIdx++;
-  }
-
-  if (_abortCurrent) {
-    emit error("Aborted.");
-  } else {
-    emit error("processCurrentBinfile finished.");
-  }
-}
 
 void DataProcWorker::processCurrentFrame() {
   const bool flip{frameIdx % 2 == 0};
