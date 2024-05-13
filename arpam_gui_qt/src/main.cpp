@@ -59,8 +59,6 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
              << ")\n";
 }
 
-std::mutex fftw_mutex;
-
 auto main(int argc, char **argv) -> int {
   // Make FFTW thread safe
   fftw_make_planner_thread_safe();

@@ -33,6 +33,8 @@ private:
 
 } // namespace
 
+// NOLINTBEGIN(*-magic-numbers)
+
 ReconParamsController::ReconParamsController(QWidget *parent)
     : QWidget(parent), params(uspam::recon::ReconParams2::system2024v1()),
       ioparams(uspam::io::IOParams::system2024v1()) {
@@ -188,3 +190,5 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
   }
 }
+
+// NOLINTEND(*-magic-numbers)

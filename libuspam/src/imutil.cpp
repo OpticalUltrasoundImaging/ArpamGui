@@ -19,7 +19,7 @@ void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS,
 
   // Get positive PA mask
   cv::Mat mask;
-  cv::threshold(PA, mask, 10, 1, cv::THRESH_BINARY);
+  cv::threshold(PA, mask, PAthresh, 1, cv::THRESH_BINARY);
 
   // Copy positive PA to output array
   PAclr.copyTo(PAUS, mask);

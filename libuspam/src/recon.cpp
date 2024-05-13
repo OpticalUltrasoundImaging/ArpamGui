@@ -18,7 +18,7 @@ void serializeVector(rapidjson::Document::AllocatorType &allocator,
 void deserializeVector(const rapidjson::Value &jsonValue,
                        std::vector<double> &vec) {
   vec.clear();
-  for (auto &v : jsonValue.GetArray()) {
+  for (const auto &v : jsonValue.GetArray()) {
     vec.push_back(v.GetDouble());
   }
 }
@@ -27,7 +27,7 @@ void deserializeVector(const rapidjson::Value &jsonValue,
 namespace uspam::recon {
 
 void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env) {
-  const cv::Range range(0, rf.n_cols);
+  const cv::Range range(0, static_cast<int>(rf.n_cols));
   // cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
   arma::vec rf_filt(rf.n_rows);
   for (int i = range.start; i < range.end; ++i) {
@@ -81,8 +81,9 @@ std::string ReconParams2::serialize() const {
 bool ReconParams2::deserialize(const std::string &jsonString) {
   auto &params = *this;
   rapidjson::Document doc;
-  if (doc.Parse(jsonString.c_str()).HasParseError())
+  if (doc.Parse(jsonString.c_str()).HasParseError()) {
     return false;
+  }
 
   deserializeVector(doc["filterFreqPA"], params.filterFreqPA);
   deserializeVector(doc["filterGainPA"], params.filterGainPA);
