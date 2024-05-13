@@ -58,7 +58,7 @@ struct IOParams {
   // System parameters from early 2024
   static inline IOParams system2024v1() {
     // return IOParams{2650, 87, 5300, 350, 215, 1};
-    return IOParams{2650, 87, 5300, 600, 215, 1};
+    return IOParams{2650, 87, 5300, -100, -100, 1};
   }
 
   template <typename T>
