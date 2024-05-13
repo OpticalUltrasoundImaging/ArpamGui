@@ -62,23 +62,25 @@ QImage cvMatToQImage(const cv::Mat &mat) {
   switch (mat.type()) {
   // 8-bit, 4 channel
   case CV_8UC4: {
-    QImage image(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_ARGB32);
+    QImage image(mat.data, mat.cols, mat.rows, static_cast<qsizetype>(mat.step),
+                 QImage::Format_ARGB32);
     return image.copy(); // Use copy to detach from original data
   }
   // 8-bit, 3 channel
   case CV_8UC3: {
-    QImage image(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_RGB888);
+    QImage image(mat.data, mat.cols, mat.rows, static_cast<qsizetype>(mat.step),
+                 QImage::Format_RGB888);
     return image.rgbSwapped(); // Convert BGR to RGB
   }
   // 8-bit, 1 channel
   case CV_8UC1: {
-    QImage image(mat.data, mat.cols, mat.rows, mat.step,
+    QImage image(mat.data, mat.cols, mat.rows, static_cast<qsizetype>(mat.step),
                  QImage::Format_Grayscale8);
     return image.copy();
   }
   // 64F, 1 channel
   case CV_64FC1: {
-    cv::Mat mat_normalized = mat * 255;
+    cv::Mat mat_normalized = mat * 255; // NOLINT
     cv::Mat mat_u8;
     mat_normalized.convertTo(mat_u8, CV_8U);
     return cvMatToQImage(mat_u8);
@@ -192,11 +194,11 @@ struct PerformanceMetrics {
 
   [[nodiscard]] auto toString() const -> std::string {
     std::stringstream ss;
-    ss << "fileloader " << (int)fileloader_ms;
-    ss << ", splitRfPAUS " << (int)splitRfPAUS_ms;
-    ss << ", reconUSPA " << (int)reconUSPA_ms;
-    ss << ", makeOverlay " << (int)makeOverlay_ms;
-    ss << ", writeImages " << (int)writeImages_ms;
+    ss << "fileloader " << static_cast<int>(fileloader_ms);
+    ss << ", splitRfPAUS " << static_cast<int>(splitRfPAUS_ms);
+    ss << ", reconUSPA " << static_cast<int>(reconUSPA_ms);
+    ss << ", makeOverlay " << static_cast<int>(makeOverlay_ms);
+    ss << ", writeImages " << static_cast<int>(writeImages_ms);
     return ss.str();
   }
 };
@@ -246,8 +248,10 @@ void DataProcWorker::processCurrentFrame() {
   // paramsUS.reconOneScan(rfPair.US, rfLog.US, flip);
   // const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
   // const QImage USradial_img = cvMatToQImage(USradial);
-  QImage USradial_img, PAradial_img;
-  cv::Mat USradial, PAradial;
+  QImage USradial_img;
+  QImage PAradial_img;
+  cv::Mat USradial;
+  cv::Mat PAradial;
 
   // procOne(paramsPA, rfPair.PA, rfLog.PA, flip,
   // PAradial_img);
@@ -299,6 +303,7 @@ void DataProcWorker::processCurrentFrame() {
     auto *pool = QThreadPool::globalInstance();
 
     // using snprintf because apple clang doesn't support std::format yet...
+    // NOLINTBEGIN(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
     char _buf[64];
     std::snprintf(_buf, sizeof(_buf), "US_%03d.png", frameIdx);
     auto fname = path2QString(imageSaveDir / std::string(_buf));
@@ -311,6 +316,7 @@ void DataProcWorker::processCurrentFrame() {
     std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", frameIdx);
     fname = path2QString(imageSaveDir / std::string(_buf));
     pool->start(new ImageWriteTask(PAUSradial_img, fname));
+    // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
 
     perfMetrics.writeImages_ms = timeit.get_ms();
   }
