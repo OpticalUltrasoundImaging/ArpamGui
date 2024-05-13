@@ -63,19 +63,21 @@ MainWindow::MainWindow(QWidget *parent)
     auto *frameController = new FrameController;
     dockLayout->addWidget(frameController);
     // TODO connect signals
-    connect(frameController, &FrameController::openBinFile, worker,
+    connect(frameController, &FrameController::binfileSelected, worker,
             &DataProcWorker::setBinfile);
     connect(frameController, &FrameController::frameNumUpdated, worker,
             &DataProcWorker::playOne);
-    connect(frameController, &FrameController::play, worker,
+    connect(frameController, &FrameController::playClicked, worker,
             &DataProcWorker::play);
-    connect(frameController, &FrameController::pause, this,
+    connect(frameController, &FrameController::pauseClicked, this,
             [&]() { worker->pause(); });
 
     connect(worker, &DataProcWorker::updateMaxFrames, frameController,
             &FrameController::updateMaxFrameNum);
     connect(worker, &DataProcWorker::updateFrameIdx, frameController,
             &FrameController::updateFrameNum);
+    connect(worker, &DataProcWorker::finishedOneFile, frameController,
+            &FrameController::updatePlayingStatePause);
   }
 
   // Recon parameters controller
@@ -83,14 +85,16 @@ MainWindow::MainWindow(QWidget *parent)
     auto *reconParamsController = new ReconParamsController;
     dockLayout->addWidget(reconParamsController);
 
-    // connect(reconParamsController, &ReconParamsController::paramsUpdated,
-    //         worker, &DataProcWorker::updateParams);
-
     connect(reconParamsController, &ReconParamsController::paramsUpdated,
             [this](uspam::recon::ReconParams2 params,
                    uspam::io::IOParams ioparams) {
               this->worker->updateParams(std::move(params),
                                          std::move(ioparams));
+
+              // Only invoke "replayOne" if not currently worker is not playing
+              if (!this->worker->isPlaying()) {
+                QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
+              }
             });
 
     connect(reconParamsController, &ReconParamsController::error, this,

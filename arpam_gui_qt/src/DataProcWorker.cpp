@@ -137,18 +137,21 @@ void DataProcWorker::setBinfile(const QString &binfile) {
 }
 
 void DataProcWorker::play() {
-  _abortCurrent = false;
+  _isPlaying = true;
 
-  while (!_abortCurrent && frameIdx < loader.size()) {
+  while (_isPlaying && frameIdx < loader.size()) {
     playOne(frameIdx);
     frameIdx++;
   }
 
-  if (_abortCurrent) {
-    emit error("DataProcWorker::play Paused.");
-  } else {
+  if (_isPlaying) {
     emit error("DataProcWorker::play Finished.");
+  } else {
+    emit error("DataProcWorker::play Paused.");
   }
+  _isPlaying = false;
+
+  emit finishedOneFile();
 }
 
 void DataProcWorker::playOne(int idx) {
@@ -156,8 +159,9 @@ void DataProcWorker::playOne(int idx) {
 
   processCurrentFrame();
 }
+void DataProcWorker::replayOne() { processCurrentFrame(); }
 
-void DataProcWorker::pause() { _abortCurrent = true; }
+void DataProcWorker::pause() { _isPlaying = false; }
 
 namespace {
 

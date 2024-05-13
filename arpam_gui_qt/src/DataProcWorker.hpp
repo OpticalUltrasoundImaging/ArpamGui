@@ -27,8 +27,8 @@ public:
   // }
   // static void setIOParams(const uspam::io::IOParams &p) { ioparams = p; }
 
-  // Returns true if the worker is ready to start new work.
-  inline bool isReady() { return _ready; };
+  // Returns true if the worker is currently playing (sequentially processing)
+  inline bool isPlaying() { return _isPlaying; }
 
 public slots:
   // Begin post processing data using the currentBinfile
@@ -39,6 +39,7 @@ public slots:
   void play();
   // Process frame at idx.
   void playOne(int idx);
+  void replayOne();
 
   // If .play() called, pause. This needs to be called in the caller thread
   // Abort the current work (only works when ready=false. Updates ready=true)
@@ -79,8 +80,7 @@ private:
   uspam::io::PAUSpair<uint8_t> rfLog;
 
   // Atomic states
-  std::atomic<bool> _abortCurrent{false};
-  std::atomic<bool> _ready{true};
+  std::atomic<bool> _isPlaying{false};
 
   // mutex for ReconParams2 and IOParams
   QMutex paramsMutex;

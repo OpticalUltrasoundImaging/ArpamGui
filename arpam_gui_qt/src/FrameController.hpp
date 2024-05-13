@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QString>
@@ -17,13 +18,20 @@ public slots:
   void updateFrameNum(int frameNum);
   void updateMaxFrameNum(int maxFrameNum);
 
+  void updatePlayingState(bool playing);
+  void updatePlayingStatePlay();
+  void updatePlayingStatePause();
+
 signals:
-  void openBinFile(QString path);
-  void play();
-  void pause();
-  void frameNumUpdated(int frameNum);
+  void binfileSelected(QString);
+  void playClicked();
+  void pauseClicked();
+  void frameNumUpdated(int);
 
 private:
+  QPushButton *btnPlay;
+  QPushButton *btnPause;
+
   QSpinBox *frameNumSpinBox;
   QSlider *frameSlider;
 };

@@ -3,14 +3,15 @@
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <cassert>
 
-FrameController::FrameController(QWidget *parent) : QWidget(parent) {
+FrameController::FrameController(QWidget *parent)
+    : QWidget(parent), btnPlay(new QPushButton("Play", this)),
+      btnPause(new QPushButton("Pause", this)) {
   {
     auto *vlayout = new QVBoxLayout;
     this->setLayout(vlayout);
@@ -20,17 +21,26 @@ FrameController::FrameController(QWidget *parent) : QWidget(parent) {
 
       auto *btnPickFile = new QPushButton("Load bin file");
       hlayout->addWidget(btnPickFile);
-      connect(btnPickFile, &QPushButton::clicked, this,
-              &FrameController::s_openBinFile);
+      connect(btnPickFile, &QPushButton::clicked, this, [&] {
+        s_openBinFile();
+        updatePlayingState(true);
+      });
 
-      auto *btnPlay = new QPushButton("Play");
       hlayout->addWidget(btnPlay);
-      connect(btnPlay, &QPushButton::clicked, this, [&]() { emit play(); });
+      btnPlay->setEnabled(false);
 
-      auto *btnStopProcEarly = new QPushButton("Pause");
-      hlayout->addWidget(btnStopProcEarly);
-      connect(btnStopProcEarly, &QPushButton::clicked, this,
-              [&]() { emit pause(); });
+      hlayout->addWidget(btnPause);
+      btnPause->setEnabled(false);
+
+      connect(btnPlay, &QPushButton::clicked, this, [&]() {
+        updatePlayingState(true);
+        emit playClicked();
+      });
+
+      connect(btnPause, &QPushButton::clicked, this, [&]() {
+        updatePlayingState(false);
+        emit pauseClicked();
+      });
     }
 
     {
@@ -41,24 +51,33 @@ FrameController::FrameController(QWidget *parent) : QWidget(parent) {
       frameNumLabel->setText("Frame num:");
       hlayout->addWidget(frameNumLabel);
 
+      // SpinBox to display frame num
       frameNumSpinBox = new QSpinBox;
       hlayout->addWidget(frameNumSpinBox);
       frameNumSpinBox->setDisabled(true);
+      // frameNumSpinBox->setReadOnly(true);
+      connect(frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
+        auto val = frameNumSpinBox->value();
+        emit frameNumUpdated(val);
+        updatePlayingState(false);
+      });
 
-      // Slider to select scan in the sequence
+      // Slider to select frame num in the sequence
       frameSlider = new QSlider(Qt::Horizontal);
       vlayout->addWidget(frameSlider);
       frameSlider->setDisabled(true);
       frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
 
       connect(frameSlider, &QSlider::sliderPressed, this, [&] {
-        emit pause();
+        emit pauseClicked();
+        updatePlayingState(false);
         QToolTip::showText(QCursor::pos(),
                            QString("%1").arg(frameSlider->value()), nullptr);
       });
       connect(frameSlider, &QSlider::sliderMoved, this, [&] {
-        QToolTip::showText(QCursor::pos(),
-                           QString("%1").arg(frameSlider->value()), nullptr);
+        const auto val = frameSlider->value();
+        QToolTip::showText(QCursor::pos(), QString("%1").arg(val), nullptr);
+        frameNumSpinBox->setValue(val);
       });
       connect(frameSlider, &QSlider::sliderReleased, this,
               [&] { emit frameNumUpdated(frameSlider->value()); });
@@ -72,7 +91,7 @@ void FrameController::s_openBinFile() {
 
   if (!filename.isEmpty()) {
     qInfo() << "Selected binfile" << filename;
-    emit openBinFile(filename);
+    emit binfileSelected(filename);
   }
 }
 
@@ -91,3 +110,15 @@ void FrameController::updateMaxFrameNum(int maxFrameNum) {
   frameNumSpinBox->setEnabled(true);
   frameSlider->setEnabled(true);
 }
+
+void FrameController::updatePlayingState(bool playing) {
+  if (playing) {
+    btnPlay->setEnabled(false);
+    btnPause->setEnabled(true);
+  } else {
+    btnPlay->setEnabled(true);
+    btnPause->setEnabled(false);
+  }
+}
+void FrameController::updatePlayingStatePlay() { updatePlayingState(true); }
+void FrameController::updatePlayingStatePause() { updatePlayingState(false); }
