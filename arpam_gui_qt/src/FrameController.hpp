@@ -11,9 +11,6 @@ class FrameController : public QWidget {
 public:
   explicit FrameController(QWidget *parent = nullptr);
 
-private slots:
-  void s_openBinFile();
-
 public slots:
   void updateFrameNum(int frameNum);
   void updateMaxFrameNum(int maxFrameNum);

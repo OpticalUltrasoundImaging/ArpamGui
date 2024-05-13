@@ -22,8 +22,17 @@ FrameController::FrameController(QWidget *parent)
       auto *btnPickFile = new QPushButton("Load bin file");
       hlayout->addWidget(btnPickFile);
       connect(btnPickFile, &QPushButton::clicked, this, [&] {
-        s_openBinFile();
-        updatePlayingState(true);
+        updatePlayingState(false);
+        emit pauseClicked();
+
+        QString filename = QFileDialog::getOpenFileName(
+            this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
+
+        if (!filename.isEmpty()) {
+          qInfo() << "Selected binfile" << filename;
+          emit binfileSelected(filename);
+          updatePlayingState(true);
+        }
       });
 
       hlayout->addWidget(btnPlay);
@@ -82,16 +91,6 @@ FrameController::FrameController(QWidget *parent)
       connect(frameSlider, &QSlider::sliderReleased, this,
               [&] { emit frameNumUpdated(frameSlider->value()); });
     }
-  }
-}
-
-void FrameController::s_openBinFile() {
-  QString filename = QFileDialog::getOpenFileName(
-      this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
-
-  if (!filename.isEmpty()) {
-    qInfo() << "Selected binfile" << filename;
-    emit binfileSelected(filename);
   }
 }
 
