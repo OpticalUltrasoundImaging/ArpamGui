@@ -91,7 +91,7 @@ struct IOParams {
 
       {
         auto ptr = split.PA.colptr(j);
-        std::rotate(ptr, ptr + this->offsetPA, ptr + split.PA.n_rows);
+        std::rotate(ptr, ptr + offsetPA, ptr + split.PA.n_rows);
         // rfPA.rows(0, this->offset_PA - 1).zeros();
       }
       {
@@ -107,7 +107,14 @@ struct IOParams {
                        PAUSpair<Tout> &split) const {
     const auto USstart = this->rf_size_PA + this->rf_size_spacer;
     const auto USend = USstart + this->rf_size_US;
-    const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+    auto offsetUS = this->offsetUS;
+    while (offsetUS < 0) {
+      offsetUS = split.US.n_rows + offsetUS;
+    }
+    auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+    while (offsetPA < 0) {
+      offsetPA = split.PA.n_rows + offsetPA;
+    }
 
     assert(split.PA.size() == this->rf_size_PA * rf.n_cols);
     assert(split.US.size() == (USend - USstart) * rf.n_cols);
@@ -128,13 +135,14 @@ struct IOParams {
         }
 
         {
+
           auto ptr = split.PA.colptr(j);
-          std::rotate(ptr, ptr + this->offsetPA, ptr + split.PA.n_rows);
+          std::rotate(ptr, ptr + offsetPA, ptr + split.PA.n_rows);
           // rfPA.rows(0, this->offset_PA - 1).zeros();
         }
         {
           auto ptr = split.US.colptr(j);
-          std::rotate(ptr, ptr + this->offsetUS, ptr + split.US.n_rows);
+          std::rotate(ptr, ptr + offsetUS, ptr + split.US.n_rows);
           // rfUS.rows(0, this->offset_US - 1).zeros();
         }
       }
