@@ -25,15 +25,7 @@ public slots:
 
   void switchMode();
 
-  // Opens a file dialog to select a bin file and then launches a
-  // worker thread to process images and display
-  void openBinFile();
-  void abortCurrentWorkInThread();
-
   void handleNewImages(QImage img1, QImage img2);
-
-signals:
-  void setProcWorkerBinfile(QString binfile);
 
 private:
   void closeEvent(QCloseEvent *event) override;

@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "fftconv.hpp"
@@ -144,20 +145,28 @@ struct ReconParams2 {
                         {0, 0, 1, 1, 0, 0},
                         {0, 0.1, 0.3, 1},
                         {0, 1, 1, 0},
-                        250,
+                        300,
                         200,
-                        40,
+                        35,
                         48,
                         26};
   }
+
+  // Serialize to JSON
+  std::string serialize() const;
+  bool serializeToFile(const std::string &path) const;
+
+  // Deserialize from JSON
+  bool deserialize(const std::string &jsonString);
+  bool deserializeFromFile(const std::string &path);
 
   // FIR filter + Envelope detection + log compression
   void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<uint8_t> &rfLog,
                     bool flip = false) const;
 
-  [[nodiscard]] auto reconOneScan(io::PAUSpair<double> &rf,
-                                  bool flip = false) const
-      -> io::PAUSpair<uint8_t>;
+  [[nodiscard]] auto
+  reconOneScan(io::PAUSpair<double> &rf,
+               bool flip = false) const -> io::PAUSpair<uint8_t>;
 
   void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
                     bool flip = false) const;

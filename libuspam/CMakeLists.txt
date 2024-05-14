@@ -4,7 +4,7 @@ project(libuspam LANGUAGES CXX)
 find_package(Armadillo CONFIG REQUIRED)
 find_package(OpenBLAS CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
-
+find_package(RapidJSON CONFIG REQUIRED)
 
 # Define libuspam library
 set(LIB_NAME libuspam)
@@ -20,6 +20,7 @@ target_link_libraries(${LIB_NAME}
     armadillo
     OpenBLAS::OpenBLAS
     opencv_world
+    rapidjson
 )
 
 # Use strict C++20

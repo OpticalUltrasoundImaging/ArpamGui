@@ -6,9 +6,12 @@
 #include <QObject>
 #include <QWaitCondition>
 #include <atomic>
+#include <filesystem>
 #include <uspam/io.hpp>
 #include <uspam/recon.hpp>
 #include <uspam/uspam.hpp>
+
+namespace fs = std::filesystem;
 
 class DataProcWorker : public QObject {
   Q_OBJECT
@@ -24,43 +27,64 @@ public:
   // }
   // static void setIOParams(const uspam::io::IOParams &p) { ioparams = p; }
 
+  // Returns true if the worker is currently playing (sequentially processing)
+  inline bool isPlaying() { return _isPlaying; }
+
 public slots:
+  // Begin post processing data using the currentBinfile
   void setBinfile(const QString &binfile);
 
-  // Begin post processing data using the currentBinfile
-  void doPostProcess();
+  // Start processing frames sequentially
+  // By default start playing at current frameIdx
+  void play();
+  // Process frame at idx.
+  void playOne(int idx);
+  void replayOne();
 
-  // Returns true if the worker is ready to start new work.
-  inline bool isReady() { return _ready; };
-
+  // If .play() called, pause. This needs to be called in the caller thread
   // Abort the current work (only works when ready=false. Updates ready=true)
-  void abortCurrentWork();
+  void pause();
 
   // This slot must be called in the calling thread (not in the worker thread)
   inline void updateParams(uspam::recon::ReconParams2 params,
                            uspam::io::IOParams ioparams) {
 
     emit error("DataProcWorker updateParams");
-    QMutexLocker lock(&_mutex);
+    QMutexLocker lock(&paramsMutex);
     this->params = std::move(params);
     this->ioparams = std::move(ioparams);
   }
 
 signals:
+  void updateMaxFrames(int);
+  void updateFrameIdx(int);
+
   void resultReady(QImage img1, QImage img2);
   void finishedOneFile();
   void error(QString err);
 
 private:
-  void processCurrentBinfile();
+  void processCurrentFrame();
 
-  std::atomic<bool> _abortCurrent{false};
-  std::atomic<bool> _ready{true};
+private:
+  int frameIdx{0};
 
-  QMutex _mutex;
-  QWaitCondition _condition;
+  // Post processing binfile
+  uspam::io::BinfileLoader<uint16_t> loader;
+  fs::path binfilePath;
+  fs::path imageSaveDir;
 
-  QString currentBinfile;
+  // Buffers;
+  arma::Mat<uint16_t> rf;
+  uspam::io::PAUSpair<double> rfPair;
+  uspam::io::PAUSpair<uint8_t> rfLog;
+
+  // Atomic states
+  std::atomic<bool> _isPlaying{false};
+
+  // mutex for ReconParams2 and IOParams
+  QMutex paramsMutex;
+  QWaitCondition waitCondition;
 
   uspam::recon::ReconParams2 params;
   uspam::io::IOParams ioparams;

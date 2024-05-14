@@ -58,7 +58,7 @@ struct IOParams {
   // System parameters from early 2024
   static inline IOParams system2024v1() {
     // return IOParams{2650, 87, 5300, 350, 215, 1};
-    return IOParams{2650, 87, 5300, 600, 215, 1};
+    return IOParams{2650, 87, 5300, -100, -100, 1};
   }
 
   template <typename T>
@@ -91,7 +91,7 @@ struct IOParams {
 
       {
         auto ptr = split.PA.colptr(j);
-        std::rotate(ptr, ptr + this->offsetPA, ptr + split.PA.n_rows);
+        std::rotate(ptr, ptr + offsetPA, ptr + split.PA.n_rows);
         // rfPA.rows(0, this->offset_PA - 1).zeros();
       }
       {
@@ -107,7 +107,14 @@ struct IOParams {
                        PAUSpair<Tout> &split) const {
     const auto USstart = this->rf_size_PA + this->rf_size_spacer;
     const auto USend = USstart + this->rf_size_US;
-    const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+    auto offsetUS = this->offsetUS;
+    while (offsetUS < 0) {
+      offsetUS = split.US.n_rows + offsetUS;
+    }
+    auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+    while (offsetPA < 0) {
+      offsetPA = split.PA.n_rows + offsetPA;
+    }
 
     assert(split.PA.size() == this->rf_size_PA * rf.n_cols);
     assert(split.US.size() == (USend - USstart) * rf.n_cols);
@@ -128,13 +135,14 @@ struct IOParams {
         }
 
         {
+
           auto ptr = split.PA.colptr(j);
-          std::rotate(ptr, ptr + this->offsetPA, ptr + split.PA.n_rows);
+          std::rotate(ptr, ptr + offsetPA, ptr + split.PA.n_rows);
           // rfPA.rows(0, this->offset_PA - 1).zeros();
         }
         {
           auto ptr = split.US.colptr(j);
-          std::rotate(ptr, ptr + this->offsetUS, ptr + split.US.n_rows);
+          std::rotate(ptr, ptr + offsetUS, ptr + split.US.n_rows);
           // rfUS.rows(0, this->offset_US - 1).zeros();
         }
       }
@@ -211,42 +219,75 @@ private:
   std::mutex mtx;
 
 public:
+  BinfileLoader() = default;
   BinfileLoader(const IOParams &ioparams, const fs::path filename,
-                int alinesPerBscan = 1000)
-      : file(filename, std::ios::binary | std::ios::ate),
-        byteOffset(ioparams.byte_offset), alinesPerBscan(alinesPerBscan) {
+                int alinesPerBscan = 1000) {
+    open(filename);
+    setParams(ioparams, alinesPerBscan);
+  }
+
+  void setParams(const IOParams &ioparams, int alinesPerBscan = 1000) {
+    this->byteOffset = ioparams.byte_offset;
+    this->alinesPerBscan = alinesPerBscan;
+  }
+
+  void open(const fs::path filename) {
+    // Open file and seek to end
+    file = std::ifstream(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
       throw std::runtime_error(
           std::string("[BinfileLoader] Failed to open file ") +
           filename.generic_string());
     }
     const std::streamsize fsize = file.tellg();
-    numScans = (fsize - ioparams.byte_offset) / scanSizeBytes();
-    file.seekg(ioparams.byte_offset, std::ios::beg);
+    numScans = (fsize - this->byteOffset) / scanSizeBytes();
+    file.seekg(this->byteOffset, std::ios::beg);
   }
+
+  void close() { file.close(); }
+  bool isOpen() const { return file.is_open(); }
 
   // (bytes) Raw RF size of one PAUS scan
   auto scanSizeBytes() const {
     return RF_ALINE_SIZE * alinesPerBscan * sizeof(TypeInBin);
   }
 
-  auto size() const { return numScans; }
+  auto size() const {
+    if (!isOpen()) [[unlikely]]
+      return 0;
+
+    return numScans;
+  }
 
   void setCurrIdx(int idx) {
+    if (!isOpen()) [[unlikely]]
+      return;
+
     std::lock_guard lock(mtx);
     assert(idx >= 0 && idx < numScans);
     currScanIdx = idx;
   }
 
   bool hasMoreScans() {
+    if (!isOpen()) [[unlikely]]
+      return false;
+
     std::lock_guard lock(mtx);
     return currScanIdx < numScans;
   }
 
+  auto setCurrIndex(int idx) { currScanIdx = idx; }
+
   bool get(arma::Mat<TypeInBin> &rf) {
+    if (!isOpen()) [[unlikely]]
+      return false;
+
     std::lock_guard lock(mtx);
     assert(currScanIdx < numScans);
-    assert(rf.size() * sizeof(TypeInBin) == scanSizeBytes());
+
+    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != alinesPerBscan) {
+      rf.resize(RF_ALINE_SIZE, alinesPerBscan);
+    }
 
     const auto sizeBytes = scanSizeBytes();
     const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
@@ -256,11 +297,21 @@ public:
     return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
   }
 
+  inline bool get(arma::Mat<TypeInBin> &rf, int idx) {
+    setCurrIdx(idx);
+    return get(rf);
+  }
+
   auto getNext(arma::Mat<TypeInBin> &rfStorage) {
+    if (!isOpen()) [[unlikely]]
+      return false;
+
     get(rfStorage);
     std::lock_guard lock(mtx);
     currScanIdx++;
   }
+
+  auto getAlinesPerBscan() const { return alinesPerBscan; }
 };
 
 // T is the type of value stored in the binary file.
