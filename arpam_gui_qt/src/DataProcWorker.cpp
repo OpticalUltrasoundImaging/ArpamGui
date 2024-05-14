@@ -198,7 +198,7 @@ struct PerformanceMetrics {
     ss << ", splitRfPAUS " << static_cast<int>(splitRfPAUS_ms);
     ss << ", reconUSPA " << static_cast<int>(reconUSPA_ms);
     ss << ", makeOverlay " << static_cast<int>(makeOverlay_ms);
-    ss << ", writeImages " << static_cast<int>(writeImages_ms);
+    // ss << ", writeImages " << static_cast<int>(writeImages_ms);
     return ss.str();
   }
 };
@@ -323,7 +323,7 @@ void DataProcWorker::processCurrentFrame() {
 
   const auto elapsed = timeit.get_ms();
 
-  auto msg = QString("Processed image %1/%2. Took %3 ms total. ")
+  auto msg = QString("Frame %1/%2 took %3 ms. ")
                  .arg(frameIdx)
                  .arg(loader.size())
                  .arg(static_cast<int>(elapsed));
