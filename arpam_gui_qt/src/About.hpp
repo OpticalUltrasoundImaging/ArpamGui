@@ -20,12 +20,12 @@ struct ARPAM_GUI_ABOUT {
 
     ss << "OpenCV: " << cv::getVersionString() << "\n";
 
-    ss << "FFTW3: " << fftw_version << "\n";
+    // ss << "FFTW3: " << fftw_version << "\n";
 
-    auto openblas_config = openblas_get_config();
-    ss << "OpenBLAS: " << openblas_config << "\n";
+    // auto openblas_config = openblas_get_config();
+    // ss << "OpenBLAS: " << openblas_config << "\n";
 
-    ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
+    // ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 
     return QString::fromStdString(ss.str());
   }
