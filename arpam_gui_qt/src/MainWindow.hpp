@@ -25,7 +25,7 @@ public slots:
 
   void switchMode();
 
-  void handleNewImages(QImage img1, QImage img2);
+  void handleNewImages(QImage img1, QImage img2, double pix2m);
 
 private:
   void closeEvent(QCloseEvent *event) override;

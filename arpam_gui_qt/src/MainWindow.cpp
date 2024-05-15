@@ -130,15 +130,13 @@ MainWindow::MainWindow(QWidget *parent)
     {
       canvasLeft->setStyleSheet("border: 1px solid black");
       layout->addWidget(canvasLeft);
-      auto *sliderLeft = new QSlider(Qt::Vertical);
-      layout->addWidget(sliderLeft);
+      connect(canvasLeft, &ImshowCanvas::error, this, &MainWindow::logError);
     }
 
     {
       canvasRight->setStyleSheet("border: 1px solid black");
       layout->addWidget(canvasRight);
-      auto *scrollBarRight = new QSlider(Qt::Vertical);
-      layout->addWidget(scrollBarRight);
+      connect(canvasRight, &ImshowCanvas::error, this, &MainWindow::logError);
     }
   }
 
@@ -167,7 +165,7 @@ void MainWindow::switchMode() {
   //   1
 }
 
-void MainWindow::handleNewImages(QImage img1, QImage img2) {
-  canvasLeft->imshow(img1);
-  canvasRight->imshow(img2);
+void MainWindow::handleNewImages(QImage img1, QImage img2, double pix2m) {
+  canvasLeft->imshow(QPixmap::fromImage(std::move(img1)), pix2m);
+  canvasRight->imshow(QPixmap::fromImage(std::move(img2)), pix2m);
 }
