@@ -34,8 +34,8 @@ void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
 void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
                   double displayScale) {
   // Bar parameters
-  const int barLength = 20;
-  const int barLengthBig = 30;
+  const int barLength = 10;
+  const int barLengthBig = 15;
 
   // Draw divisions in increments of 1 mm
   const double pix2mm = pix2m * 1000; // [mm]
@@ -45,6 +45,9 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
 
   painter->save();
   painter->setBrush(Qt::black);
+
+  // Display number and big bar every displayInterval mm
+  constexpr int displayInterval = 10;
 
   // Draw vertical scale bar
   {
@@ -56,7 +59,8 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
     painter->setPen(Qt::black);
     painter->drawRect(0, 0, barWidth, barHeight);
 
-    const int numDivisions = static_cast<int>(ph / (2 * divisionSize));
+    int numDivisions = static_cast<int>(ph / (2 * divisionSize)) - 1;
+    // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
 
     // Draw divisions (vertical scale)
     for (int i = 0; i < numDivisions; ++i) {
@@ -67,7 +71,7 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
           static_cast<int>(((double)ph / 2 - i * divisionSize) * displayScale);
 
       // painter->drawLine(0, i * divisionHeight, barWidth, i * divisionHeight);
-      if (i % 5 != 0) {
+      if (i % displayInterval != 0) {
         painter->setPen(Qt::gray);
 
         painter->drawLine(0, bar1y, barWidth, bar1y);
@@ -94,7 +98,8 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
     painter->setPen(Qt::black);
     painter->drawRect(0, 0, barWidth, barHeight);
 
-    const int numDivisions = static_cast<int>(pw / (2 * divisionSize));
+    int numDivisions = static_cast<int>(pw / (2 * divisionSize));
+    // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
 
     // Draw divisions (vertical scale)
     for (int i = 0; i < numDivisions; ++i) {
@@ -105,7 +110,7 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
           static_cast<int>(((double)pw / 2 - i * divisionSize) * displayScale);
 
       // painter->drawLine(0, i * divisionHeight, barWidth, i * divisionHeight);
-      if (i % 5 != 0) {
+      if (i % displayInterval != 0) {
         painter->setPen(Qt::gray);
 
         painter->drawLine(bar1x, 0, bar1x, barHeight);
@@ -116,8 +121,8 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
         painter->drawLine(bar1x, 0, bar1x, barHeightBig);
         painter->drawLine(bar2x, 0, bar2x, barHeightBig);
 
-        painter->drawText(bar1x - 5, barHeightBig + 15, QString::number(i));
-        painter->drawText(bar2x - 5, barHeightBig + 15, QString::number(i));
+        // painter->drawText(bar1x - 5, barHeightBig + 15, QString::number(i));
+        // painter->drawText(bar2x - 5, barHeightBig + 15, QString::number(i));
       }
     }
   }
@@ -160,21 +165,34 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     // Note the painter here retains the translation offset.
     drawScaleBar(&painter, 0, 0, pw, ph, m_pix2m, scale);
 
-    emit error(QString("Rendering time %1 ms").arg(timeit.get_ms()));
+    // Draw canvas name
+    if (!m_name.isNull()) {
+      const int margin = 10;
+      QRect boundingRect = QRect(QPoint{}, m_pixmap.size() * scale);
+      boundingRect.adjust(0, 0, -margin, -margin);
+
+      painter.setPen(Qt::white);
+      painter.drawText(boundingRect, Qt::AlignRight | Qt::AlignBottom, m_name);
+    }
+
+    // This line segfaults on macOS for some reason
+    // emit error(QString("Rendering time %1 ms").arg(timeit.get_ms()));
   }
 }
 
 void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
-  const QPoint pos = (event->pos() - m_offset) / m_scale;
+  if (!m_pixmap.isNull()) {
+    const QPoint pos = (event->pos() - m_offset) / m_scale;
 
-  // Compute position offset from center of the pixmap
-  const auto dx = m_pixmap.width() / 2 - pos.x();
-  const auto dy = m_pixmap.height() / 2 - pos.y();
+    // Compute position offset from center of the pixmap
+    const auto dx = m_pixmap.width() / 2 - pos.x();
+    const auto dy = m_pixmap.height() / 2 - pos.y();
 
-  // [px] Compute distance
-  const qreal distance = std::sqrt(dx * dx + dy * dy);
-  const qreal distance_mm = distance * m_pix2m * 1000;
+    // [px] Compute distance
+    const qreal distance = std::sqrt(dx * dx + dy * dy);
+    const qreal distance_mm = distance * m_pix2m * 1000;
 
-  emit mouseMoved(pos, distance_mm);
+    emit mouseMoved(pos, distance_mm);
+  }
 }

@@ -130,6 +130,9 @@ MainWindow::MainWindow(QWidget *parent)
     auto *layout = new QHBoxLayout;
     centralLayout->addLayout(layout);
 
+    canvasLeft->setName("US");
+    canvasRight->setName("PAUS");
+
     for (const auto canvas : {canvasLeft, canvasRight}) {
       layout->addWidget(canvas);
       canvas->setStyleSheet("border: 1px solid black");
