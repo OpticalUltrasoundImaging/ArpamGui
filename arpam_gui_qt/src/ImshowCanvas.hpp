@@ -32,10 +32,19 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
+  // Original pixmap.
   QPixmap m_pixmap;
+
+  // [m] Factor converting pixel to meters
   double m_pix2m{};
-  double m_scale{};  // Size factor for m_pixmap to maintain aspect ratio
-  QPoint m_offset{}; // Offset of displayed scaled m_pixmap to keep center
+
+  // Size factor for m_pixmap to maintain aspect ratio
+  double m_scale{};
+
+  // Offset of displayed scaled m_pixmap to keep center.
+  // m_offset is updated on every paintEvent so it should never be zero
+  // when a m_pixmap is present.
+  QPoint m_offset{};
 
   QString m_name;
 };

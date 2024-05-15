@@ -181,8 +181,9 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       painter.drawText(boundingRect, Qt::AlignRight | Qt::AlignBottom, m_name);
     }
 
-    // This line segfaults on macOS for some reason
-    // emit error(QString("Rendering time %1 ms").arg(timeit.get_ms()));
+    // Measure rendering time
+    const auto renderTime_ms = timeit.get_ms();
+    emit error(QString("Rendering time %1 ms").arg(renderTime_ms));
   }
 }
 
