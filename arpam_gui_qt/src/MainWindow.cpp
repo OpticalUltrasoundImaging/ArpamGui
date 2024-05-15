@@ -11,6 +11,7 @@
 #include <QtLogging>
 #include <format>
 #include <opencv2/opencv.hpp>
+
 namespace {
 void setGlobalStyle(QLayout *layout) {
   layout->setSpacing(0);
@@ -22,6 +23,9 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
       canvasLeft(new ImshowCanvas(this)), canvasRight(new ImshowCanvas(this)),
       worker(new DataProcWorker) {
+
+  // Enable QStatusBar at the bottom of the MainWindow
+  statusBar();
 
   /**
    * Setup worker thread
@@ -55,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Error box
     dockLayout->addWidget(textEdit);
     textEdit->setReadOnly(true);
-    textEdit->setPlainText("Application started...\n");
+    textEdit->setPlainText("Application started.\n");
   }
 
   // Frame controller
@@ -123,20 +127,17 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Image Canvas
   {
-    // centralLayout->addWidget(coregDisplay);
     auto *layout = new QHBoxLayout;
     centralLayout->addLayout(layout);
 
-    {
-      canvasLeft->setStyleSheet("border: 1px solid black");
-      layout->addWidget(canvasLeft);
-      connect(canvasLeft, &ImshowCanvas::error, this, &MainWindow::logError);
-    }
-
-    {
-      canvasRight->setStyleSheet("border: 1px solid black");
-      layout->addWidget(canvasRight);
-      connect(canvasRight, &ImshowCanvas::error, this, &MainWindow::logError);
+    for (const auto canvas : {canvasLeft, canvasRight}) {
+      layout->addWidget(canvas);
+      canvas->setStyleSheet("border: 1px solid black");
+      connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
+      connect(canvas, &ImshowCanvas::mouseMoved, this, [&](QPoint pos) {
+        statusBar()->showMessage(
+            QString("Pos: (%1, %2)").arg(pos.x()).arg(pos.y()));
+      });
     }
   }
 

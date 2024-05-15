@@ -20,10 +20,17 @@ public slots:
 signals:
   void error(QString err);
 
+  // Signal emitted on mouseMoveEvent. Position is converted to the pixmap
+  // domain
+  void mouseMoved(QPoint pos);
+
 protected:
   void paintEvent(QPaintEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
   QPixmap m_pixmap;
   double m_pix2m{};
+  double m_scale{};  // Size factor for m_pixmap to maintain aspect ratio
+  QPoint m_offset{}; // Offset of displayed scaled m_pixmap to keep center
 };

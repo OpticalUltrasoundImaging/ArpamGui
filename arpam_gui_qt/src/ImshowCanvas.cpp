@@ -8,9 +8,10 @@
 #include <uspam/timeit.hpp>
 
 ImshowCanvas::ImshowCanvas(QWidget *parent) : QLabel(parent) {
-  this->setBackgroundRole(QPalette::Base);
-  this->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-  this->setAlignment(Qt::AlignCenter);
+  setBackgroundRole(QPalette::Base);
+  setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+  setAlignment(Qt::AlignCenter);
+  setMouseTracking(true);
 }
 
 void ImshowCanvas::imshow(const cv::Mat &cv_img, double pix2m) {
@@ -124,7 +125,7 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
 }
 
 void ImshowCanvas::paintEvent(QPaintEvent *event) {
-  // QLabel::paintEvent(event);
+  QLabel::paintEvent(event);
 
   if (!m_pixmap.isNull()) {
     uspam::TimeIt timeit;
@@ -141,13 +142,13 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 
     // Calculate scale factor to maintain aspect ratio
     qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
+    m_scale = scale;
 
     // Calculate the position to center pixmap
-    const int xOffset = (w - pw * scale) / 2;
-    const int yOffset = (h - ph * scale) / 2;
+    m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
 
     // Set transformation
-    painter.translate(xOffset, yOffset);
+    painter.translate(m_offset);
 
     painter.save();
     painter.scale(scale, scale);
@@ -156,12 +157,15 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     painter.restore();
 
     // Draw scale bars
+    // Note the painter here retains the translation offset.
     drawScaleBar(&painter, 0, 0, pw, ph, m_pix2m, scale);
-
-    // drawScaleBar(&painter, xOffset, yOffset, scaledPixmap.width(),
-    //              scaledPixmap.height(),
-    //              m_pix2m * scaledPixmap.width() / m_pixmap.width());
 
     emit error(QString("Rendering time %1 ms").arg(timeit.get_ms()));
   }
+}
+
+void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
+  // Compute position in the pixmap domain
+  QPoint pos = (event->pos() - m_offset) / m_scale;
+  emit mouseMoved(pos);
 }
