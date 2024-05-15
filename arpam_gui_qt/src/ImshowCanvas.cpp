@@ -166,6 +166,15 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 
 void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
-  QPoint pos = (event->pos() - m_offset) / m_scale;
-  emit mouseMoved(pos);
+  const QPoint pos = (event->pos() - m_offset) / m_scale;
+
+  // Compute position offset from center of the pixmap
+  const auto dx = m_pixmap.width() / 2 - pos.x();
+  const auto dy = m_pixmap.height() / 2 - pos.y();
+
+  // [px] Compute distance
+  const qreal distance = std::sqrt(dx * dx + dy * dy);
+  const qreal distance_mm = distance * m_pix2m * 1000;
+
+  emit mouseMoved(pos, distance_mm);
 }

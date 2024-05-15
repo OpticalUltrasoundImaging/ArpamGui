@@ -22,7 +22,7 @@ signals:
 
   // Signal emitted on mouseMoveEvent. Position is converted to the pixmap
   // domain
-  void mouseMoved(QPoint pos);
+  void mouseMoved(QPoint pos, double depth_mm);
 
 protected:
   void paintEvent(QPaintEvent *event) override;

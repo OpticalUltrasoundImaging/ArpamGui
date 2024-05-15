@@ -133,11 +133,16 @@ MainWindow::MainWindow(QWidget *parent)
     for (const auto canvas : {canvasLeft, canvasRight}) {
       layout->addWidget(canvas);
       canvas->setStyleSheet("border: 1px solid black");
+
       connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
-      connect(canvas, &ImshowCanvas::mouseMoved, this, [&](QPoint pos) {
-        statusBar()->showMessage(
-            QString("Pos: (%1, %2)").arg(pos.x()).arg(pos.y()));
-      });
+
+      connect(canvas, &ImshowCanvas::mouseMoved, this,
+              [&](QPoint pos, double depth_mm) {
+                statusBar()->showMessage(QString("Pos: (%1, %2), depth: %3 mm")
+                                             .arg(pos.x())
+                                             .arg(pos.y())
+                                             .arg(depth_mm));
+              });
     }
   }
 
