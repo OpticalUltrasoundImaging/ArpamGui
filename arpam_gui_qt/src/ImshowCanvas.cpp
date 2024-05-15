@@ -1,5 +1,4 @@
 #include "ImshowCanvas.hpp"
-#include <QHBoxLayout>
 #include <QImage>
 #include <QPainter>
 #include <QtCore>
@@ -27,6 +26,9 @@ void ImshowCanvas::imshow(const QImage &img, double pix2m) {
 void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
   m_pixmap = pixmap;
   m_pix2m = pix2m;
+
+  // clear cached scaled pixmap
+  m_pixmapScaled = QPixmap();
 
   this->update();
 }
@@ -142,7 +144,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     uspam::TimeIt timeit;
 
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+    // painter.setRenderHint(QPainter::Antialiasing);
 
     // Canvas size
     const auto w = width();
@@ -153,7 +155,6 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 
     // Calculate scale factor to maintain aspect ratio
     qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
-    m_scale = scale;
 
     // Calculate the position to center pixmap
     m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
@@ -161,11 +162,15 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     // Set transformation
     painter.translate(m_offset);
 
-    painter.save();
-    painter.scale(scale, scale);
-    // Draw the pixmap centered
-    painter.drawPixmap(0, 0, m_pixmap);
-    painter.restore();
+    // Only re-scale m_pixmap if scale changed.
+    if (m_pixmapScaled.isNull() || scale != m_scale) {
+      m_scale = scale;
+
+      m_pixmapScaled =
+          m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
+    }
+
+    painter.drawPixmap(0, 0, m_pixmapScaled);
 
     // Draw scale bars
     // Note the painter here retains the translation offset.

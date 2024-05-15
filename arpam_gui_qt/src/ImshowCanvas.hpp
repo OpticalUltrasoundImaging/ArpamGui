@@ -35,6 +35,9 @@ private:
   // Original pixmap.
   QPixmap m_pixmap;
 
+  // Cache of scaled pixmap
+  QPixmap m_pixmapScaled;
+
   // [m] Factor converting pixel to meters
   double m_pix2m{};
 
