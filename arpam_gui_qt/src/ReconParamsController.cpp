@@ -56,6 +56,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
       layout->addWidget(filtFreq, row, 2);
+      filtFreq->setDisabled(true);
       row++;
     }
 
@@ -64,6 +65,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
       layout->addWidget(filtGain, row, 2);
+      filtGain->setDisabled(true);
       row++;
     }
 
@@ -103,6 +105,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
       layout->addWidget(filtFreq, row, 2);
+      filtFreq->setDisabled(true);
       row++;
     }
 
@@ -111,6 +114,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
       layout->addWidget(filtGain, row, 2);
+      filtGain->setDisabled(true);
       row++;
     }
 
