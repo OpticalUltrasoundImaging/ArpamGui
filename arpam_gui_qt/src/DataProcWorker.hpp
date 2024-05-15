@@ -59,7 +59,9 @@ signals:
   void updateMaxFrames(int);
   void updateFrameIdx(int);
 
-  void resultReady(QImage img1, QImage img2);
+  // pix2m is the depth [m] of each radial pixel
+  void resultReady(QImage img1, QImage img2, double pix2m);
+
   void finishedOneFile();
   void error(QString err);
 

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QImage>
 #include <QLayout>
+#include <QString>
 #include <QtWidgets>
 #include <array>
 #include <opencv2/opencv.hpp>
@@ -11,8 +13,29 @@ class ImshowCanvas : public QLabel {
 public:
   explicit ImshowCanvas(QWidget *parent = nullptr);
 
+  void setName(QString name) { m_name = name; }
+
 public slots:
-  void imshow(const cv::Mat &cv_img);
-  void imshow(const QImage &img);
-  void imshow(const QPixmap &pixmap);
+  void imshow(const cv::Mat &cv_img, double pix2m);
+  void imshow(const QImage &img, double pix2m);
+  void imshow(const QPixmap &pixmap, double pix2m);
+
+signals:
+  void error(QString err);
+
+  // Signal emitted on mouseMoveEvent. Position is converted to the pixmap
+  // domain
+  void mouseMoved(QPoint pos, double depth_mm);
+
+protected:
+  void paintEvent(QPaintEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
+
+private:
+  QPixmap m_pixmap;
+  double m_pix2m{};
+  double m_scale{};  // Size factor for m_pixmap to maintain aspect ratio
+  QPoint m_offset{}; // Offset of displayed scaled m_pixmap to keep center
+
+  QString m_name;
 };

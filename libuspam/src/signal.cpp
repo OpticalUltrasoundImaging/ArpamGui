@@ -57,8 +57,8 @@ auto interp(const arma::vec &x, const arma::vec &xp, const arma::vec &fp) {
 }
 
 auto firwin2(int numtaps, const std::span<const double> freq,
-             const std::span<const double> gain, int nfreqs, double fs)
-    -> arma::vec {
+             const std::span<const double> gain, int nfreqs,
+             double fs) -> arma::vec {
   if (numtaps < 3 || numtaps % 2 == 0) {
     throw std::invalid_argument(
         "numtaps must be odd and greater or equal to 3.");

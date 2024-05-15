@@ -198,7 +198,7 @@ struct PerformanceMetrics {
     ss << ", splitRfPAUS " << static_cast<int>(splitRfPAUS_ms);
     ss << ", reconUSPA " << static_cast<int>(reconUSPA_ms);
     ss << ", makeOverlay " << static_cast<int>(makeOverlay_ms);
-    ss << ", writeImages " << static_cast<int>(writeImages_ms);
+    // ss << ", writeImages " << static_cast<int>(writeImages_ms);
     return ss.str();
   }
 };
@@ -276,6 +276,26 @@ void DataProcWorker::processCurrentFrame() {
     perfMetrics.reconUSPA_ms = timeit.get_ms();
   }
 
+  // Compute scalebar scalar
+  // fct is the depth [m] of one radial pixel
+  const auto fct = [&] {
+    constexpr double soundSpeed = 1500.0; // [m/s] Sound speed
+    constexpr double fs = 180e6;          // [1/s] Sample frequency
+
+    // [m] multiplier to convert sampled US points to meters. 2x travel path
+    constexpr double fctRect = soundSpeed / fs;
+
+    // [points]
+    const auto USpoints_rect = static_cast<double>(rfPair.US.n_rows);
+
+    // [points]
+    const auto USpoints_radial = static_cast<double>(USradial.rows) / 2;
+
+    // [m]
+    const auto fctRadial = fctRect * USpoints_rect / USpoints_radial;
+    return fctRadial;
+  }();
+
   cv::Mat PAUSradial; // CV_8U3C
   {
     const uspam::TimeIt timeit;
@@ -286,7 +306,7 @@ void DataProcWorker::processCurrentFrame() {
   QImage PAUSradial_img = cvMatToQImage(PAUSradial);
 
   // Send images to GUI thread
-  emit resultReady(USradial_img, PAUSradial_img);
+  emit resultReady(USradial_img, PAUSradial_img, fct);
   emit updateFrameIdx(frameIdx);
 
   // Save to file
@@ -323,7 +343,7 @@ void DataProcWorker::processCurrentFrame() {
 
   const auto elapsed = timeit.get_ms();
 
-  auto msg = QString("Processed image %1/%2. Took %3 ms total. ")
+  auto msg = QString("Frame %1/%2 took %3 ms. ")
                  .arg(frameIdx)
                  .arg(loader.size())
                  .arg(static_cast<int>(elapsed));

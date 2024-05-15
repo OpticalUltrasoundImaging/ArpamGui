@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "About.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
 #include <QDockWidget>
@@ -11,6 +12,7 @@
 #include <QtLogging>
 #include <format>
 #include <opencv2/opencv.hpp>
+
 namespace {
 void setGlobalStyle(QLayout *layout) {
   layout->setSpacing(0);
@@ -22,6 +24,9 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
       canvasLeft(new ImshowCanvas(this)), canvasRight(new ImshowCanvas(this)),
       worker(new DataProcWorker) {
+
+  // Enable QStatusBar at the bottom of the MainWindow
+  statusBar();
 
   /**
    * Setup worker thread
@@ -55,14 +60,15 @@ MainWindow::MainWindow(QWidget *parent)
     // Error box
     dockLayout->addWidget(textEdit);
     textEdit->setReadOnly(true);
-    textEdit->setPlainText("Application started...\n");
+    textEdit->setPlainText("Application started.\n");
+
+    textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
   }
 
   // Frame controller
   {
     auto *frameController = new FrameController;
     dockLayout->addWidget(frameController);
-    // TODO connect signals
     connect(frameController, &FrameController::binfileSelected, worker,
             &DataProcWorker::setBinfile);
     connect(frameController, &FrameController::frameNumUpdated, worker,
@@ -123,22 +129,25 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Image Canvas
   {
-    // centralLayout->addWidget(coregDisplay);
     auto *layout = new QHBoxLayout;
     centralLayout->addLayout(layout);
 
-    {
-      canvasLeft->setStyleSheet("border: 1px solid black");
-      layout->addWidget(canvasLeft);
-      auto *sliderLeft = new QSlider(Qt::Vertical);
-      layout->addWidget(sliderLeft);
-    }
+    canvasLeft->setName("US");
+    canvasRight->setName("PAUS");
 
-    {
-      canvasRight->setStyleSheet("border: 1px solid black");
-      layout->addWidget(canvasRight);
-      auto *scrollBarRight = new QSlider(Qt::Vertical);
-      layout->addWidget(scrollBarRight);
+    for (const auto canvas : {canvasLeft, canvasRight}) {
+      layout->addWidget(canvas);
+      canvas->setStyleSheet("border: 1px solid black");
+
+      connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
+
+      connect(canvas, &ImshowCanvas::mouseMoved, this,
+              [&](QPoint pos, double depth_mm) {
+                statusBar()->showMessage(QString("Pos: (%1, %2), depth: %3 mm")
+                                             .arg(pos.x())
+                                             .arg(pos.y())
+                                             .arg(depth_mm));
+              });
     }
   }
 
@@ -167,7 +176,7 @@ void MainWindow::switchMode() {
   //   1
 }
 
-void MainWindow::handleNewImages(QImage img1, QImage img2) {
-  canvasLeft->imshow(img1);
-  canvasRight->imshow(img2);
+void MainWindow::handleNewImages(QImage img1, QImage img2, double pix2m) {
+  canvasLeft->imshow(QPixmap::fromImage(std::move(img1)), pix2m);
+  canvasRight->imshow(QPixmap::fromImage(std::move(img2)), pix2m);
 }
