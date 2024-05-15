@@ -10,7 +10,8 @@
 #include <cassert>
 
 FrameController::FrameController(QWidget *parent)
-    : QWidget(parent), btnPlay(new QPushButton("Play", this)),
+    : QGroupBox("Frame controller", parent),
+      btnPlay(new QPushButton("Play", this)),
       btnPause(new QPushButton("Pause", this)) {
   {
     auto *vlayout = new QVBoxLayout;

@@ -1,4 +1,5 @@
 #include "MainWindow.hpp"
+#include "About.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
 #include <QDockWidget>
@@ -60,13 +61,14 @@ MainWindow::MainWindow(QWidget *parent)
     dockLayout->addWidget(textEdit);
     textEdit->setReadOnly(true);
     textEdit->setPlainText("Application started.\n");
+
+    textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
   }
 
   // Frame controller
   {
     auto *frameController = new FrameController;
     dockLayout->addWidget(frameController);
-    // TODO connect signals
     connect(frameController, &FrameController::binfileSelected, worker,
             &DataProcWorker::setBinfile);
     connect(frameController, &FrameController::frameNumUpdated, worker,

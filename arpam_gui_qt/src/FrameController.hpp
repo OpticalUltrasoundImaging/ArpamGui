@@ -1,12 +1,12 @@
 #pragma once
 
+#include <QGroupBox>
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QString>
-#include <QWidget>
 
-class FrameController : public QWidget {
+class FrameController : public QGroupBox {
   Q_OBJECT
 public:
   explicit FrameController(QWidget *parent = nullptr);
