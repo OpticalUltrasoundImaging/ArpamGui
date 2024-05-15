@@ -31,6 +31,8 @@ void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
   this->update();
 }
 
+// NOLINTBEGIN(*-casting, *-narrowing-conversions)
+
 void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
                   double displayScale) {
   // Bar parameters
@@ -50,6 +52,7 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
   constexpr int displayInterval = 10;
 
   // Draw vertical scale bar
+  const int margin = 5;
   {
     const int barWidth = barLength;
     const int barWidthBig = barLengthBig;
@@ -82,8 +85,10 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
         painter->drawLine(0, bar1y, barWidthBig, bar1y);
         painter->drawLine(0, bar2y, barWidthBig, bar2y);
 
-        painter->drawText(barWidthBig + 5, bar1y + 5, QString::number(i));
-        painter->drawText(barWidthBig + 5, bar2y + 5, QString::number(i));
+        painter->drawText(barWidthBig + margin, bar1y + margin,
+                          QString::number(i));
+        painter->drawText(barWidthBig + margin, bar2y + margin,
+                          QString::number(i));
       }
     }
   }
@@ -121,8 +126,9 @@ void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
         painter->drawLine(bar1x, 0, bar1x, barHeightBig);
         painter->drawLine(bar2x, 0, bar2x, barHeightBig);
 
-        // painter->drawText(bar1x - 5, barHeightBig + 15, QString::number(i));
-        // painter->drawText(bar2x - 5, barHeightBig + 15, QString::number(i));
+        // painter->drawText(bar1x - margin, barHeightBig + 15,
+        // QString::number(i)); painter->drawText(bar2x - margin, barHeightBig +
+        // 15, QString::number(i));
       }
     }
   }
@@ -196,3 +202,5 @@ void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
     emit mouseMoved(pos, distance_mm);
   }
 }
+
+// NOLINTEND(*-casting, *-narrowing-conversions)
