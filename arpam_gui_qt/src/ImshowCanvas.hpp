@@ -1,5 +1,6 @@
 #pragma once
 
+#include "geometryUtils.hpp"
 #include <QImage>
 #include <QLayout>
 #include <QString>
@@ -19,7 +20,46 @@ struct ImshowCanvasCursorState {
 };
 
 struct ImshowCanvasAnnotations {
+  static constexpr double whiskerLength = 10;
+
   std::vector<QLineF> lines;
+  std::vector<QLineF> linesScaled;
+  std::vector<QLineF> lineWhiskers;
+
+  void clearLines() {
+    lines.clear();
+    linesScaled.clear();
+    lineWhiskers.clear();
+  }
+
+  void clear() { clearLines(); }
+
+  static auto computeLineWhisker(QLineF line) {
+    std::array<QLineF, 2> whiskers;
+    const auto normalVecWhiskerHalf =
+        geometry::calcNormalVec(line) * (whiskerLength / 2);
+    whiskers[0] = QLineF(line.p1() - normalVecWhiskerHalf,
+                         line.p1() + normalVecWhiskerHalf);
+    whiskers[1] = QLineF(line.p2() - normalVecWhiskerHalf,
+                         line.p2() + normalVecWhiskerHalf);
+    return whiskers;
+  }
+
+  // Should be called on widget resize to precompute scaled annotations
+  void rescale(double scale) {
+    // Re scale lines and whiskers
+    linesScaled.clear();
+    lineWhiskers.clear();
+    for (const auto &line : lines) {
+      const QLineF lineScaled(line.p1() * scale, line.p2() * scale);
+      linesScaled.push_back(lineScaled);
+      // TODO compute whiskers
+
+      auto whiskers = computeLineWhisker(lineScaled);
+      lineWhiskers.push_back(whiskers[0]);
+      lineWhiskers.push_back(whiskers[1]);
+    }
+  }
 };
 
 struct ImshowCanvasScaleBarState {
@@ -38,16 +78,22 @@ struct ImshowCanvasScaleBarState {
 
   std::vector<int> majorTickLabels;
 
+  void clear() {
+    minorTicks.clear();
+    minorTickLines.clear();
+
+    majorTicks.clear();
+    majorTickLines.clear();
+    majorTickLabels.clear();
+  }
+
   /**
    * @brief Update the state of the scalebar
    * @param pixmapSize size of the pixmap on which the scalebar will be drawn
    * @param pix2mm [mm] size of one pixel
    */
   void update(QSize pixmapSize, double pix2mm) {
-    minorTickLines.clear();
-    minorTicks.clear();
-    majorTicks.clear();
-    majorTickLabels.clear();
+    clear();
 
     const auto pw = pixmapSize.width();
     const auto ph = pixmapSize.height();
@@ -139,8 +185,10 @@ private:
 
   void drawScaleBar(QPainter *painter);
 
-  // [mm] Get distance (in real coordinates) between 2 points.
-  double computeDistance_mm(QPointF pt1, QPointF pt2);
+  // [mm] Get distance between 2 points in the original // pixmap.
+  double computeDistance_mm(QPointF pt1, QPointF pt2) const;
+  // [mm] Get distance between 2 points in the scaled // pixmap.
+  double computeDistanceScaled_mm(QPointF pt1, QPointF pt2) const;
 
 private:
   QString m_name;
@@ -160,7 +208,7 @@ private:
   ImshowCanvasScaleBarState m_scalebar;
 
   // State of the cursor for drawing annotations
-  ImshowCanvasCursorState m_cursorState;
+  ImshowCanvasCursorState m_cursor;
 
   ImshowCanvasAnnotations m_anno;
 };
