@@ -20,6 +20,8 @@ qt_add_executable(${EXE_NAME}
     src/ReconParamsController.cpp
     src/FrameController.hpp
     src/FrameController.cpp
+    src/geometryUtils.cpp
+    src/geometryUtils.hpp
 )
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"
