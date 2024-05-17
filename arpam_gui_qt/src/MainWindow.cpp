@@ -94,8 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(reconParamsController, &ReconParamsController::paramsUpdated,
             [this](uspam::recon::ReconParams2 params,
                    uspam::io::IOParams ioparams) {
-              this->worker->updateParams(std::move(params),
-                                         std::move(ioparams));
+              this->worker->updateParams(std::move(params), ioparams);
 
               // Only invoke "replayOne" if not currently worker is not playing
               if (!this->worker->isPlaying()) {
@@ -135,9 +134,10 @@ MainWindow::MainWindow(QWidget *parent)
     canvasLeft->setName("US");
     canvasRight->setName("PAUS");
 
-    for (const auto canvas : {canvasLeft, canvasRight}) {
+    for (auto *const canvas : {canvasLeft, canvasRight}) {
       layout->addWidget(canvas);
       canvas->setStyleSheet("border: 1px solid black");
+      canvas->setDisabled(true);
 
       connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
 
@@ -179,4 +179,6 @@ void MainWindow::switchMode() {
 void MainWindow::handleNewImages(QImage img1, QImage img2, double pix2m) {
   canvasLeft->imshow(QPixmap::fromImage(std::move(img1)), pix2m);
   canvasRight->imshow(QPixmap::fromImage(std::move(img2)), pix2m);
+  canvasLeft->setEnabled(true);
+  canvasRight->setEnabled(true);
 }

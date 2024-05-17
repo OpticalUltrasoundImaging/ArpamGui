@@ -6,6 +6,24 @@
 #include <QtLogging>
 #include <uspam/timeit.hpp>
 
+namespace {
+
+auto clipPoint(const QPointF &point, const QPointF &minPoint,
+               const QPointF &maxPoint) {
+  auto clippedX = std::max(minPoint.x(), std::min(maxPoint.x(), point.x()));
+  auto clippedY = std::max(minPoint.y(), std::min(maxPoint.y(), point.y()));
+  return QPointF(clippedX, clippedY);
+}
+
+auto clipPoint(const QPoint &point, const QPoint &minPoint,
+               const QPoint &maxPoint) {
+  auto clippedX = std::max(minPoint.x(), std::min(maxPoint.x(), point.x()));
+  auto clippedY = std::max(minPoint.y(), std::min(maxPoint.y(), point.y()));
+  return QPoint(clippedX, clippedY);
+}
+
+} // namespace
+
 ImshowCanvas::ImshowCanvas(QWidget *parent) : QLabel(parent) {
   setBackgroundRole(QPalette::Base);
   setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
@@ -35,167 +53,148 @@ void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
 
 // NOLINTBEGIN(*-casting, *-narrowing-conversions)
 
-void drawScaleBar(QPainter *painter, int x, int y, int pw, int ph, double pix2m,
-                  double displayScale) {
-  // Bar parameters
-  const int barLength = 10;
-  const int barLengthBig = 15;
+void ImshowCanvas::drawScaleBar(QPainter *painter) {
+  // Update scale bar
+  constexpr int m2mm = 1000;
+  m_scalebar.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
 
-  // Draw divisions in increments of 1 mm
-  const double pix2mm = pix2m * 1000; // [mm]
-  // const int numDivisions = 10;
-  // const int divisionHeight = barHeight / numDivisions;
-  const double divisionSize = 1 / pix2mm;
+  // Painting
+  m_scalebar.draw(painter);
+}
 
-  painter->save();
-  painter->setBrush(Qt::black);
-
-  // Display number and big bar every displayInterval mm
-  constexpr int displayInterval = 10;
-
-  // Draw vertical scale bar
-  const int margin = 5;
-  {
-    const int barWidth = barLength;
-    const int barWidthBig = barLengthBig;
-    const int barHeight = static_cast<int>(ph * displayScale);
-
-    // Draw scale bar background
-    painter->setPen(Qt::black);
-    painter->drawRect(0, 0, barWidth, barHeight);
-
-    int numDivisions = static_cast<int>(ph / (2 * divisionSize)) - 1;
-    // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
-
-    // Draw divisions (vertical scale)
-    for (int i = 0; i < numDivisions; ++i) {
-      // y Position of the current bar
-      const auto bar1y =
-          static_cast<int>(((double)ph / 2 + i * divisionSize) * displayScale);
-      const auto bar2y =
-          static_cast<int>(((double)ph / 2 - i * divisionSize) * displayScale);
-
-      // painter->drawLine(0, i * divisionHeight, barWidth, i * divisionHeight);
-      if (i % displayInterval != 0) {
-        painter->setPen(Qt::gray);
-
-        painter->drawLine(0, bar1y, barWidth, bar1y);
-        painter->drawLine(0, bar2y, barWidth, bar2y);
-      } else { // Bigger bars for increments of 5mm
-        painter->setPen(Qt::white);
-
-        painter->drawLine(0, bar1y, barWidthBig, bar1y);
-        painter->drawLine(0, bar2y, barWidthBig, bar2y);
-
-        painter->drawText(barWidthBig + margin, bar1y + margin,
-                          QString::number(i));
-        painter->drawText(barWidthBig + margin, bar2y + margin,
-                          QString::number(i));
-      }
-    }
-  }
-
-  // Draw horizontal scale bar
-  {
-    const int barWidth = static_cast<int>(pw * displayScale);
-    const int barHeight = barLength;
-    const int barHeightBig = barLengthBig;
-
-    // Draw scale bar background
-    painter->setPen(Qt::black);
-    painter->drawRect(0, 0, barWidth, barHeight);
-
-    int numDivisions = static_cast<int>(pw / (2 * divisionSize));
-    // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
-
-    // Draw divisions (vertical scale)
-    for (int i = 0; i < numDivisions; ++i) {
-      // y Position of the current bar
-      const auto bar1x =
-          static_cast<int>(((double)pw / 2 + i * divisionSize) * displayScale);
-      const auto bar2x =
-          static_cast<int>(((double)pw / 2 - i * divisionSize) * displayScale);
-
-      // painter->drawLine(0, i * divisionHeight, barWidth, i * divisionHeight);
-      if (i % displayInterval != 0) {
-        painter->setPen(Qt::gray);
-
-        painter->drawLine(bar1x, 0, bar1x, barHeight);
-        painter->drawLine(bar2x, 0, bar2x, barHeight);
-      } else { // Bigger bars for increments of 5mm
-        painter->setPen(Qt::white);
-
-        painter->drawLine(bar1x, 0, bar1x, barHeightBig);
-        painter->drawLine(bar2x, 0, bar2x, barHeightBig);
-
-        // painter->drawText(bar1x - margin, barHeightBig + 15,
-        // QString::number(i)); painter->drawText(bar2x - margin, barHeightBig +
-        // 15, QString::number(i));
-      }
-    }
-  }
-  painter->restore();
+double ImshowCanvas::computeDistance_mm(QPointF pt1, QPointF pt2) {
+  const auto d = pt1 - pt2;
+  const auto distance = std::sqrt(d.x() * d.x() + d.y() * d.y());
+  const auto distance_mm = distance * m_pix2m * 1000;
+  return distance_mm;
 }
 
 void ImshowCanvas::paintEvent(QPaintEvent *event) {
-  QLabel::paintEvent(event);
+  // QLabel::paintEvent(event);
 
   if (!m_pixmap.isNull()) {
     uspam::TimeIt timeit;
-
     QPainter painter(this);
     // painter.setRenderHint(QPainter::Antialiasing);
 
-    // Canvas size
-    const auto w = width();
-    const auto h = height();
-    // Pixmap size
-    const auto pw = m_pixmap.width();
-    const auto ph = m_pixmap.height();
+    // Draw scaled pixmap
+    {
+      // Canvas size
+      const auto w = width();
+      const auto h = height();
+      // Pixmap size
+      const auto pw = m_pixmap.width();
+      const auto ph = m_pixmap.height();
 
-    // Calculate scale factor to maintain aspect ratio
-    qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
+      // Calculate scale factor to maintain aspect ratio
+      qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
 
-    // Calculate the position to center pixmap
-    m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
+      // Calculate the position to center pixmap
+      m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
 
-    // Set transformation
-    painter.translate(m_offset);
+      // Set transformation
+      painter.translate(m_offset);
 
-    // Only re-scale m_pixmap if scale changed.
-    if (m_pixmapScaled.isNull() || scale != m_scale) {
-      m_scale = scale;
+      // if m_pixmapScaled is null OR scale changed, recompute scaled pixmap
+      if (m_pixmapScaled.isNull() || scale != m_scale) {
+        m_scale = scale;
 
-      m_pixmapScaled =
-          m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
+        m_pixmapScaled =
+            m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
+
+        // update scalebar
+        {
+          constexpr int m2mm = 1000;
+          m_scalebar.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
+        }
+      }
+
+      // Draw scaled pixmap
+      painter.drawPixmap(QPoint{}, m_pixmapScaled);
     }
 
-    painter.drawPixmap(0, 0, m_pixmapScaled);
-
-    // Draw scale bars
-    // Note the painter here retains the translation offset.
-    drawScaleBar(&painter, 0, 0, pw, ph, m_pix2m, scale);
+    // Draw scalebar
+    {
+      uspam::TimeIt timeit;
+      m_scalebar.draw(&painter);
+      const auto elapsed = timeit.get_ms();
+      // emit error(QString("drawScaleBar took %1").arg(elapsed));
+    }
 
     // Draw canvas name
     if (!m_name.isNull()) {
       const int margin = 10;
-      QRect boundingRect = QRect(QPoint{}, m_pixmap.size() * scale);
+
+      QRect boundingRect = QRect(QPoint{}, m_pixmapScaled.size());
       boundingRect.adjust(0, 0, -margin, -margin);
 
       painter.setPen(Qt::white);
       painter.drawText(boundingRect, Qt::AlignRight | Qt::AlignBottom, m_name);
     }
 
+    // Draw existing annotations
+    {
+      painter.setPen(Qt::white);
+      painter.drawLines(m_anno.lines.data(), m_anno.lines.size());
+
+      for (const auto &line : m_anno.lines) {
+        const auto distance = computeDistance_mm(line.p1(), line.p2());
+        const auto msg = QString("%1 mm").arg(distance);
+        const auto textPos = line.p2() + QPointF(5, 5);
+        painter.drawText(textPos, msg);
+      }
+    }
+
+    // Draw curr annotation
+    {
+      if (m_cursorState.leftButtonDown) {
+        painter.setPen(Qt::white);
+        const auto line = m_cursorState.currLine();
+        painter.drawLine(line);
+
+        const auto distance = computeDistance_mm(line.p1(), line.p2());
+        const auto msg = QString("%1 mm").arg(distance);
+        const auto textPos = line.p2() + QPointF(5, 5);
+        painter.drawText(textPos, msg);
+      }
+    }
+
     // Measure rendering time
     const auto renderTime_ms = timeit.get_ms();
-    emit error(QString("Rendering time %1 ms").arg(renderTime_ms));
+    // emit error(QString("Rendering time %1 ms").arg(renderTime_ms));
+  }
+}
+
+void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton) {
+    m_cursorState.leftButtonDown = true;
+
+    // Only show one line on screen for now
+    m_anno.lines.clear();
+
+    const auto pos = event->position() - m_offset;
+    m_cursorState.startPos = pos;
+  } else if (event->button() == Qt::MiddleButton) {
+    m_cursorState.middleButtonDown = true;
+  } else if (event->button() == Qt::RightButton) {
+    m_cursorState.rightButtonDown = true;
+
+    if (!m_anno.lines.empty()) {
+      m_anno.lines.clear();
+      repaint();
+    }
   }
 }
 
 void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
-  if (!m_pixmap.isNull()) {
-    const QPoint pos = (event->pos() - m_offset) / m_scale;
+  if (m_pixmap.isNull()) {
+    return;
+  }
+
+  m_cursorState.currPos = event->position() - m_offset;
+  {
+    const QPoint pos = (m_cursorState.currPos / m_scale).toPoint();
 
     // Compute position offset from center of the pixmap
     const auto dx = m_pixmap.width() / 2 - pos.x();
@@ -206,6 +205,24 @@ void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
     const qreal distance_mm = distance * m_pix2m * 1000;
 
     emit mouseMoved(pos, distance_mm);
+  }
+
+  // draw annotation currently drawing
+  if (m_cursorState.leftButtonDown) {
+    update();
+  }
+}
+
+void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton) {
+    m_cursorState.leftButtonDown = false;
+
+    m_anno.lines.push_back(m_cursorState.currLine());
+
+  } else if (event->button() == Qt::MiddleButton) {
+    m_cursorState.middleButtonDown = false;
+  } else if (event->button() == Qt::RightButton) {
+    m_cursorState.rightButtonDown = false;
   }
 }
 
