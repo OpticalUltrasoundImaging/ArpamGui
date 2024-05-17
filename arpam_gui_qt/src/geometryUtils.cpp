@@ -1,4 +1,5 @@
 #include "geometryUtils.hpp"
+#include <algorithm>
 
 namespace geometry {
 
