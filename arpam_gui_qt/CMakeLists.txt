@@ -28,6 +28,11 @@ qt_add_resources(${EXE_NAME} imageresources
     FILES 
     resources/images/radial_380.png
 )
+qt_add_resources(${EXE_NAME} styles
+    PREFIX "/"
+    FILES
+    resources/styles/styles.qss
+)
 
 target_include_directories(${EXE_NAME} PRIVATE src)
 

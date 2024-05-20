@@ -106,6 +106,15 @@ MainWindow::MainWindow(QWidget *parent)
             &MainWindow::logError);
   }
 
+  // Exit button
+  {
+    auto *btn = new QPushButton("Close");
+    dockLayout->addWidget(btn);
+    connect(btn, &QPushButton::clicked, this, &QMainWindow::close);
+    btn->setObjectName("closeButton");
+  }
+  // End dock config
+
   // Central scroll area
   auto *centralLayout = new QVBoxLayout;
   {

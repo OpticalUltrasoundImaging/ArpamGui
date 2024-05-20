@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include <QApplication>
+#include <QFile>
 #include <QMainWindow>
 #include <QStyle>
 #include <QStyleHints>
@@ -70,9 +71,18 @@ auto main(int argc, char **argv) -> int {
   QApplication app(argc, argv);
   app.setStyle("Fusion"); // Dark mode
 
+  // load style sheet
+  {
+    QFile file(":/resources/styles/styles.qss");
+    if (file.open(QFile::ReadOnly)) {
+      QString styleSheet = file.readAll();
+      app.setStyleSheet(styleSheet);
+    }
+  }
+
   MainWindow mainWindow;
   mainWindow.setWindowTitle("ARPAM GUI QT");
-  mainWindow.showMaximized();
+  mainWindow.showFullScreen();
 
   return app.exec();
 }
