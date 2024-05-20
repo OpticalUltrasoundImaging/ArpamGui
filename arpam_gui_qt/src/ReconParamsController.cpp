@@ -3,6 +3,9 @@
 #include <QRegularExpression>
 #include <QSpinBox>
 #include <QValidator>
+#include <ranges>
+#include <sstream>
+#include <string>
 
 namespace {
 
@@ -31,6 +34,20 @@ private:
   QRegularExpression regex;
 };
 
+template <typename T>
+auto vectorToStdString(const std::vector<T> &vec) -> std::string {
+  if (vec.empty()) {
+    return {};
+  }
+
+  std::stringstream ss;
+  ss << vec.front();
+  for (const auto &val : vec | std::views::drop(1)) {
+    ss << ", " << val;
+  }
+  return ss.str();
+}
+
 } // namespace
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -42,6 +59,18 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   this->setLayout(layout);
 
   auto *doubleListValidator = new DoubleListValidator(this);
+
+  const auto makeQSpinBox = [this](const std::pair<int, int> &range, int &value,
+                                   auto *context) {
+    auto spinBox = new QSpinBox;
+    spinBox->setRange(range.first, range.second);
+    spinBox->setValue(value);
+    connect(spinBox, &QSpinBox::valueChanged, context, [&](int newValue) {
+      value = newValue;
+      this->_paramsUpdatedInternal();
+    });
+    return spinBox;
+  };
 
   // PA params
   {
@@ -56,8 +85,11 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
       layout->addWidget(filtFreq, row, 2);
-      filtFreq->setDisabled(true);
+      filtFreq->setReadOnly(true);
       row++;
+
+      filtFreq->setText(
+          QString::fromStdString(vectorToStdString(params.filterFreqPA)));
     }
 
     {
@@ -65,30 +97,24 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
       layout->addWidget(filtGain, row, 2);
-      filtGain->setDisabled(true);
+      filtGain->setReadOnly(true);
       row++;
+
+      filtGain->setText(
+          QString::fromStdString(vectorToStdString(params.filterGainPA)));
     }
 
     {
       layout->addWidget(new QLabel("Noise floor"), row, 1);
-      auto *noiseFloor = new QSpinBox();
-      noiseFloor->setRange(0, 2000);
-      noiseFloor->setValue(params.noiseFloorPA);
-      connect(noiseFloor, &QSpinBox::valueChanged, this,
-              &ReconParamsController::noiseFloorPA_changed);
-      layout->addWidget(noiseFloor, row, 2);
-      row++;
+      auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorPA, this);
+      layout->addWidget(spinBox, row++, 2);
     }
 
     {
       layout->addWidget(new QLabel("Dynamic range"), row, 1);
-      auto *dr = new QSpinBox();
-      dr->setRange(10, 70);
-      dr->setValue(params.desiredDynamicRangePA);
-      connect(dr, &QSpinBox::valueChanged, this,
-              &ReconParamsController::dynamicRangePA_changed);
-      layout->addWidget(dr, row, 2);
-      row++;
+      auto *spinBox =
+          makeQSpinBox({10, 70}, params.desiredDynamicRangePA, this);
+      layout->addWidget(spinBox, row++, 2);
     }
   }
 
@@ -105,8 +131,11 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
       layout->addWidget(filtFreq, row, 2);
-      filtFreq->setDisabled(true);
+      filtFreq->setReadOnly(true);
       row++;
+
+      filtFreq->setText(
+          QString::fromStdString(vectorToStdString(params.filterFreqUS)));
     }
 
     {
@@ -114,30 +143,24 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
       layout->addWidget(filtGain, row, 2);
-      filtGain->setDisabled(true);
+      filtGain->setReadOnly(true);
       row++;
+
+      filtGain->setText(
+          QString::fromStdString(vectorToStdString(params.filterGainUS)));
     }
 
     {
       layout->addWidget(new QLabel("Noise floor"), row, 1);
-      auto *noiseFloor = new QSpinBox();
-      noiseFloor->setRange(0, 2000);
-      noiseFloor->setValue(params.noiseFloorUS);
-      connect(noiseFloor, &QSpinBox::valueChanged, this,
-              &ReconParamsController::noiseFloorUS_changed);
-      layout->addWidget(noiseFloor, row, 2);
-      row++;
+      auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorUS, this);
+      layout->addWidget(spinBox, row++, 2);
     }
 
     {
       layout->addWidget(new QLabel("Dynamic range"), row, 1);
-      auto *dr = new QSpinBox();
-      dr->setRange(10, 70);
-      dr->setValue(params.desiredDynamicRangeUS);
-      connect(dr, &QSpinBox::valueChanged, this,
-              &ReconParamsController::dynamicRangeUS_changed);
-      layout->addWidget(dr, row, 2);
-      row++;
+      auto *spinBox =
+          makeQSpinBox({10, 70}, params.desiredDynamicRangeUS, this);
+      layout->addWidget(spinBox, row++, 2);
     }
   }
 
@@ -151,46 +174,27 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
     {
       layout->addWidget(new QLabel("Rotation offset"), row, 0);
-      auto *rotOffset = new QSpinBox();
-      connect(rotOffset, &QSpinBox::valueChanged, this,
-              &ReconParamsController::rotOffset_changed);
-      rotOffset->setRange(-500, 500);
-      rotOffset->setValue(params.alineRotationOffset);
-      layout->addWidget(rotOffset, row, 1);
-      row++;
+      auto *spinBox =
+          makeQSpinBox({-500, 500}, params.alineRotationOffset, this);
+      layout->addWidget(spinBox, row++, 1);
     }
 
     {
       layout->addWidget(new QLabel("PAUS spacer"), row, 0);
-      auto *spacer = new QSpinBox();
-      connect(spacer, &QSpinBox::valueChanged, this,
-              &ReconParamsController::PAUSspacer_changed);
-      spacer->setRange(0, 200);
-      spacer->setValue(this->ioparams.rf_size_spacer);
-      layout->addWidget(spacer, row, 1);
-      row++;
+      auto *spinBox = makeQSpinBox({0, 200}, ioparams.rf_size_spacer, this);
+      layout->addWidget(spinBox, row++, 1);
     }
 
     {
       layout->addWidget(new QLabel("OffsetUS"), row, 0);
-      auto *offsetUS = new QSpinBox();
-      connect(offsetUS, &QSpinBox::valueChanged, this,
-              &ReconParamsController::offsetUS_changed);
-      offsetUS->setRange(-500, 1000);
-      offsetUS->setValue(ioparams.offsetUS);
-      layout->addWidget(offsetUS, row, 1);
-      row++;
+      auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetUS, this);
+      layout->addWidget(spinBox, row++, 1);
     }
 
     {
       layout->addWidget(new QLabel("OffsetPA"), row, 0);
-      auto *offsetPA = new QSpinBox();
-      connect(offsetPA, &QSpinBox::valueChanged, this,
-              &ReconParamsController::offsetPA_changed);
-      offsetPA->setRange(-500, 1000);
-      offsetPA->setValue(ioparams.offsetPA);
-      layout->addWidget(offsetPA, row, 1);
-      row++;
+      auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetPA, this);
+      layout->addWidget(spinBox, row++, 1);
     }
   }
 }
