@@ -8,7 +8,6 @@ find_package(RapidJSON CONFIG REQUIRED)
 
 find_package(FFTW3 CONFIG REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
-
 find_path(FFTCONV_INCLUDE_DIRS "fftconv.hpp")
 
 # Define libuspam library

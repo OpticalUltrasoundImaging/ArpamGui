@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <cassert>
 #include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -14,6 +15,8 @@
 #include "uspam/signal.hpp"
 
 #include <opencv2/opencv.hpp>
+
+namespace fs = std::filesystem;
 
 namespace uspam::recon {
 
@@ -154,11 +157,11 @@ struct ReconParams2 {
 
   // Serialize to JSON
   std::string serialize() const;
-  bool serializeToFile(const std::string &path) const;
+  bool serializeToFile(const fs::path &path) const;
 
   // Deserialize from JSON
   bool deserialize(const std::string &jsonString);
-  bool deserializeFromFile(const std::string &path);
+  bool deserializeFromFile(const fs::path &path);
 
   // FIR filter + Envelope detection + log compression
   void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<uint8_t> &rfLog,
