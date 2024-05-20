@@ -72,6 +72,14 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return spinBox;
   };
 
+  const QString &help_Freq = "Parameters to the FIR filter.";
+  const QString &help_Gain = "Parameters to the FIR filter.";
+
+  const QString &help_NoiseFloor =
+      "Noise floor is the maximum noise level that will be cut out.";
+  const QString &help_DynamicRange =
+      "Dynamic range above the noisefloor that will be displayed.";
+
   // PA params
   {
     auto *gb = new QGroupBox(tr("PA recon params"));
@@ -81,7 +89,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     int row = 1;
 
     {
-      layout->addWidget(new QLabel("Freq"), row, 1);
+      auto *label = new QLabel("Freq");
+      label->setToolTip(help_Freq);
+      layout->addWidget(label, row, 1);
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
       layout->addWidget(filtFreq, row, 2);
@@ -93,7 +103,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      layout->addWidget(new QLabel("Gain"), row, 1);
+      auto *label = new QLabel("Gain");
+      label->setToolTip(help_Gain);
+      layout->addWidget(label, row, 1);
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
       layout->addWidget(filtGain, row, 2);
@@ -105,13 +117,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      layout->addWidget(new QLabel("Noise floor"), row, 1);
+      auto *label = new QLabel("Noise floor");
+      label->setToolTip(help_NoiseFloor);
+      layout->addWidget(label, row, 1);
       auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorPA, this);
       layout->addWidget(spinBox, row++, 2);
     }
 
     {
-      layout->addWidget(new QLabel("Dynamic range"), row, 1);
+      auto *label = new QLabel("Dynamic range");
+      label->setToolTip(help_DynamicRange);
+      layout->addWidget(label, row, 1);
       auto *spinBox =
           makeQSpinBox({10, 70}, params.desiredDynamicRangePA, this);
       layout->addWidget(spinBox, row++, 2);
@@ -127,7 +143,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     int row = 1;
 
     {
-      layout->addWidget(new QLabel("Freq"), row, 1);
+      auto *label = new QLabel("Freq");
+      label->setToolTip(help_Freq);
+      layout->addWidget(label, row, 1);
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
       layout->addWidget(filtFreq, row, 2);
@@ -139,7 +157,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      layout->addWidget(new QLabel("Gain"), row, 1);
+      auto *label = new QLabel("Gain");
+      label->setToolTip(help_Gain);
+      layout->addWidget(label, row, 1);
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
       layout->addWidget(filtGain, row, 2);
@@ -151,13 +171,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      layout->addWidget(new QLabel("Noise floor"), row, 1);
+      auto *label = new QLabel("Noise floor");
+      label->setToolTip(help_NoiseFloor);
+      layout->addWidget(label, row, 1);
       auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorUS, this);
       layout->addWidget(spinBox, row++, 2);
     }
 
     {
-      layout->addWidget(new QLabel("Dynamic range"), row, 1);
+      auto *label = new QLabel("Dynamic range");
+      label->setToolTip(help_DynamicRange);
+      layout->addWidget(label, row, 1);
       auto *spinBox =
           makeQSpinBox({10, 70}, params.desiredDynamicRangeUS, this);
       layout->addWidget(spinBox, row++, 2);
@@ -173,26 +197,37 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     int row = 0;
 
     {
-      layout->addWidget(new QLabel("Rotation offset"), row, 0);
+      auto *label = new QLabel("Rotation offset");
+      label->setToolTip(
+          "Rotation offset in no. of Alines to stablize the display.");
+      layout->addWidget(label, row, 0);
       auto *spinBox =
           makeQSpinBox({-500, 500}, params.alineRotationOffset, this);
       layout->addWidget(spinBox, row++, 1);
     }
 
     {
-      layout->addWidget(new QLabel("PAUS spacer"), row, 0);
+      auto *label = new QLabel("PAUS spacer");
+      label->setToolTip("");
+      layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({0, 200}, ioparams.rf_size_spacer, this);
       layout->addWidget(spinBox, row++, 1);
     }
 
     {
-      layout->addWidget(new QLabel("OffsetUS"), row, 0);
+      auto *label = new QLabel("OffsetUS");
+      label->setToolTip("Change this (in no. of samples) to move how close the "
+                        "US signals are in relation to the axis of rotation.");
+      layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetUS, this);
       layout->addWidget(spinBox, row++, 1);
     }
 
     {
-      layout->addWidget(new QLabel("OffsetPA"), row, 0);
+      auto *label = new QLabel("OffsetPA");
+      label->setToolTip(
+          "Change this (in no. of samples) to coregister PA and US.");
+      layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetPA, this);
       layout->addWidget(spinBox, row++, 1);
     }
