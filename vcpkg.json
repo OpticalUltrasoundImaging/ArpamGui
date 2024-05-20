@@ -1,54 +1,46 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "name": "arpam-gui",
-    "version": "0.1",
-    "dependencies": [
-        "qtbase",
-        "rapidjson",
-        "glslang",
-        "glfw3",
-        "armadillo",
-        "fftconv",
-        "openblas",
-        {
-            "name": "opencv4",
-            "features": [
-                "contrib",
-                "dnn",
-                "png",
-                "vulkan",
-                "tbb",
-                "png",
-                "world"
-            ]
-        },
-        {
-            "name": "fftw3",
-            "platform": "x64",
-            "features": ["avx2", "threads"]
-        },
-        {
-            "name": "fftw3",
-            "platform": "!x64",
-            "features": ["threads"]
-        },
-        {
-            "name": "cuda",
-            "platform": "x64"
-        },
-        {
-            "name": "itk",
-            "platform": "x64",
-            "features": ["cuda", "cufftw", "opencv", "tbb"]
-        },
-        {
-            "name": "itk",
-            "platform": "!x64",
-            "features": ["opencv", "tbb"]
-        },
-        "gtest",
-        "cli11",
-        "indicators"
-    ],
-    "builtin-baseline": "5fa0f075ea51f305b627ecd5e050a363707353ff"
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "arpam-gui",
+  "version": "0.1",
+  "dependencies": [
+    "qtbase",
+    "rapidjson",
+    "glslang",
+    "glfw3",
+    "armadillo",
+    "fftconv",
+    "openblas",
+    {
+      "name": "opencv4",
+      "features": ["contrib", "dnn", "png", "vulkan", "tbb", "png", "world"]
+    },
+    {
+      "name": "fftw3",
+      "platform": "x64",
+      "features": ["avx2", "threads"]
+    },
+    {
+      "name": "fftw3",
+      "platform": "!x64",
+      "features": ["threads"]
+    },
+    {
+      "name": "cuda",
+      "platform": "x64"
+    },
+    {
+      "name": "itk",
+      "platform": "x64",
+      "features": ["cuda", "cufftw", "opencv", "tbb"]
+    },
+    {
+      "name": "itk",
+      "platform": "!x64",
+      "features": ["opencv", "tbb"]
+    },
+    "gtest",
+    "cli11",
+    "indicators"
+  ],
+  "builtin-baseline": "5fa0f075ea51f305b627ecd5e050a363707353ff"
 }
