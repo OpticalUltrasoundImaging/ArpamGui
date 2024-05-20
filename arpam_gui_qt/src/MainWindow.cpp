@@ -108,10 +108,24 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Exit button
   {
-    auto *btn = new QPushButton("Close");
-    dockLayout->addWidget(btn);
-    connect(btn, &QPushButton::clicked, this, &QMainWindow::close);
-    btn->setObjectName("closeButton");
+    auto *layout = new QVBoxLayout;
+    dockLayout->addLayout(layout);
+
+    auto *closeBtn = new QPushButton("Close");
+    layout->addWidget(closeBtn);
+    connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
+    closeBtn->setObjectName("closeButton");
+
+    auto *toggleFullscreenBtn = new QPushButton("Toggle Fullscreen");
+    layout->addWidget(toggleFullscreenBtn);
+    connect(toggleFullscreenBtn, &QPushButton::clicked, this, [this] {
+      if (this->isFullScreen()) {
+        this->setWindowState(Qt::WindowMaximized);
+      } else {
+        this->setWindowState(Qt::WindowFullScreen);
+      }
+    });
+    toggleFullscreenBtn->setObjectName("toggleFullscreenButton");
   }
   // End dock config
 
