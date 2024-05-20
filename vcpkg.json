@@ -8,6 +8,7 @@
         "glslang",
         "glfw3",
         "armadillo",
+        "fftconv",
         "openblas",
         {
             "name": "opencv4",

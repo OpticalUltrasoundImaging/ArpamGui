@@ -12,17 +12,11 @@ project(ARPAM_gui
 
 enable_testing()
 
-# Add fftconv
-add_subdirectory(extern/fftconv/fftconv_fftw)
-
 # Build libarpam
 add_subdirectory(libuspam)
 
 # Build the CLI
 add_subdirectory(cli)
-
-# Build the ARPAM gui
-add_subdirectory(arpam_gui_glfw_vulkan)
 
 add_subdirectory(arpam_gui_qt)
 
