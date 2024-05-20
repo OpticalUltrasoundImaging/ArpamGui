@@ -1,6 +1,8 @@
 #include "MainWindow.hpp"
 #include <QApplication>
 #include <QMainWindow>
+#include <QStyle>
+#include <QStyleHints>
 #include <QtWidgets>
 #include <ctime>
 #include <format>
@@ -66,8 +68,11 @@ auto main(int argc, char **argv) -> int {
   qInstallMessageHandler(myMessageHandler);
 
   QApplication app(argc, argv);
+  app.setStyle("Fusion"); // Dark mode
+
   MainWindow mainWindow;
   mainWindow.setWindowTitle("ARPAM GUI QT");
   mainWindow.showMaximized();
+
   return app.exec();
 }
