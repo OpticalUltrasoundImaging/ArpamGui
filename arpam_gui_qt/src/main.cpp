@@ -82,7 +82,7 @@ auto main(int argc, char **argv) -> int {
 
   MainWindow mainWindow;
   mainWindow.setWindowTitle("ARPAM GUI QT");
-  mainWindow.showFullScreen();
+  mainWindow.showMaximized();
 
   return app.exec();
 }
