@@ -1,5 +1,6 @@
 #include "ReconParamsController.hpp"
 #include <QIntValidator>
+#include <QPushButton>
 #include <QRegularExpression>
 #include <QSpinBox>
 #include <QValidator>
@@ -273,12 +274,24 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
   }
 
+  // Reset buttons
+  {
+    auto *_layout = new QVBoxLayout;
+    layout->addLayout(_layout);
+
+    auto *btn = new QPushButton("Reset params");
+    _layout->addWidget(btn);
+    connect(btn, &QPushButton::pressed, this,
+            &ReconParamsController::resetParams);
+  }
+
   updateGuiFromParams();
 }
 
 void ReconParamsController::resetParams() {
   params = uspam::recon::ReconParams2::system2024v1();
   ioparams = uspam::io::IOParams::system2024v1();
+  updateGuiFromParams();
 }
 
 void ReconParamsController::updateGuiFromParams() {

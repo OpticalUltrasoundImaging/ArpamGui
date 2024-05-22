@@ -23,7 +23,6 @@ public:
 
 public slots:
   void resetParams();
-  void updateGuiFromParams();
 
 signals:
   void paramsUpdated(uspam::recon::ReconParams2 params,
@@ -31,6 +30,7 @@ signals:
   void error(QString err);
 
 private:
+  void updateGuiFromParams();
   inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
 
 private:
