@@ -12,33 +12,12 @@ project(ARPAM_gui
 
 enable_testing()
 
-### Add ImGui and gui backends
-# Disable clang-tidy temporarily to build dependencies and restore after
-set(CMAKE_CXX_CLANG_TIDY_SAVE ${CMAKE_CXX_CLANG_TIDY})
-set(CMAKE_CXX_CLANG_TIDY "")
-include(CMakeLists_imgui.cmake)
-set(CMAKE_CXX_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY_SAVE})
-
-# # Build an ImGui example
-# add_executable(example_glfw_vulkan)
-# set(EXAMPLE_DIR ./imgui/examples/example_glfw_vulkan)
-# target_sources(example_glfw_vulkan
-#     PRIVATE
-#     ${EXAMPLE_DIR}/main.cpp)
-# target_link_libraries(example_glfw_vulkan PRIVATE ${VENDOR_LIBS})
-# target_compile_definitions(example_glfw_vulkan PUBLIC -DImTextureID=ImU64)
-
-# Add fftconv
-add_subdirectory(extern/fftconv/fftconv_fftw)
-
 # Build libarpam
 add_subdirectory(libuspam)
 
 # Build the CLI
 add_subdirectory(cli)
 
-# Build the ARPAM gui
-add_subdirectory(arpam_gui_glfw_vulkan)
-
-add_subdirectory(arpam_gui_qt)
+# Build the QT Gui
+add_subdirectory(ArpamGuiQt)
 

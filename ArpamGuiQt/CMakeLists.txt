@@ -1,8 +1,9 @@
-project(arpam-gui-qt VERSION 1.0.0 LANGUAGES CXX)
+project(ArpamGuiQt VERSION 1.0.0 LANGUAGES CXX)
 
-set(EXE_NAME arpam-gui-qt)
+set(EXE_NAME ArpamGuiQt)
 
-find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets)
+find_package(Vulkan REQUIRED)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui)
 qt_standard_project_setup()
 set(CMAKE_AUTOMOC ON)
 
@@ -28,6 +29,11 @@ qt_add_resources(${EXE_NAME} imageresources
     FILES 
     resources/images/radial_380.png
 )
+qt_add_resources(${EXE_NAME} styles
+    PREFIX "/"
+    FILES
+    resources/styles/styles.qss
+)
 
 target_include_directories(${EXE_NAME} PRIVATE src)
 
@@ -35,6 +41,8 @@ target_link_libraries(${EXE_NAME}
     PRIVATE
     libuspam
     Qt::Widgets
+    Qt::Gui
+    Vulkan::Vulkan
 )
 
 set_target_properties(${EXE_NAME} PROPERTIES

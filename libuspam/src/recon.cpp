@@ -99,7 +99,7 @@ bool ReconParams2::deserialize(const std::string &jsonString) {
   return true;
 }
 
-bool ReconParams2::serializeToFile(const std::string &path) const {
+bool ReconParams2::serializeToFile(const fs::path &path) const {
   std::ofstream ofs(path);
   if (!ofs.is_open()) {
     std::cerr << "Failed to open " << path << " for writing.\n";
@@ -110,7 +110,7 @@ bool ReconParams2::serializeToFile(const std::string &path) const {
   return true;
 }
 
-bool ReconParams2::deserializeFromFile(const std::string &path) {
+bool ReconParams2::deserializeFromFile(const fs::path &path) {
   std::ifstream ifs(path);
   if (!ifs.is_open()) {
     std::cerr << "Failed to open " << path << " for reading.\n";

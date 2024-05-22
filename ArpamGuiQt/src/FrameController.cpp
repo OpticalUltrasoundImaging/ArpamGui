@@ -82,13 +82,15 @@ FrameController::FrameController(QWidget *parent)
         emit pauseClicked();
         updatePlayingState(false);
         QToolTip::showText(QCursor::pos(),
-                           QString("%1").arg(frameSlider->value()), nullptr);
+                           QString::number(frameSlider->value()));
       });
+
       connect(frameSlider, &QSlider::sliderMoved, this, [&] {
         const auto val = frameSlider->value();
-        QToolTip::showText(QCursor::pos(), QString("%1").arg(val), nullptr);
+        QToolTip::showText(QCursor::pos(), QString::number(val));
         frameNumSpinBox->setValue(val);
       });
+
       connect(frameSlider, &QSlider::sliderReleased, this,
               [&] { emit frameNumUpdated(frameSlider->value()); });
     }

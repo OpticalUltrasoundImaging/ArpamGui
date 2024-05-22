@@ -118,7 +118,7 @@ void DataProcWorker::setBinfile(const QString &binfile) {
     // Init loader
     loader.setParams(ioparams);
     loader.open(binfilePath);
-    emit updateMaxFrames(loader.size());
+    emit maxFramesChanged(loader.size());
 
     // Init buffers
     {
@@ -126,6 +126,9 @@ void DataProcWorker::setBinfile(const QString &binfile) {
       rfPair = ioparams.allocateSplitPair<double>(loader.getAlinesPerBscan());
     }
     rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
+
+    // Save init params
+    saveParamsToFile();
 
     // Start processing
     this->play();
@@ -164,6 +167,22 @@ void DataProcWorker::playOne(int idx) {
 void DataProcWorker::replayOne() { processCurrentFrame(); }
 
 void DataProcWorker::pause() { _isPlaying = false; }
+
+void DataProcWorker::updateParams(uspam::recon::ReconParams2 params,
+                                  uspam::io::IOParams ioparams) {
+
+  emit error("DataProcWorker updateParams");
+  QMutexLocker lock(&paramsMutex);
+  this->params = std::move(params);
+  this->ioparams = std::move(ioparams);
+}
+
+void DataProcWorker::saveParamsToFile() {
+  QMutexLocker lock(&paramsMutex);
+  const auto savedir = imageSaveDir;
+  params.serializeToFile(savedir / "params.json");
+  ioparams.serializeToFile(savedir / "ioparams.json");
+}
 
 namespace {
 
@@ -307,7 +326,7 @@ void DataProcWorker::processCurrentFrame() {
 
   // Send images to GUI thread
   emit resultReady(USradial_img, PAUSradial_img, fct);
-  emit updateFrameIdx(frameIdx);
+  emit frameIdxChanged(frameIdx);
 
   // Save to file
   {

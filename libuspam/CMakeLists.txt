@@ -6,18 +6,26 @@ find_package(OpenBLAS CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
 
+find_package(FFTW3 CONFIG REQUIRED)
+find_package(FFTW3f CONFIG REQUIRED)
+find_path(FFTCONV_INCLUDE_DIRS "fftconv.hpp")
+
 # Define libuspam library
 set(LIB_NAME libuspam)
 add_library(${LIB_NAME} STATIC
     src/signal.cpp
     src/recon.cpp
+    src/io.cpp
     src/imutil.cpp
 )
-target_include_directories(${LIB_NAME} PUBLIC include)
-target_link_libraries(${LIB_NAME}
-    PUBLIC
-    fftconv
+target_include_directories(${LIB_NAME} PUBLIC 
+    include
+    ${FFTCONV_INCLUDE_DIRS}
+)
+target_link_libraries(${LIB_NAME} PUBLIC
     armadillo
+    FFTW3::fftw3
+    FFTW3::fftw3f
     OpenBLAS::OpenBLAS
     opencv_world
     rapidjson

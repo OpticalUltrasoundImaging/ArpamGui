@@ -1,0 +1,12 @@
+QPushButton#closeButton {
+    background-color: red;
+    color: white;
+    border-radius: 10px;
+    padding: 5px;
+}
+QPushButton#closeButton:hover {
+    background-color: darkred;
+}
+QPushButton#closeButton:pressed {
+    background-color: black;
+}

@@ -78,9 +78,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(frameController, &FrameController::pauseClicked, this,
             [&]() { worker->pause(); });
 
-    connect(worker, &DataProcWorker::updateMaxFrames, frameController,
+    connect(worker, &DataProcWorker::maxFramesChanged, frameController,
             &FrameController::updateMaxFrameNum);
-    connect(worker, &DataProcWorker::updateFrameIdx, frameController,
+    connect(worker, &DataProcWorker::frameIdxChanged, frameController,
             &FrameController::updateFrameNum);
     connect(worker, &DataProcWorker::finishedOneFile, frameController,
             &FrameController::updatePlayingStatePause);
@@ -94,17 +94,44 @@ MainWindow::MainWindow(QWidget *parent)
     connect(reconParamsController, &ReconParamsController::paramsUpdated,
             [this](uspam::recon::ReconParams2 params,
                    uspam::io::IOParams ioparams) {
-              this->worker->updateParams(std::move(params), ioparams);
+              // Update params
+              this->worker->updateParams(params, ioparams);
 
               // Only invoke "replayOne" if not currently worker is not playing
               if (!this->worker->isPlaying()) {
                 QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
               }
+
+              // Save params to file
+              this->worker->saveParamsToFile();
             });
 
     connect(reconParamsController, &ReconParamsController::error, this,
             &MainWindow::logError);
   }
+
+  // Exit button
+  {
+    auto *layout = new QVBoxLayout;
+    dockLayout->addLayout(layout);
+
+    auto *closeBtn = new QPushButton("Close");
+    layout->addWidget(closeBtn);
+    connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
+    closeBtn->setObjectName("closeButton");
+
+    auto *toggleFullscreenBtn = new QPushButton("Toggle Fullscreen");
+    layout->addWidget(toggleFullscreenBtn);
+    connect(toggleFullscreenBtn, &QPushButton::clicked, this, [this] {
+      if (this->isFullScreen()) {
+        this->setWindowState(Qt::WindowMaximized);
+      } else {
+        this->setWindowState(Qt::WindowFullScreen);
+      }
+    });
+    toggleFullscreenBtn->setObjectName("toggleFullscreenButton");
+  }
+  // End dock config
 
   // Central scroll area
   auto *centralLayout = new QVBoxLayout;
