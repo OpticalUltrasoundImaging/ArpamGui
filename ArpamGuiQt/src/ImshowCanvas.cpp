@@ -17,6 +17,8 @@ ImshowCanvas::ImshowCanvas(QWidget *parent) : QLabel(parent) {
   setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
   setAlignment(Qt::AlignCenter);
   setMouseTracking(true);
+
+  setFocusPolicy(Qt::StrongFocus);
 }
 
 void ImshowCanvas::imshow(const cv::Mat &cv_img, double pix2m) {
@@ -325,4 +327,11 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
   }
 }
 
+void ImshowCanvas::keyPressEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_L) {
+    m_cursorType = CursorType::LineMeasure;
+  } else if (event->key() == Qt::Key_Z) {
+    m_cursorType = CursorType::BoxZoom;
+  }
+}
 // NOLINTEND(*-casting, *-narrowing-conversions)

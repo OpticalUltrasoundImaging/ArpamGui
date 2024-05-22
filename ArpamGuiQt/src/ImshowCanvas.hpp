@@ -236,6 +236,8 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
 
+  void keyPressEvent(QKeyEvent *event) override;
+
 private:
   // Convert mouse position to frame coordinates using the current offset and
   // scale
