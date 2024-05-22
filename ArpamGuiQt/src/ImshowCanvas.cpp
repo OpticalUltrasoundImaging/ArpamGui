@@ -148,25 +148,30 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 
     // Draw lines
     {
-      painter.drawLines(m_anno.linesScaled.data(), m_anno.linesScaled.size());
+      painter.drawLines(m_anno.lines.scaled.data(),
+                        m_anno.lines.scaled.size());
 
-      for (const auto &line : m_anno.linesScaled) {
+      for (const auto &line : m_anno.lines.scaled) {
         const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
         const auto msg = QString("%1 mm").arg(distance);
         const auto textPos = line.p2() + QPointF(5, 5);
         painter.drawText(textPos, msg);
       }
 
-      painter.drawLines(m_anno.lineWhiskers.data(), m_anno.lineWhiskers.size());
+      painter.drawLines(m_anno.lines.whiskers.data(),
+                        m_anno.lines.whiskers.size());
     }
 
     // Draw rects
-    { painter.drawRects(m_anno.rectsScaled.data(), m_anno.rectsScaled.size()); }
+    {
+      painter.drawRects(m_anno.rects.scaled.data(),
+                        m_anno.rects.scaled.size());
+    }
   }
 
   // Draw curr annotation
-  switch (m_cursorType) {
-  case CursorType::LineMeasure: {
+  switch (m_cursorMode) {
+  case CursorMode::LineMeasure: {
 
     if (m_cursor.leftButtonDown) {
       painter.setPen(Qt::white);
@@ -178,13 +183,13 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       const auto textPos = line.p2() + QPointF(5, 5);
       painter.drawText(textPos, msg);
 
-      const auto whiskers = m_anno.computeLineWhisker(line);
+      const auto whiskers = m_anno.lines.computeLineWhisker(line);
       painter.drawLines(whiskers.data(), whiskers.size());
     }
     break;
   }
 
-  case CursorType::BoxZoom: {
+  case CursorMode::BoxZoom: {
     if (m_cursor.leftButtonDown) {
       painter.setPen(Qt::white);
 
@@ -220,25 +225,17 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = true;
 
-    if (!m_anno.empty()) {
-      m_anno.clear();
-      update();
-    }
+    switch (m_cursorMode) {
 
-    switch (m_cursorType) {
-
-    case CursorType::LineMeasure: {
+    case CursorMode::LineMeasure: {
       if (!m_anno.lines.empty()) {
-        m_anno.lines.pop_back();
-        m_anno.linesScaled.pop_back();
-        m_anno.lineWhiskers.pop_back();
-
+        m_anno.lines.pop();
         update();
       }
       break;
     }
 
-    case CursorType::BoxZoom: {
+    case CursorMode::BoxZoom: {
 
       // Go back in zoom history
       if (m_zoomed) {
@@ -301,22 +298,16 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = false;
 
-    switch (m_cursorType) {
+    switch (m_cursorMode) {
 
-    case CursorType::LineMeasure: {
+    case CursorMode::LineMeasure: {
       // Save line
       const auto lineScaled = m_cursor.getLine();
-      const QLineF line(lineScaled.p1() / m_scale, lineScaled.p2() / m_scale);
-      m_anno.linesScaled.push_back(lineScaled);
-      m_anno.lines.push_back(line);
-
-      const auto whiskers = m_anno.computeLineWhisker(lineScaled);
-      m_anno.lineWhiskers.push_back(whiskers[0]);
-      m_anno.lineWhiskers.push_back(whiskers[1]);
+      m_anno.lines.addScaled(lineScaled, m_scale);
       break;
     }
 
-    case CursorType::BoxZoom: {
+    case CursorMode::BoxZoom: {
       const auto rectScaled = m_cursor.getRect();
       const QRectF rect(rectScaled.x() / m_scale + m_zoomRect.left(),
                         rectScaled.y() / m_scale + m_zoomRect.top(),
@@ -347,9 +338,9 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
 
 void ImshowCanvas::keyPressEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_L) {
-    m_cursorType = CursorType::LineMeasure;
+    m_cursorMode = CursorMode::LineMeasure;
   } else if (event->key() == Qt::Key_Z) {
-    m_cursorType = CursorType::BoxZoom;
+    m_cursorMode = CursorMode::BoxZoom;
   }
 }
 // NOLINTEND(*-casting, *-narrowing-conversions)
