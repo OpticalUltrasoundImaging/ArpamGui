@@ -21,6 +21,10 @@ public:
 
   ReconParamsController(QWidget *parent = nullptr);
 
+public slots:
+  void resetParams();
+  void updateGuiFromParams();
+
 signals:
   void paramsUpdated(uspam::recon::ReconParams2 params,
                      uspam::io::IOParams ioparams);
@@ -28,4 +32,13 @@ signals:
 
 private:
   inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
+
+private:
+  QLineEdit *filtFreqPA;
+  QLineEdit *filtGainPA;
+
+  QLineEdit *filtFreqUS;
+  QLineEdit *filtGainUS;
+
+  std::vector<std::function<void()>> updateGuiFromParamsCallbacks;
 };

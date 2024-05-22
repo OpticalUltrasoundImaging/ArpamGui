@@ -6,6 +6,7 @@
 #include <ranges>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -92,28 +93,33 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *label = new QLabel("Freq");
       label->setToolTip(help_Freq);
       layout->addWidget(label, row, 1);
-      auto *filtFreq = new QLineEdit();
-      filtFreq->setValidator(doubleListValidator);
-      layout->addWidget(filtFreq, row, 2);
-      filtFreq->setReadOnly(true);
+
+      filtFreqPA = new QLineEdit();
+      filtFreqPA->setValidator(doubleListValidator);
+      layout->addWidget(filtFreqPA, row, 2);
+      filtFreqPA->setReadOnly(true);
       row++;
 
-      filtFreq->setText(
-          QString::fromStdString(vectorToStdString(params.filterFreqPA)));
+      updateGuiFromParamsCallbacks.push_back([this] {
+        this->filtFreqPA->setText(QString::fromStdString(
+            vectorToStdString(this->params.filterFreqPA)));
+      });
     }
 
     {
       auto *label = new QLabel("Gain");
       label->setToolTip(help_Gain);
       layout->addWidget(label, row, 1);
-      auto *filtGain = new QLineEdit();
-      filtGain->setValidator(doubleListValidator);
-      layout->addWidget(filtGain, row, 2);
-      filtGain->setReadOnly(true);
+      filtGainPA = new QLineEdit();
+      filtGainPA->setValidator(doubleListValidator);
+      layout->addWidget(filtGainPA, row, 2);
+      filtGainPA->setReadOnly(true);
       row++;
 
-      filtGain->setText(
-          QString::fromStdString(vectorToStdString(params.filterGainPA)));
+      updateGuiFromParamsCallbacks.push_back([this] {
+        this->filtGainPA->setText(QString::fromStdString(
+            vectorToStdString(this->params.filterGainPA)));
+      });
     }
 
     {
@@ -122,6 +128,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 1);
       auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorPA, this);
       layout->addWidget(spinBox, row++, 2);
+
+      updateGuiFromParamsCallbacks.push_back(
+          [this, spinBox] { spinBox->setValue(this->params.noiseFloorPA); });
     }
 
     {
@@ -131,6 +140,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox =
           makeQSpinBox({10, 70}, params.desiredDynamicRangePA, this);
       layout->addWidget(spinBox, row++, 2);
+
+      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+        spinBox->setValue(this->params.desiredDynamicRangePA);
+      });
     }
   }
 
@@ -146,28 +159,34 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *label = new QLabel("Freq");
       label->setToolTip(help_Freq);
       layout->addWidget(label, row, 1);
-      auto *filtFreq = new QLineEdit();
-      filtFreq->setValidator(doubleListValidator);
-      layout->addWidget(filtFreq, row, 2);
-      filtFreq->setReadOnly(true);
+
+      filtFreqUS = new QLineEdit;
+      filtFreqUS->setValidator(doubleListValidator);
+      layout->addWidget(filtFreqUS, row, 2);
+      filtFreqUS->setReadOnly(true);
       row++;
 
-      filtFreq->setText(
-          QString::fromStdString(vectorToStdString(params.filterFreqUS)));
+      updateGuiFromParamsCallbacks.push_back([this] {
+        this->filtFreqUS->setText(QString::fromStdString(
+            vectorToStdString(this->params.filterFreqUS)));
+      });
     }
 
     {
       auto *label = new QLabel("Gain");
       label->setToolTip(help_Gain);
       layout->addWidget(label, row, 1);
-      auto *filtGain = new QLineEdit();
-      filtGain->setValidator(doubleListValidator);
-      layout->addWidget(filtGain, row, 2);
-      filtGain->setReadOnly(true);
+
+      filtGainUS = new QLineEdit;
+      filtGainUS->setValidator(doubleListValidator);
+      layout->addWidget(filtGainUS, row, 2);
+      filtGainUS->setReadOnly(true);
       row++;
 
-      filtGain->setText(
-          QString::fromStdString(vectorToStdString(params.filterGainUS)));
+      updateGuiFromParamsCallbacks.push_back([this] {
+        this->filtGainUS->setText(QString::fromStdString(
+            vectorToStdString(this->params.filterGainUS)));
+      });
     }
 
     {
@@ -176,6 +195,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 1);
       auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorUS, this);
       layout->addWidget(spinBox, row++, 2);
+
+      updateGuiFromParamsCallbacks.push_back(
+          [this, spinBox] { spinBox->setValue(this->params.noiseFloorUS); });
     }
 
     {
@@ -185,6 +207,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox =
           makeQSpinBox({10, 70}, params.desiredDynamicRangeUS, this);
       layout->addWidget(spinBox, row++, 2);
+
+      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+        spinBox->setValue(this->params.desiredDynamicRangeUS);
+      });
     }
   }
 
@@ -204,6 +230,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox =
           makeQSpinBox({-500, 500}, params.alineRotationOffset, this);
       layout->addWidget(spinBox, row++, 1);
+
+      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+        spinBox->setValue(this->params.alineRotationOffset);
+      });
     }
 
     {
@@ -212,6 +242,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({0, 200}, ioparams.rf_size_spacer, this);
       layout->addWidget(spinBox, row++, 1);
+
+      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+        spinBox->setValue(this->ioparams.rf_size_spacer);
+      });
     }
 
     {
@@ -221,6 +255,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetUS, this);
       layout->addWidget(spinBox, row++, 1);
+
+      updateGuiFromParamsCallbacks.push_back(
+          [this, spinBox] { spinBox->setValue(this->ioparams.offsetUS); });
     }
 
     {
@@ -230,7 +267,23 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetPA, this);
       layout->addWidget(spinBox, row++, 1);
+
+      updateGuiFromParamsCallbacks.push_back(
+          [this, spinBox] { spinBox->setValue(this->ioparams.offsetPA); });
     }
+  }
+
+  updateGuiFromParams();
+}
+
+void ReconParamsController::resetParams() {
+  params = uspam::recon::ReconParams2::system2024v1();
+  ioparams = uspam::io::IOParams::system2024v1();
+}
+
+void ReconParamsController::updateGuiFromParams() {
+  for (const auto &func : updateGuiFromParamsCallbacks) {
+    func();
   }
 }
 

@@ -78,9 +78,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(frameController, &FrameController::pauseClicked, this,
             [&]() { worker->pause(); });
 
-    connect(worker, &DataProcWorker::updateMaxFrames, frameController,
+    connect(worker, &DataProcWorker::maxFramesChanged, frameController,
             &FrameController::updateMaxFrameNum);
-    connect(worker, &DataProcWorker::updateFrameIdx, frameController,
+    connect(worker, &DataProcWorker::frameIdxChanged, frameController,
             &FrameController::updateFrameNum);
     connect(worker, &DataProcWorker::finishedOneFile, frameController,
             &FrameController::updatePlayingStatePause);
