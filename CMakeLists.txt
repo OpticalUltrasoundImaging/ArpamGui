@@ -19,5 +19,5 @@ add_subdirectory(libuspam)
 add_subdirectory(cli)
 
 # Build the QT Gui
-add_subdirectory(arpam_gui_qt)
+add_subdirectory(ArpamGuiQt)
 
