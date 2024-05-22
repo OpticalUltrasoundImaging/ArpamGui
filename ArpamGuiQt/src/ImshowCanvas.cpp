@@ -121,7 +121,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       }
 
       // Update annotations
-      m_anno.rescale(m_scale);
+      m_anno.rescale(m_scale, m_zoomRect.topLeft());
     }
 
     // Draw scaled pixmap
@@ -148,8 +148,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 
     // Draw lines
     {
-      painter.drawLines(m_anno.lines.scaled.data(),
-                        m_anno.lines.scaled.size());
+      painter.drawLines(m_anno.lines.scaled.data(), m_anno.lines.scaled.size());
 
       for (const auto &line : m_anno.lines.scaled) {
         const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
@@ -164,8 +163,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 
     // Draw rects
     {
-      painter.drawRects(m_anno.rects.scaled.data(),
-                        m_anno.rects.scaled.size());
+      painter.drawRects(m_anno.rects.scaled.data(), m_anno.rects.scaled.size());
     }
   }
 
@@ -303,7 +301,7 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
     case CursorMode::LineMeasure: {
       // Save line
       const auto lineScaled = m_cursor.getLine();
-      m_anno.lines.addScaled(lineScaled, m_scale);
+      m_anno.lines.addScaled(lineScaled, m_scale, m_zoomRect.topLeft());
       break;
     }
 

@@ -22,9 +22,10 @@ auto ImshowCanvasAnnotations::Lines::computeLineWhisker(QLineF line)
   return whiskers;
 }
 
-void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled,
-                                               double scale) {
-  const QLineF line(lineScaled.p1() / scale, lineScaled.p2() / scale);
+void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled, double scale,
+                                               QPointF offset) {
+  const QLineF line(lineScaled.p1() / scale + offset,
+                    lineScaled.p2() / scale + offset);
   scaled.push_back(lineScaled);
   lines.push_back(line);
 
@@ -40,12 +41,13 @@ void ImshowCanvasAnnotations::Lines::pop() {
   whiskers.pop_back();
 }
 
-void ImshowCanvasAnnotations::Lines::rescale(double scale) {
+void ImshowCanvasAnnotations::Lines::rescale(double scale, QPointF offset) {
   // Re scale lines and whiskers
   scaled.clear();
   whiskers.clear();
   for (const auto &line : lines) {
-    const QLineF lineScaled(line.p1() * scale, line.p2() * scale);
+    const QLineF lineScaled((line.p1() - offset) * scale,
+                            (line.p2() - offset) * scale);
     scaled.push_back(lineScaled);
 
     auto _whiskers = computeLineWhisker(lineScaled);
@@ -68,7 +70,7 @@ void ImshowCanvasAnnotations::Rects::pop() noexcept {
   scaled.pop_back();
 }
 
-void ImshowCanvasAnnotations::Rects::rescale(double scale) {
+void ImshowCanvasAnnotations::Rects::rescale(double scale, QPointF offset) {
   scaled.clear();
   for (const auto &rect : rects) {
     const QRectF rectScaled(rect.x() * scale, rect.y() * scale,
@@ -86,7 +88,7 @@ bool ImshowCanvasAnnotations::empty() const noexcept {
   return lines.empty() && rects.empty();
 }
 
-void ImshowCanvasAnnotations::rescale(double scale) {
-  lines.rescale(scale);
-  rects.rescale(scale);
+void ImshowCanvasAnnotations::rescale(double scale, QPointF offset) {
+  lines.rescale(scale, offset);
+  rects.rescale(scale, offset);
 }

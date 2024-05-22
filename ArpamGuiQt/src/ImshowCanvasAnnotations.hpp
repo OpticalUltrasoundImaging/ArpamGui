@@ -19,8 +19,8 @@ struct ImshowCanvasAnnotations {
 
     static auto computeLineWhisker(QLineF line) -> std::array<QLineF, 2>;
 
-    void addScaled(QLineF lineScaled, double scale);
-    void rescale(double scale);
+    void addScaled(QLineF lineScaled, double scale, QPointF offset);
+    void rescale(double scale, QPointF offset);
   };
 
   struct Rects {
@@ -31,7 +31,7 @@ struct ImshowCanvasAnnotations {
     bool empty() const noexcept;
     void pop() noexcept;
 
-    void rescale(double scale);
+    void rescale(double scale, QPointF offset);
   };
 
 public:
@@ -45,5 +45,5 @@ public:
   bool empty() const noexcept;
 
   // Should be called on widget resize to precompute scaled annotations
-  void rescale(double scale);
+  void rescale(double scale, QPointF offset);
 };
