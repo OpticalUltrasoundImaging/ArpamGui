@@ -34,6 +34,16 @@ void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled, double scale,
   whiskers.push_back(_whiskers[1]);
 }
 
+void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled,
+                                               QTransform transformBackward) {
+  scaled.push_back(lineScaled);
+  lines.push_back(transformBackward.map(lineScaled));
+
+  const auto _whiskers = computeLineWhisker(lineScaled);
+  whiskers.push_back(_whiskers[0]);
+  whiskers.push_back(_whiskers[1]);
+}
+
 void ImshowCanvasAnnotations::Lines::pop() {
   lines.pop_back();
   scaled.pop_back();
@@ -48,6 +58,19 @@ void ImshowCanvasAnnotations::Lines::rescale(double scale, QPointF offset) {
   for (const auto &line : lines) {
     const QLineF lineScaled((line.p1() - offset) * scale,
                             (line.p2() - offset) * scale);
+    scaled.push_back(lineScaled);
+
+    auto _whiskers = computeLineWhisker(lineScaled);
+    whiskers.push_back(_whiskers[0]);
+    whiskers.push_back(_whiskers[1]);
+  }
+}
+
+void ImshowCanvasAnnotations::Lines::rescale(QTransform forwardTransform) {
+  scaled.clear();
+  whiskers.clear();
+  for (const auto &line : lines) {
+    const auto lineScaled = forwardTransform.map(line);
     scaled.push_back(lineScaled);
 
     auto _whiskers = computeLineWhisker(lineScaled);
@@ -79,6 +102,13 @@ void ImshowCanvasAnnotations::Rects::rescale(double scale, QPointF offset) {
   }
 }
 
+void ImshowCanvasAnnotations::Rects::rescale(QTransform forwardTransform) {
+  scaled.clear();
+  for (const auto &rect : rects) {
+    scaled.push_back(forwardTransform.mapRect(rect));
+  }
+}
+
 void ImshowCanvasAnnotations::clear() noexcept {
   lines.clear();
   rects.clear();
@@ -91,4 +121,9 @@ bool ImshowCanvasAnnotations::empty() const noexcept {
 void ImshowCanvasAnnotations::rescale(double scale, QPointF offset) {
   lines.rescale(scale, offset);
   rects.rescale(scale, offset);
+}
+
+void ImshowCanvasAnnotations::rescale(QTransform forwardTransform) {
+  lines.rescale(forwardTransform);
+  rects.rescale(forwardTransform);
 }

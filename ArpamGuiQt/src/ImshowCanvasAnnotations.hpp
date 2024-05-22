@@ -4,6 +4,7 @@
 #include <QLineF>
 #include <QPointF>
 #include <QRectF>
+#include <QTransform>
 #include <array>
 #include <vector>
 
@@ -20,7 +21,10 @@ struct ImshowCanvasAnnotations {
     static auto computeLineWhisker(QLineF line) -> std::array<QLineF, 2>;
 
     void addScaled(QLineF lineScaled, double scale, QPointF offset);
+    void addScaled(QLineF lineScaled, QTransform transformBackward);
+
     void rescale(double scale, QPointF offset);
+    void rescale(QTransform forwardTransform);
   };
 
   struct Rects {
@@ -32,6 +36,7 @@ struct ImshowCanvasAnnotations {
     void pop() noexcept;
 
     void rescale(double scale, QPointF offset);
+    void rescale(QTransform forwardTransform);
   };
 
 public:
@@ -46,4 +51,5 @@ public:
 
   // Should be called on widget resize to precompute scaled annotations
   void rescale(double scale, QPointF offset);
+  void rescale(QTransform forwardTransform);
 };

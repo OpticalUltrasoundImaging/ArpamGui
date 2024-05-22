@@ -8,6 +8,7 @@
 #include <QLayout>
 #include <QRect>
 #include <QString>
+#include <QTransform>
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
@@ -81,6 +82,9 @@ private:
   bool m_zoomTranslated{false};
   QRectF m_zoomRect;
   std::vector<QRectF> m_zoomRectHistory;
+
+  QTransform transformForward;  // From original to scaled pixmap space
+  QTransform transformBackward; // from scaled to original pixmap space
 
   // State of ticks
   ImshowCanvasTicks m_ticks;

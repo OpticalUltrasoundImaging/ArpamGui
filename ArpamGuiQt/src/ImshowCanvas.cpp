@@ -106,9 +106,19 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       m_scale = scale;
       // Rescale everything here!
 
+      transformForward = QTransform()
+                             .scale(scale, scale)
+                             .translate(-m_zoomRect.left(), -m_zoomRect.top());
+
+      transformBackward = QTransform()
+                              .translate(m_zoomRect.left(), m_zoomRect.top())
+                              .scale(1 / scale, 1 / scale);
+
       if (m_zoomed) {
         auto tmp = m_pixmap.copy(m_zoomRect.toRect());
         m_pixmapScaled = tmp.scaled(m_scale * tmp.size(), Qt::KeepAspectRatio);
+
+        // m_pixmapScaled = m_pixmap.transformed(transformForward);
       } else {
         m_pixmapScaled =
             m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
@@ -121,7 +131,8 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       }
 
       // Update annotations
-      m_anno.rescale(m_scale, m_zoomRect.topLeft());
+      // m_anno.rescale(m_scale, m_zoomRect.topLeft());
+      m_anno.rescale(transformForward);
     }
 
     // Draw scaled pixmap
@@ -301,16 +312,18 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
     case CursorMode::LineMeasure: {
       // Save line
       const auto lineScaled = m_cursor.getLine();
-      m_anno.lines.addScaled(lineScaled, m_scale, m_zoomRect.topLeft());
+      // m_anno.lines.addScaled(lineScaled, m_scale, m_zoomRect.topLeft());
+      m_anno.lines.addScaled(lineScaled, transformBackward);
       break;
     }
 
     case CursorMode::BoxZoom: {
       const auto rectScaled = m_cursor.getRect();
-      const QRectF rect(rectScaled.x() / m_scale + m_zoomRect.left(),
-                        rectScaled.y() / m_scale + m_zoomRect.top(),
-                        rectScaled.width() / m_scale,
-                        rectScaled.height() / m_scale);
+      const QRectF rect = transformBackward.mapRect(rectScaled);
+      // const QRectF rect(rectScaled.x() / m_scale + m_zoomRect.left(),
+      //                   rectScaled.y() / m_scale + m_zoomRect.top(),
+      //                   rectScaled.width() / m_scale,
+      //                   rectScaled.height() / m_scale);
 
       // Save rect to annotations
       // m_anno.rects.push_back(rect);
