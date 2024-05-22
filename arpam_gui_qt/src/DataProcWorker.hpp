@@ -22,11 +22,6 @@ public:
     params = uspam::recon::ReconParams2::system2024v1();
   }
 
-  // static void setReconParams(const uspam::recon::ReconParams2 &p) {
-  //   params = p;
-  // }
-  // static void setIOParams(const uspam::io::IOParams &p) { ioparams = p; }
-
   // Returns true if the worker is currently playing (sequentially processing)
   inline bool isPlaying() { return _isPlaying; }
 
@@ -54,6 +49,16 @@ public slots:
     this->params = std::move(params);
     this->ioparams = std::move(ioparams);
   }
+
+  void saveParamsToFile() {
+    QMutexLocker lock(&paramsMutex);
+    const auto savedir = imageSaveDir;
+    params.serializeToFile(savedir / "params.json");
+    ioparams.serializeToFile(savedir / "ioparams.json");
+  }
+
+  inline auto getBinfilePath() const -> fs::path { return this->binfilePath; }
+  inline auto getImageSaveDir() const -> fs::path { return this->imageSaveDir; }
 
 signals:
   void updateMaxFrames(int);

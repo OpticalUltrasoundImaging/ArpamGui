@@ -94,12 +94,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(reconParamsController, &ReconParamsController::paramsUpdated,
             [this](uspam::recon::ReconParams2 params,
                    uspam::io::IOParams ioparams) {
-              this->worker->updateParams(std::move(params), ioparams);
+              // Update params
+              this->worker->updateParams(params, ioparams);
 
               // Only invoke "replayOne" if not currently worker is not playing
               if (!this->worker->isPlaying()) {
                 QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
               }
+
+              // Save params to file
+              this->worker->saveParamsToFile();
             });
 
     connect(reconParamsController, &ReconParamsController::error, this,

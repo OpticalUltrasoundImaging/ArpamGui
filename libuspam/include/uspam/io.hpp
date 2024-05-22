@@ -55,11 +55,20 @@ struct IOParams {
   // Byte offset at beginning of file.
   int byte_offset = 0;
 
+public:
   // System parameters from early 2024
   static inline IOParams system2024v1() {
     // return IOParams{2650, 87, 5300, 350, 215, 1};
     return IOParams{2650, 87, 5300, -100, -100, 1};
   }
+
+  // Serialize to JSON
+  std::string serialize() const;
+  bool serializeToFile(const fs::path &path) const;
+
+  // Deserialize from JSON
+  bool deserialize(const std::string &jsonString);
+  bool deserializeFromFile(const fs::path &path);
 
   template <typename T>
   PAUSpair<T> allocateSplitPair(int alines_per_bscan = 1000) const {

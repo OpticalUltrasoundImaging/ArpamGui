@@ -127,6 +127,9 @@ void DataProcWorker::setBinfile(const QString &binfile) {
     }
     rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
 
+    // Save init params
+    saveParamsToFile();
+
     // Start processing
     this->play();
   } catch (const std::runtime_error &e) {
