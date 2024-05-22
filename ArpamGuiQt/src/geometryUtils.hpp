@@ -2,6 +2,7 @@
 
 #include <QLine>
 #include <QPoint>
+#include <QRectF>
 
 namespace geometry {
 
@@ -15,5 +16,8 @@ QPoint clipPoint(const QPoint &point, const QPoint &minPoint,
 qreal calcMagnitude(const QPointF &pt);
 
 QPointF calcNormalVec(const QLineF &line);
+
+QRectF translateBounded(const QRectF &rect, const QPointF &delta,
+                        const QRectF &bound);
 
 } // namespace geometry

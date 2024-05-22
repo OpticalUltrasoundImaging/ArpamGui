@@ -36,7 +36,7 @@ void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
   // clear cached scaled pixmap
   m_pixmapScaled = QPixmap();
 
-  this->update();
+  update();
 }
 
 // NOLINTBEGIN(*-casting, *-narrowing-conversions)
@@ -99,12 +99,13 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     painter.translate(m_offset);
 
     // if m_pixmapScaled is null OR scale changed, recompute scaled pixmap
-    if (m_pixmapScaled.isNull() || scale != m_scale) {
+    if (m_pixmapScaled.isNull() || scale != m_scale ||
+        (m_zoomed && m_zoomTranslated)) {
       m_scale = scale;
       // Rescale everything here!
 
       if (m_zoomed) {
-        auto tmp = m_pixmap.copy(m_zoomRect);
+        auto tmp = m_pixmap.copy(m_zoomRect.toRect());
         m_pixmapScaled = tmp.scaled(m_scale * tmp.size(), Qt::KeepAspectRatio);
       } else {
         m_pixmapScaled =
@@ -202,9 +203,10 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
 }
 
 void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
+  m_cursor.startPos = event->position() - m_offset;
+
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = true;
-    m_cursor.startPos = event->position() - m_offset;
 
     // Only show one annotation on screen for now
     m_anno.clear();
@@ -220,8 +222,10 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
     }
 
     m_zoomed = false;
+    m_zoomTranslated = false;
+    m_zoomRect.setTopLeft({0.0, 0.0});
 
-    repaint();
+    update();
   }
 }
 
@@ -232,28 +236,38 @@ void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   }
 
   m_cursor.currPos = event->position() - m_offset;
-  QPointF pos;
+  QPointF pos = m_cursor.currPos / m_scale;
   if (m_zoomed) {
-    // TODO
-    pos = m_cursor.currPos / m_scale;
     pos += m_zoomRect.topLeft();
-
-  } else {
-    pos = m_cursor.currPos / m_scale;
   }
+  m_cursor.currPosOrigal = pos;
 
   // [px] Compute distance to center
   const QPointF center(m_pixmap.width() / 2.0, m_pixmap.height() / 2.0);
   auto distanceToCenter_mm = computeDistance_mm(center, pos);
   emit mouseMoved(pos.toPoint(), distanceToCenter_mm);
 
-  // draw annotation currently drawing
   if (m_cursor.leftButtonDown) {
+    // draw annotation currently drawing
     update();
-  }
 
-  if (m_cursor.middleButtonDown && m_zoomed) {
+  } else if (m_cursor.middleButtonDown && m_zoomed) {
     // Move in Zoomed mode
+    const auto displacement = (m_cursor.startPos - m_cursor.currPos) / m_scale;
+    m_cursor.startPos = m_cursor.currPos;
+
+    // Naive translate
+    // m_zoomRect.translate(displacement);
+    // Advanced translate - clip to m_pixmap boundary
+    QRectF bound(QPointF{0, 0}, m_pixmap.size());
+    const auto zoomRectTranslated =
+        geometry::translateBounded(m_zoomRect, displacement, bound);
+
+    if (zoomRectTranslated != m_zoomRect) {
+      m_zoomRect = zoomRectTranslated;
+      m_zoomTranslated = true;
+      update();
+    }
   }
 }
 
@@ -276,7 +290,8 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
     }
     case CursorType::BoxZoom: {
       const auto rectScaled = m_cursor.getRect();
-      const QRectF rect(rectScaled.x() / m_scale, rectScaled.y() / m_scale,
+      const QRectF rect(rectScaled.x() / m_scale + m_zoomRect.left(),
+                        rectScaled.y() / m_scale + m_zoomRect.top(),
                         rectScaled.width() / m_scale,
                         rectScaled.height() / m_scale);
 
@@ -285,12 +300,12 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
       // m_anno.rectsScaled.push_back(rectScaled);
 
       // Set Zoom
-      m_zoomRect = rect.toRect();
+      m_zoomRect = rect;
       m_zoomed = true;
     }
     }
 
-    repaint();
+    update();
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = false;

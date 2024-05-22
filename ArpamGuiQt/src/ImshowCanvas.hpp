@@ -18,6 +18,8 @@ struct ImshowCanvasCursorState {
   QPointF currPos; // current cursor position in scaled pixmap coord
   QPointF startPos;
 
+  QPointF currPosOrigal; // cursor position in original pixmap coord
+
   auto getLine() const { return QLineF(startPos, currPos); }
   auto getRect() const {
     qreal x = qMin(currPos.x(), startPos.x());
@@ -239,8 +241,9 @@ private:
   // when a m_pixmap is present.
   QPoint m_offset{};
 
-  bool m_zoomed;
-  QRect m_zoomRect;
+  QRectF m_zoomRect;
+  bool m_zoomed{false};
+  bool m_zoomTranslated{false};
 
   // State of ticks
   ImshowCanvasTicks m_ticks;
