@@ -211,11 +211,11 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
   }
 
   // Measure rendering time
-  {
-    const auto renderTime_ms = timeit.get_ms();
-    auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
-    emit error(msg);
-  }
+  // {
+  //   const auto renderTime_ms = timeit.get_ms();
+  //   auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
+  //   emit error(msg);
+  // }
 }
 
 void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
