@@ -95,28 +95,74 @@ struct ImshowCanvasAnnotations {
 };
 
 struct ImshowCanvasTicks {
-  static constexpr int minorTickSize = 10; // [px]
-  static constexpr int majorTickSize = 15; // [px]
-  static constexpr int margin = 5;         // [px]
+  static constexpr int margin = 5; // [px]
 
-  // Display major tick every n ticks
-  static constexpr int majorTickInterval = 10;
+  template <bool isVertical> struct Ticks {
+    static constexpr int minorTickSize = 10; // [px]
+    static constexpr int majorTickSize = 15; // [px]
 
-  std::vector<int> minorTicks; // position in m_pixmapScaled
-  std::vector<QLine> minorTickLines;
+    // Display major tick every n ticks
+    static constexpr int majorTickInterval = 10;
 
-  std::vector<int> majorTicks;
-  std::vector<QLine> majorTickLines;
+    std::vector<int> minorTicks; // position in m_pixmapScaled
+    std::vector<QLine> minorTickLines;
 
-  std::vector<int> majorTickLabels;
+    std::vector<int> majorTicks;
+    std::vector<QLine> majorTickLines;
+
+    std::vector<int> majorTickLabels;
+
+    void clear() {
+      minorTicks.clear();
+      minorTickLines.clear();
+
+      majorTicks.clear();
+      majorTickLines.clear();
+      majorTickLabels.clear();
+    }
+
+    void update(int size, double pix2mm) {
+      // Draw divisions in increments of 1 mm
+      const double divisionSize = 1 / pix2mm;
+
+      const int numDivisions = static_cast<int>(size / (2 * divisionSize));
+      // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
+
+      for (int i = -numDivisions; i < numDivisions; ++i) {
+        const auto pos = size / 2 + static_cast<int>(i * divisionSize);
+        if (i % majorTickInterval == 0) {
+          majorTicks.push_back(pos);
+          majorTickLabels.push_back(abs(i));
+
+          if constexpr (isVertical) {
+            // Vertical scale bar
+            majorTickLines.emplace_back(0, pos, minorTickSize, pos);
+          } else {
+            // Horizontal scale bar
+            majorTickLines.emplace_back(pos, 0, pos, minorTickSize);
+          }
+
+        } else {
+          minorTicks.push_back(pos);
+
+          if constexpr (isVertical) {
+            // Vertical scale bar
+            minorTickLines.emplace_back(0, pos, minorTickSize, pos);
+          } else {
+            // Horizontal scale bar
+            minorTickLines.emplace_back(pos, 0, pos, minorTickSize);
+          }
+        }
+      }
+    }
+  };
+
+  Ticks<true> vTicks;
+  Ticks<false> hTicks;
 
   void clear() {
-    minorTicks.clear();
-    minorTickLines.clear();
-
-    majorTicks.clear();
-    majorTickLines.clear();
-    majorTickLabels.clear();
+    hTicks.clear();
+    vTicks.clear();
   }
 
   /**
@@ -126,35 +172,8 @@ struct ImshowCanvasTicks {
    */
   void update(QSize pixmapSize, double pix2mm) {
     clear();
-
-    const auto pw = pixmapSize.width();
-    const auto ph = pixmapSize.height();
-
-    // Draw divisions in increments of 1 mm
-    const double divisionSize = 1 / pix2mm;
-
-    const int numDivisions = static_cast<int>(ph / (2 * divisionSize));
-    // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
-
-    for (int i = -numDivisions; i < numDivisions; ++i) {
-      const auto pos = ph / 2 + static_cast<int>(i * divisionSize);
-      if (i % majorTickInterval == 0) {
-        majorTicks.push_back(pos);
-        majorTickLabels.push_back(abs(i));
-
-        // Vertical scale bar
-        majorTickLines.emplace_back(0, pos, minorTickSize, pos);
-        // Horizontal scale bar
-        majorTickLines.emplace_back(pos, 0, pos, minorTickSize);
-      } else {
-        minorTicks.push_back(pos);
-
-        // Vertical scale bar
-        minorTickLines.emplace_back(0, pos, minorTickSize, pos);
-        // Horizontal scale bar
-        minorTickLines.emplace_back(pos, 0, pos, minorTickSize);
-      }
-    }
+    hTicks.update(pixmapSize.width(), pix2mm);
+    vTicks.update(pixmapSize.height(), pix2mm);
   }
 
   /**
@@ -164,18 +183,25 @@ struct ImshowCanvasTicks {
   void draw(QPainter *painter) {
     // Draw minor ticks
     painter->setPen(Qt::gray);
-    painter->drawLines(minorTickLines.data(), minorTickLines.size());
+    painter->drawLines(vTicks.minorTickLines.data(),
+                       vTicks.minorTickLines.size());
+    painter->drawLines(hTicks.minorTickLines.data(),
+                       hTicks.minorTickLines.size());
 
     // Draw major ticks
     painter->setPen(Qt::white);
-    for (int i = 0; i < majorTicks.size(); ++i) {
+    painter->drawLines(vTicks.majorTickLines.data(),
+                       vTicks.majorTickLines.size());
+    painter->drawLines(hTicks.majorTickLines.data(),
+                       hTicks.majorTickLines.size());
+
+    for (int i = 0; i < vTicks.majorTicks.size(); ++i) {
       // Vertical scale bar (horizontal ticks)
-      const auto pos = majorTicks[i];
-      painter->drawText(majorTickSize + margin, pos + margin,
-                        QString::number(majorTickLabels[i]));
+      const auto pos = vTicks.majorTicks[i];
+      painter->drawText(vTicks.majorTickSize + margin, pos + margin,
+                        QString::number(vTicks.majorTickLabels[i]));
       // painter->drawText(pos - margin, majorTickSize + margin * 3,
     }
-    painter->drawLines(majorTickLines.data(), majorTickLines.size());
   }
 };
 
