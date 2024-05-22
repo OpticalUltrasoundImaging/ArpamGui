@@ -1,7 +1,9 @@
 #include "ImshowCanvas.hpp"
 #include "geometryUtils.hpp"
+#include <QHBoxLayout>
 #include <QImage>
 #include <QPainter>
+#include <QVBoxLayout>
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
@@ -107,7 +109,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     painter.drawPixmap(QPoint{}, m_pixmapScaled);
   }
 
-  // Draw scalebar
+  // Draw ticks
   m_ticks.draw(&painter);
 
   // Draw canvas name
@@ -124,23 +126,32 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
   // Draw existing annotations
   {
     painter.setPen(Qt::white);
-    painter.drawLines(m_anno.linesScaled.data(), m_anno.linesScaled.size());
 
-    for (const auto &line : m_anno.linesScaled) {
-      const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
-      const auto msg = QString("%1 mm").arg(distance);
-      const auto textPos = line.p2() + QPointF(5, 5);
-      painter.drawText(textPos, msg);
+    // Draw lines
+    {
+      painter.drawLines(m_anno.linesScaled.data(), m_anno.linesScaled.size());
+
+      for (const auto &line : m_anno.linesScaled) {
+        const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
+        const auto msg = QString("%1 mm").arg(distance);
+        const auto textPos = line.p2() + QPointF(5, 5);
+        painter.drawText(textPos, msg);
+      }
+
+      painter.drawLines(m_anno.lineWhiskers.data(), m_anno.lineWhiskers.size());
     }
 
-    painter.drawLines(m_anno.lineWhiskers.data(), m_anno.lineWhiskers.size());
+    // Draw rects
+    { painter.drawRects(m_anno.rectsScaled.data(), m_anno.rectsScaled.size()); }
   }
 
   // Draw curr annotation
-  {
+  switch (m_cursorType) {
+  case CursorType::LineMeasure: {
+
     if (m_cursor.leftButtonDown) {
       painter.setPen(Qt::white);
-      const auto line = m_cursor.currLine();
+      const auto line = m_cursor.getLine();
       painter.drawLine(line);
 
       const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
@@ -151,6 +162,19 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       const auto whiskers = m_anno.computeLineWhisker(line);
       painter.drawLines(whiskers.data(), whiskers.size());
     }
+    break;
+  }
+
+  case CursorType::BoxZoom: {
+    if (m_cursor.leftButtonDown) {
+      painter.setPen(Qt::white);
+
+      const auto rect = m_cursor.getRect();
+      painter.drawRect(rect);
+    }
+
+    break;
+  }
   }
 
   // Measure rendering time
@@ -166,7 +190,7 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
     m_cursor.leftButtonDown = true;
     m_cursor.startPos = event->position() - m_offset;
 
-    // Only show one line on screen for now
+    // Only show one annotation on screen for now
     m_anno.clear();
 
   } else if (event->button() == Qt::MiddleButton) {
@@ -175,7 +199,7 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = true;
 
-    if (!m_anno.lines.empty()) {
+    if (!m_anno.empty()) {
       m_anno.clear();
 
       repaint();
@@ -210,9 +234,10 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = false;
 
-    // Save line
-    {
-      const auto lineScaled = m_cursor.currLine();
+    switch (m_cursorType) {
+    case CursorType::LineMeasure: {
+      // Save line
+      const auto lineScaled = m_cursor.getLine();
       const QLineF line(lineScaled.p1() / m_scale, lineScaled.p2() / m_scale);
       m_anno.linesScaled.push_back(lineScaled);
       m_anno.lines.push_back(line);
@@ -220,6 +245,17 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
       const auto whiskers = m_anno.computeLineWhisker(lineScaled);
       m_anno.lineWhiskers.push_back(whiskers[0]);
       m_anno.lineWhiskers.push_back(whiskers[1]);
+      break;
+    }
+    case CursorType::BoxZoom: {
+      const auto rectScaled = m_cursor.getRect();
+      const QRectF rect(rectScaled.x() / m_scale, rectScaled.y() / m_scale,
+                        rectScaled.width() / m_scale,
+                        rectScaled.height() / m_scale);
+
+      m_anno.rects.push_back(rect);
+      m_anno.rectsScaled.push_back(rectScaled);
+    }
     }
 
   } else if (event->button() == Qt::MiddleButton) {

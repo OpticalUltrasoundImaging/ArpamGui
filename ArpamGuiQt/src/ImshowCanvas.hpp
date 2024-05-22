@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QLayout>
 #include <QString>
+#include <QWidget>
 #include <QtWidgets>
 #include <array>
 #include <opencv2/opencv.hpp>
@@ -16,7 +17,15 @@ struct ImshowCanvasCursorState {
   QPointF currPos;
   QPointF startPos;
 
-  auto currLine() const { return QLineF(startPos, currPos); }
+  auto getLine() const { return QLineF(startPos, currPos); }
+  auto getRect() const {
+    qreal x = qMin(currPos.x(), startPos.x());
+    qreal y = qMin(currPos.y(), startPos.y());
+
+    qreal w = qAbs(currPos.x() - startPos.x());
+    qreal h = qAbs(currPos.y() - startPos.y());
+    return QRectF(x, y, w, h);
+  }
 };
 
 struct ImshowCanvasAnnotations {
@@ -26,13 +35,26 @@ struct ImshowCanvasAnnotations {
   std::vector<QLineF> linesScaled;  // Lines in scaled pixmap space
   std::vector<QLineF> lineWhiskers; // Line whiskers in scaled pixmap space
 
+  std::vector<QRectF> rects;
+  std::vector<QRectF> rectsScaled;
+
   void clearLines() {
     lines.clear();
     linesScaled.clear();
     lineWhiskers.clear();
   }
 
-  void clear() { clearLines(); }
+  void clearRects() {
+    rects.clear();
+    rectsScaled.clear();
+  }
+
+  void clear() {
+    clearLines();
+    clearRects();
+  }
+
+  bool empty() const { return lines.empty() && rects.empty(); }
 
   static auto computeLineWhisker(QLineF line) {
     std::array<QLineF, 2> whiskers;
@@ -58,6 +80,13 @@ struct ImshowCanvasAnnotations {
       auto whiskers = computeLineWhisker(lineScaled);
       lineWhiskers.push_back(whiskers[0]);
       lineWhiskers.push_back(whiskers[1]);
+    }
+
+    rectsScaled.clear();
+    for (const auto &rect : rects) {
+      const QRectF rectScaled(rect.x() * scale, rect.y() * scale,
+                              rect.width() * scale, rect.height() * scale);
+      rectsScaled.push_back(rectScaled);
     }
   }
 };
@@ -150,6 +179,11 @@ struct ImshowCanvasTicks {
 class ImshowCanvas : public QLabel {
   Q_OBJECT
 public:
+  enum class CursorType {
+    LineMeasure = 0,
+    BoxZoom,
+  };
+
   explicit ImshowCanvas(QWidget *parent = nullptr);
 
   void setName(QString name) { m_name = name; }
@@ -209,6 +243,8 @@ private:
 
   // State of the cursor for drawing annotations
   ImshowCanvasCursorState m_cursor;
+
+  CursorType m_cursorType{CursorType::BoxZoom};
 
   ImshowCanvasAnnotations m_anno;
 };
