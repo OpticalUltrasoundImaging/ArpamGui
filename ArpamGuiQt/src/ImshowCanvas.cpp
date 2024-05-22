@@ -210,6 +210,7 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
 
     // Only show one annotation on screen for now
     m_anno.clear();
+    update();
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = true;
@@ -219,22 +220,29 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
 
     if (!m_anno.empty()) {
       m_anno.clear();
+      update();
     }
 
-    m_zoomed = false;
-    m_zoomTranslated = false;
-    m_zoomRect.setTopLeft({0.0, 0.0});
-
-    update();
+    // Go back in zoom history
+    if (m_zoomed) {
+      if (m_zoomRectHistory.size() > 1) {
+        m_zoomRectHistory.pop_back();
+        m_zoomRect = m_zoomRectHistory.back();
+        m_zoomed = true;
+        m_zoomTranslated = true;
+      } else {
+        m_zoomRectHistory.clear();
+        m_zoomed = false;
+        m_zoomTranslated = false;
+        m_zoomRect.setTopLeft({0.0, 0.0});
+      }
+      update();
+    }
   }
 }
 
 void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
-  if (m_pixmap.isNull()) {
-    return;
-  }
-
   m_cursor.currPos = event->position() - m_offset;
   QPointF pos = m_cursor.currPos / m_scale;
   if (m_zoomed) {
@@ -256,8 +264,6 @@ void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
     const auto displacement = (m_cursor.startPos - m_cursor.currPos) / m_scale;
     m_cursor.startPos = m_cursor.currPos;
 
-    // Naive translate
-    // m_zoomRect.translate(displacement);
     // Advanced translate - clip to m_pixmap boundary
     QRectF bound(QPointF{0, 0}, m_pixmap.size());
     const auto zoomRectTranslated =
@@ -276,6 +282,7 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
     m_cursor.leftButtonDown = false;
 
     switch (m_cursorType) {
+
     case CursorType::LineMeasure: {
       // Save line
       const auto lineScaled = m_cursor.getLine();
@@ -288,6 +295,7 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
       m_anno.lineWhiskers.push_back(whiskers[1]);
       break;
     }
+
     case CursorType::BoxZoom: {
       const auto rectScaled = m_cursor.getRect();
       const QRectF rect(rectScaled.x() / m_scale + m_zoomRect.left(),
@@ -300,6 +308,7 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
       // m_anno.rectsScaled.push_back(rectScaled);
 
       // Set Zoom
+      m_zoomRectHistory.push_back(rect);
       m_zoomRect = rect;
       m_zoomed = true;
     }
@@ -309,6 +318,8 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = false;
+    m_zoomRectHistory.push_back(m_zoomRect);
+
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = false;
   }

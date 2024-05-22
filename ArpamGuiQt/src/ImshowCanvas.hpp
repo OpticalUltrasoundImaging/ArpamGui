@@ -241,9 +241,10 @@ private:
   // when a m_pixmap is present.
   QPoint m_offset{};
 
-  QRectF m_zoomRect;
   bool m_zoomed{false};
   bool m_zoomTranslated{false};
+  QRectF m_zoomRect;
+  std::vector<QRectF> m_zoomRectHistory;
 
   // State of ticks
   ImshowCanvasTicks m_ticks;
