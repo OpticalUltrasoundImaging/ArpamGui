@@ -22,9 +22,9 @@ struct ImshowCanvasCursorState {
 struct ImshowCanvasAnnotations {
   static constexpr double whiskerLength = 10;
 
-  std::vector<QLineF> lines;
-  std::vector<QLineF> linesScaled;
-  std::vector<QLineF> lineWhiskers;
+  std::vector<QLineF> lines;        // Line annotations in original pixmap space
+  std::vector<QLineF> linesScaled;  // Lines in scaled pixmap space
+  std::vector<QLineF> lineWhiskers; // Line whiskers in scaled pixmap space
 
   void clearLines() {
     lines.clear();
@@ -62,7 +62,7 @@ struct ImshowCanvasAnnotations {
   }
 };
 
-struct ImshowCanvasScaleBarState {
+struct ImshowCanvasTicks {
   static constexpr int minorTickSize = 10; // [px]
   static constexpr int majorTickSize = 15; // [px]
   static constexpr int margin = 5;         // [px]
@@ -126,7 +126,7 @@ struct ImshowCanvasScaleBarState {
   }
 
   /**
-   * @brief Draw the scalebar onto a pixmap painter
+   * @brief Draw the ticks onto a pixmap painter
    * @param painter
    */
   void draw(QPainter *painter) {
@@ -183,7 +183,7 @@ private:
     return pos * m_scale + m_offset;
   }
 
-  void drawScaleBar(QPainter *painter);
+  void drawTicks(QPainter *painter);
 
   // [mm] Get distance between 2 points in the original // pixmap.
   double computeDistance_mm(QPointF pt1, QPointF pt2) const;
@@ -204,8 +204,8 @@ private:
   // when a m_pixmap is present.
   QPoint m_offset{};
 
-  // State of scalebars
-  ImshowCanvasScaleBarState m_scalebar;
+  // State of ticks
+  ImshowCanvasTicks m_ticks;
 
   // State of the cursor for drawing annotations
   ImshowCanvasCursorState m_cursor;

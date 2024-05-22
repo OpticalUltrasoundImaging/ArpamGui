@@ -38,13 +38,13 @@ void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
 
 // NOLINTBEGIN(*-casting, *-narrowing-conversions)
 
-void ImshowCanvas::drawScaleBar(QPainter *painter) {
+void ImshowCanvas::drawTicks(QPainter *painter) {
   // Update scale bar
   constexpr int m2mm = 1000;
-  m_scalebar.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
+  m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
 
   // Painting
-  m_scalebar.draw(painter);
+  m_ticks.draw(painter);
 }
 
 // Compute the distance between two points in the scaled pixmap domain
@@ -96,7 +96,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       // Update scalebar
       {
         constexpr int m2mm = 1000;
-        m_scalebar.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
+        m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
       }
 
       // Update annotations
@@ -108,12 +108,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
   }
 
   // Draw scalebar
-  {
-    uspam::TimeIt timeit;
-    m_scalebar.draw(&painter);
-    const auto elapsed = timeit.get_ms();
-    // emit error(QString("drawScaleBar took %1").arg(elapsed));
-  }
+  m_ticks.draw(&painter);
 
   // Draw canvas name
   if (!m_name.isNull()) {
@@ -159,8 +154,11 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
   }
 
   // Measure rendering time
-  const auto renderTime_ms = timeit.get_ms();
-  // emit error(QString("Rendering time %1 ms").arg(renderTime_ms));
+  {
+    const auto renderTime_ms = timeit.get_ms();
+    auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
+    emit error(msg);
+  }
 }
 
 void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
