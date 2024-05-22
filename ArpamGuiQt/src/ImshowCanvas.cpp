@@ -210,9 +210,9 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = true;
 
-    // Only show one annotation on screen for now
-    m_anno.clear();
-    update();
+    // // Only show one annotation on screen for now
+    // m_anno.clear();
+    // update();
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = true;
@@ -225,20 +225,38 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
       update();
     }
 
-    // Go back in zoom history
-    if (m_zoomed) {
-      if (m_zoomRectHistory.size() > 1) {
-        m_zoomRectHistory.pop_back();
-        m_zoomRect = m_zoomRectHistory.back();
-        m_zoomed = true;
-        m_zoomTranslated = true;
-      } else {
-        m_zoomRectHistory.clear();
-        m_zoomed = false;
-        m_zoomTranslated = false;
-        m_zoomRect.setTopLeft({0.0, 0.0});
+    switch (m_cursorType) {
+
+    case CursorType::LineMeasure: {
+      if (!m_anno.lines.empty()) {
+        m_anno.lines.pop_back();
+        m_anno.linesScaled.pop_back();
+        m_anno.lineWhiskers.pop_back();
+
+        update();
       }
-      update();
+      break;
+    }
+
+    case CursorType::BoxZoom: {
+
+      // Go back in zoom history
+      if (m_zoomed) {
+        if (m_zoomRectHistory.size() > 1) {
+          m_zoomRectHistory.pop_back();
+          m_zoomRect = m_zoomRectHistory.back();
+          m_zoomed = true;
+          m_zoomTranslated = true;
+        } else {
+          m_zoomRectHistory.clear();
+          m_zoomed = false;
+          m_zoomTranslated = false;
+          m_zoomRect.setTopLeft({0.0, 0.0});
+        }
+        update();
+      }
+      break;
+    }
     }
   }
 }
