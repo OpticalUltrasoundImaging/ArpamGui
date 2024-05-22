@@ -3,6 +3,7 @@
 #include "geometryUtils.hpp"
 #include <QImage>
 #include <QLayout>
+#include <QRect>
 #include <QString>
 #include <QWidget>
 #include <QtWidgets>
@@ -14,7 +15,7 @@ struct ImshowCanvasCursorState {
   bool leftButtonDown = false;
   bool middleButtonDown = false;
   bool rightButtonDown = false;
-  QPointF currPos;
+  QPointF currPos; // current cursor position in scaled pixmap coord
   QPointF startPos;
 
   auto getLine() const { return QLineF(startPos, currPos); }
@@ -130,7 +131,7 @@ struct ImshowCanvasTicks {
     // Draw divisions in increments of 1 mm
     const double divisionSize = 1 / pix2mm;
 
-    const int numDivisions = static_cast<int>(ph / (2 * divisionSize)) - 1;
+    const int numDivisions = static_cast<int>(ph / (2 * divisionSize));
     // numDivisions = numDivisions - (numDivisions % displayInterval) + 1;
 
     for (int i = -numDivisions; i < numDivisions; ++i) {
@@ -237,6 +238,9 @@ private:
   // m_offset is updated on every paintEvent so it should never be zero
   // when a m_pixmap is present.
   QPoint m_offset{};
+
+  bool m_zoomed;
+  QRect m_zoomRect;
 
   // State of ticks
   ImshowCanvasTicks m_ticks;

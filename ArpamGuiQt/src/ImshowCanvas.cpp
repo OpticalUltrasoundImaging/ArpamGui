@@ -9,6 +9,7 @@
 #include <QtLogging>
 #include <array>
 #include <cmath>
+#include <tuple>
 #include <uspam/timeit.hpp>
 
 ImshowCanvas::ImshowCanvas(QWidget *parent) : QLabel(parent) {
@@ -74,12 +75,22 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
     // Canvas size
     const auto w = width();
     const auto h = height();
-    // Pixmap size
-    const auto pw = m_pixmap.width();
-    const auto ph = m_pixmap.height();
 
-    // Calculate scale factor to maintain aspect ratio
-    qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
+    const auto [pw, ph, scale] = [&] {
+      // Pixmap size
+      int pw, ph;
+      if (m_zoomed) {
+        pw = m_zoomRect.width();
+        ph = m_zoomRect.height();
+      } else {
+        pw = m_pixmap.width();
+        ph = m_pixmap.height();
+      }
+
+      // Calculate scale factor to maintain aspect ratio
+      qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
+      return std::tuple{pw, ph, scale};
+    }();
 
     // Calculate the position to center pixmap
     m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
@@ -92,8 +103,13 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       m_scale = scale;
       // Rescale everything here!
 
-      m_pixmapScaled =
-          m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
+      if (m_zoomed) {
+        auto tmp = m_pixmap.copy(m_zoomRect);
+        m_pixmapScaled = tmp.scaled(m_scale * tmp.size(), Qt::KeepAspectRatio);
+      } else {
+        m_pixmapScaled =
+            m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
+      }
 
       // Update scalebar
       {
@@ -102,7 +118,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
       }
 
       // Update annotations
-      m_anno.rescale(scale);
+      m_anno.rescale(m_scale);
     }
 
     // Draw scaled pixmap
@@ -201,9 +217,11 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
 
     if (!m_anno.empty()) {
       m_anno.clear();
-
-      repaint();
     }
+
+    m_zoomed = false;
+
+    repaint();
   }
 }
 
@@ -214,19 +232,28 @@ void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   }
 
   m_cursor.currPos = event->position() - m_offset;
-  {
-    const auto pos = (m_cursor.currPos / m_scale);
+  QPointF pos;
+  if (m_zoomed) {
+    // TODO
+    pos = m_cursor.currPos / m_scale;
+    pos += m_zoomRect.topLeft();
 
-    // [px] Compute distance to center
-    const QPointF center(m_pixmap.width() / 2.0, m_pixmap.height() / 2.0);
-    auto distance_mm = computeDistance_mm(center, pos);
-
-    emit mouseMoved(pos.toPoint(), distance_mm);
+  } else {
+    pos = m_cursor.currPos / m_scale;
   }
+
+  // [px] Compute distance to center
+  const QPointF center(m_pixmap.width() / 2.0, m_pixmap.height() / 2.0);
+  auto distanceToCenter_mm = computeDistance_mm(center, pos);
+  emit mouseMoved(pos.toPoint(), distanceToCenter_mm);
 
   // draw annotation currently drawing
   if (m_cursor.leftButtonDown) {
     update();
+  }
+
+  if (m_cursor.middleButtonDown && m_zoomed) {
+    // Move in Zoomed mode
   }
 }
 
@@ -253,10 +280,17 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
                         rectScaled.width() / m_scale,
                         rectScaled.height() / m_scale);
 
-      m_anno.rects.push_back(rect);
-      m_anno.rectsScaled.push_back(rectScaled);
+      // Save rect to annotations
+      // m_anno.rects.push_back(rect);
+      // m_anno.rectsScaled.push_back(rectScaled);
+
+      // Set Zoom
+      m_zoomRect = rect.toRect();
+      m_zoomed = true;
     }
     }
+
+    repaint();
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = false;
