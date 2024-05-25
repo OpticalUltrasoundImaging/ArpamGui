@@ -217,7 +217,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   // Registration params
   {
-    auto *gb = new QGroupBox(tr("Registration params"));
+    auto *gb = new QGroupBox(tr("Coregestration params"));
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
@@ -254,7 +254,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip("Change this (in no. of samples) to move how close the "
                         "US signals are in relation to the axis of rotation.");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetUS, this);
+      auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetUS, this);
       layout->addWidget(spinBox, row++, 1);
 
       updateGuiFromParamsCallbacks.push_back(
@@ -266,7 +266,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(
           "Change this (in no. of samples) to coregister PA and US.");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({-500, 1000}, ioparams.offsetPA, this);
+      auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetPA, this);
       layout->addWidget(spinBox, row++, 1);
 
       updateGuiFromParamsCallbacks.push_back(
