@@ -3,28 +3,7 @@
   "name": "arpam-gui",
   "version": "0.1",
   "dependencies": [
-    {
-      "name": "qtbase",
-      "default-features": false,
-      "features": [
-        "brotli",
-        "concurrent",
-        "dbus",
-        "default-features",
-        "doubleconversion",
-        "freetype",
-        "gui",
-        "harfbuzz",
-        "icu",
-        "jpeg",
-        "opengl",
-        "pcre2",
-        "png",
-        "thread",
-        "widgets",
-        "zstd"
-      ]
-    },
+    "qtbase",
     "rapidjson",
     "glslang",
     "glfw3",

@@ -2,7 +2,6 @@
 
 #include <QString>
 #include <armadillo>
-#include <cblas.h>
 #include <fftw3.h>
 #include <opencv2/opencv.hpp>
 #include <rapidjson/rapidjson.h>
@@ -21,9 +20,6 @@ struct ARPAM_GUI_ABOUT {
     ss << "OpenCV: " << cv::getVersionString() << "\n";
 
     // ss << "FFTW3: " << fftw_version << "\n";
-
-    // auto openblas_config = openblas_get_config();
-    // ss << "OpenBLAS: " << openblas_config << "\n";
 
     // ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 

@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.20)
 project(libuspam LANGUAGES CXX)
 
 find_package(Armadillo CONFIG REQUIRED)
-find_package(OpenBLAS CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
 
@@ -26,7 +25,6 @@ target_link_libraries(${LIB_NAME} PUBLIC
     armadillo
     FFTW3::fftw3
     FFTW3::fftw3f
-    OpenBLAS::OpenBLAS
     opencv_world
     rapidjson
 )

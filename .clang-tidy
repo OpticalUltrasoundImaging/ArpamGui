@@ -1,2 +1,1 @@
 Checks: "-*,bugprone-*,concurrency-*,cppcoreguidelines-*,modernize-*,performance-*,readability-*,google-*,-bugprone-easily-swappable-parameters,-readability-identifier-length,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-owning-memory,-modernize-use-trailing-return-type"
-ExcludeHeaderFilterRegex: "^.*vcpkg_installed.*$"
