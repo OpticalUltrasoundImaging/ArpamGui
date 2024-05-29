@@ -13,6 +13,11 @@ qt_add_executable(${EXE_NAME}
     src/MainWindow.cpp
     src/ImshowCanvas.hpp
     src/ImshowCanvas.cpp
+    src/ImshowCanvasAnnotations.hpp
+    src/ImshowCanvasAnnotations.cpp
+    src/ImshowCanvasCursorState.hpp
+    src/ImshowCanvasTicks.hpp
+    src/ImshowCanvasTicks.cpp
     src/CoregDisplay.hpp
     src/CoregDisplay.cpp
     src/DataProcWorker.hpp
@@ -49,13 +54,14 @@ set_target_properties(${EXE_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
     # INTERPROCEDURAL_OPTIMIZATION TRUE
-    WIN32_EXECUTABLE ON
-    MACOSX_BUNDLE ON
 )
 
 if (WIN32)
     # On Windows, call windeployqt create a deployable folder
     # https://doc.qt.io/qt-6/windows-deployment.html
+    set_target_properties(${EXE_NAME} PROPERTIES
+        WIN32_EXECUTABLE ON
+    )
 
     # Find windeployqt
     get_target_property(_qt_bin_dir Qt::qmake IMPORTED_LOCATION)
@@ -84,4 +90,24 @@ if (WIN32)
                            COMMAND ${CMAKE_COMMAND} -E copy_if_different
                            ${_file} $<TARGET_FILE_DIR:${EXE_NAME}>)
     endforeach()
+
+elseif (APPLE)
+    # Post-build steps for macOS
+    # https://doc.qt.io/qt-6/macos-deployment.html
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE ON
+        MACOSX_BUNDLE_INFO_PLIST cmake/MacOSXBundleInfo.plist.in
+    )
+
+    # Use macdeployqt to bundle Qt libraries
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${Qt6_DIR}/../../tools/Qt6/bin/macdeployqt 
+        "$<TARGET_BUNDLE_DIR:${EXE_NAME}>"
+        -verbose=1
+        -always-overwrite
+        -codesign=-
+        "$<IF:$<CONFIG:Release>,-dmg,-use-debug-libs>"
+        COMMENT "Bundling Qt libraries"
+    )
+
 endif()

@@ -58,7 +58,7 @@ FrameController::FrameController(QWidget *parent)
       vlayout->addLayout(hlayout);
 
       auto *frameNumLabel = new QLabel;
-      frameNumLabel->setText("Frame num:");
+      frameNumLabel->setText("Frame:");
       hlayout->addWidget(frameNumLabel);
 
       // SpinBox to display frame num

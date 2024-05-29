@@ -1,5 +1,3 @@
-#pragma once
-
 #include "uspam/io.hpp"
 #include <fstream>
 #include <rapidjson/document.h>
