@@ -3,13 +3,33 @@
   "name": "arpam-gui",
   "version": "0.1",
   "dependencies": [
-    "qtbase",
+    {
+      "name": "qtbase",
+      "default-features": false,
+      "features": [
+        "brotli",
+        "concurrent",
+        "dbus",
+        "default-features",
+        "doubleconversion",
+        "freetype",
+        "gui",
+        "harfbuzz",
+        "icu",
+        "jpeg",
+        "opengl",
+        "pcre2",
+        "png",
+        "thread",
+        "widgets",
+        "zstd"
+      ]
+    },
     "rapidjson",
     "glslang",
     "glfw3",
     "armadillo",
     "fftconv",
-    "openblas",
     {
       "name": "opencv4",
       "features": ["contrib", "dnn", "png", "vulkan", "tbb", "png", "world"]
@@ -42,5 +62,5 @@
     "cli11",
     "indicators"
   ],
-  "builtin-baseline": "dee924de74e81388140a53c32a919ecec57d20ab"
+  "builtin-baseline": "fc6345e114c2e2c4f9714037340ccb08326b3e8c"
 }

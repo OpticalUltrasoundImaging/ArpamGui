@@ -63,33 +63,13 @@ if (WIN32)
         WIN32_EXECUTABLE ON
     )
 
-    # Find windeployqt
-    get_target_property(_qt_bin_dir Qt::qmake IMPORTED_LOCATION)
-    get_filename_component(_qt_bin_dir "${_qt_bin_dir}" DIRECTORY)
-    find_program(WINDEPLOYQT_EXE NAMES windeployqt.exe HINTS "${_qt_bin_dir}")
-    find_program(WINDEPLOYQT_DEBUG_EXE NAMES windeployqt.debug.bat HINTS "${_qt_bin_dir}")
-
-    message("CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}")
-    message("_qt_bin_dir ${_qt_bin_dir}")
-    message("WINDEPLOYQT_EXE ${WINDEPLOYQT_EXE}")
-    message("WINDEPLOYQT_DEBUG_EXE ${WINDEPLOYQT_DEBUG_EXE}")
-
     # Add post build command to call windeployqt
     add_custom_command(TARGET ${EXE_NAME} POST_BUILD
-        COMMAND "$<IF:$<CONFIG:Debug>,${WINDEPLOYQT_DEBUG_EXE},${WINDEPLOYQT_EXE}>"
-        --verbose 0 
-        --no-compiler-runtime 
+        COMMAND ${Qt6_DIR}/../../tools/Qt6/bin/windeployqt.exe 
+        --verbose 1
+        "$<IF:$<CONFIG:Debug>,--debug,--release>"
         "$<TARGET_FILE:${EXE_NAME}>"
     )
-
-
-    # On Windows, also copy the system runtime libraries
-    include(InstallRequiredSystemLibraries)
-    foreach(_file ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
-        add_custom_command(TARGET ${EXE_NAME} POST_BUILD
-                           COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                           ${_file} $<TARGET_FILE_DIR:${EXE_NAME}>)
-    endforeach()
 
 elseif (APPLE)
     # Post-build steps for macOS
