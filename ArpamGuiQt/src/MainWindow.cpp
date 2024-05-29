@@ -98,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent)
               this->worker->updateParams(params, ioparams);
 
               // Only invoke "replayOne" if not currently worker is not playing
-              if (!this->worker->isPlaying()) {
+              if (this->worker->isReady() && !this->worker->isPlaying()) {
                 QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
               }
 

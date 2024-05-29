@@ -17,13 +17,15 @@ class DataProcWorker : public QObject {
   Q_OBJECT
 
 public:
-  DataProcWorker() {
-    ioparams = uspam::io::IOParams::system2024v1();
-    params = uspam::recon::ReconParams2::system2024v1();
-  }
+  DataProcWorker()
+      : m_params(uspam::recon::ReconParams2::system2024v1()),
+        m_ioparams(uspam::io::IOParams::system2024v1()) {}
 
   // Returns true if the worker is currently playing (sequentially processing)
-  inline bool isPlaying() { return _isPlaying; }
+  inline bool isPlaying() { return m_isPlaying; }
+
+  // Returns true if the worker has a binfile ready to process
+  inline bool isReady() { return m_ready; }
 
 public slots:
   // Begin post processing data using the currentBinfile
@@ -48,15 +50,17 @@ public slots:
 
   // Reset the ReconParams and IOParams to the default
   void resetParams() {
-    ioparams = uspam::io::IOParams::system2024v1();
-    params = uspam::recon::ReconParams2::system2024v1();
+    m_ioparams = uspam::io::IOParams::system2024v1();
+    m_params = uspam::recon::ReconParams2::system2024v1();
   }
 
   // Save the ReconParams and IOParams to the image output directory
   void saveParamsToFile();
 
-  inline auto getBinfilePath() const -> fs::path { return this->binfilePath; }
-  inline auto getImageSaveDir() const -> fs::path { return this->imageSaveDir; }
+  inline auto getBinfilePath() const -> fs::path { return this->m_binfilePath; }
+  inline auto getImageSaveDir() const -> fs::path {
+    return this->m_imageSaveDir;
+  }
 
 signals:
   void maxFramesChanged(int);
@@ -72,25 +76,24 @@ private:
   void processCurrentFrame();
 
 private:
-  int frameIdx{0};
+  int m_frameIdx{0};
+  std::atomic<bool> m_ready{false};
+  std::atomic<bool> m_isPlaying{false};
 
   // Post processing binfile
-  uspam::io::BinfileLoader<uint16_t> loader;
-  fs::path binfilePath;
-  fs::path imageSaveDir;
+  uspam::io::BinfileLoader<uint16_t> m_loader;
+  fs::path m_binfilePath;
+  fs::path m_imageSaveDir;
 
   // Buffers;
-  arma::Mat<uint16_t> rf;
-  uspam::io::PAUSpair<double> rfPair;
-  uspam::io::PAUSpair<uint8_t> rfLog;
-
-  // Atomic states
-  std::atomic<bool> _isPlaying{false};
+  arma::Mat<uint16_t> m_rf;
+  uspam::io::PAUSpair<double> m_rfPair;
+  uspam::io::PAUSpair<uint8_t> m_rfLog;
 
   // mutex for ReconParams2 and IOParams
-  QMutex paramsMutex;
-  QWaitCondition waitCondition;
+  QMutex m_paramsMutex;
+  QWaitCondition m_waitCondition;
 
-  uspam::recon::ReconParams2 params;
-  uspam::io::IOParams ioparams;
+  uspam::recon::ReconParams2 m_params;
+  uspam::io::IOParams m_ioparams;
 };
