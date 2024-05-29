@@ -320,19 +320,18 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
     case CursorMode::BoxZoom: {
       const auto rectScaled = m_cursor.getRect();
       const QRectF rect = transformBackward.mapRect(rectScaled);
-      // const QRectF rect(rectScaled.x() / m_scale + m_zoomRect.left(),
-      //                   rectScaled.y() / m_scale + m_zoomRect.top(),
-      //                   rectScaled.width() / m_scale,
-      //                   rectScaled.height() / m_scale);
 
-      // Save rect to annotations
-      // m_anno.rects.push_back(rect);
-      // m_anno.rectsScaled.push_back(rectScaled);
+      constexpr int RECT_MIN_SIZE = 10;
+      if (rect.width() > RECT_MIN_SIZE && rect.height() > RECT_MIN_SIZE) {
+        // Save rect to annotations
+        // m_anno.rects.push_back(rect);
+        // m_anno.rectsScaled.push_back(rectScaled);
 
-      // Set Zoom
-      m_zoomRectHistory.push_back(rect);
-      m_zoomRect = rect;
-      m_zoomed = true;
+        // Set Zoom
+        m_zoomRectHistory.push_back(rect);
+        m_zoomRect = rect;
+        m_zoomed = true;
+      }
     }
     }
 
