@@ -100,10 +100,10 @@ MainWindow::MainWindow(QWidget *parent)
               // Only invoke "replayOne" if not currently worker is not playing
               if (this->worker->isReady() && !this->worker->isPlaying()) {
                 QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
-              }
 
-              // Save params to file
-              this->worker->saveParamsToFile();
+                // Save params to file
+                this->worker->saveParamsToFile();
+              }
             });
 
     connect(reconParamsController, &ReconParamsController::error, this,
