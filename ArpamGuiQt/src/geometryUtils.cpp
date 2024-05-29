@@ -28,4 +28,22 @@ QPointF calcNormalVec(const QLineF &line) {
   return normal / magnitude;
 }
 
+QRectF translateBounded(const QRectF &rect, const QPointF &delta,
+                        const QRectF &bound) {
+  QRectF translated = rect.translated(delta);
+
+  if (translated.left() < bound.left()) {
+    translated.moveLeft(bound.left());
+  } else if (translated.right() > bound.right()) {
+    translated.moveRight(bound.right());
+  }
+
+  if (translated.top() < bound.top()) {
+    translated.moveTop(bound.top());
+  } else if (translated.bottom() > bound.bottom()) {
+    translated.moveBottom(bound.bottom());
+  }
+
+  return translated;
+}
 } // namespace geometry

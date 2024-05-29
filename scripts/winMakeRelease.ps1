@@ -1,7 +1,7 @@
 $archivePath = "ArpamGuiQt-Win64-$(Get-Date -format 'yyyyMMdd').zip"
 
 $compress = @{
-    Path = ".\build\win64\arpam_gui_qt\Release\*"
+    Path = ".\build\win64\ArpamGuiQt\Release\*"
     CompressionLevel = "Optimal"
     DestinationPath = $archivePath
 }

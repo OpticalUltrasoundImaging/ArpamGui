@@ -37,7 +37,7 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
 
   const QByteArray localMsg = msg.toLocal8Bit();
   const char *file = context.file != nullptr ? context.file : "";
-  const char *function = context.function != nullptr ? context.function : "";
+  // const char *function = context.function != nullptr ? context.function : "";
 
   addDatetime(sLogStream);
   switch (type) {

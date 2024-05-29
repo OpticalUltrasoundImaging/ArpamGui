@@ -1,8 +1,5 @@
-artifact_path=./build/clang-release/arpam_gui_qt/
-artifact_name=arpam-gui-qt.app
-archive_name="ArpamGuiQt-mac-$(date +%Y%m%d).zip"
+artifact_path=./build/clang-release/ArpamGuiQt
+artifact_name=ArpamGuiQt.dmg
+archive_name="ArpamGuiQt-mac-$(date +%Y%m%d).dmg"
 
-pushd $artifact_path
-zip -r $archive_name $artifact_name
-popd
-mv $artifact_path/$archive_name .
+cp -r $artifact_path/$artifact_name $archive_name

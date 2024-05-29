@@ -102,30 +102,31 @@ struct ReconPerformanceStats {
 
 void DataProcWorker::setBinfile(const QString &binfile) {
   qInfo() << "DataProcWorker set currentBinfile to" << binfile;
-  binfilePath = qString2Path(binfile);
-  imageSaveDir = binfilePath.parent_path() / binfilePath.stem();
+  m_binfilePath = qString2Path(binfile);
+  m_imageSaveDir = m_binfilePath.parent_path() / m_binfilePath.stem();
 
-  qInfo() << "Processing binfile: " << path2QString(binfilePath);
+  qInfo() << "Processing binfile: " << path2QString(m_binfilePath);
 
-  if (!fs::create_directory(imageSaveDir) && !fs::exists(imageSaveDir)) {
+  if (!fs::create_directory(m_imageSaveDir) && !fs::exists(m_imageSaveDir)) {
     emit error(tr("Failed to create imageSaveDir ") +
-               path2QString(imageSaveDir));
+               path2QString(m_imageSaveDir));
   } else {
-    emit error(tr("Saving images to ") + path2QString(imageSaveDir));
+    emit error(tr("Saving images to ") + path2QString(m_imageSaveDir));
   }
 
   try {
     // Init loader
-    loader.setParams(ioparams);
-    loader.open(binfilePath);
-    emit maxFramesChanged(loader.size());
+    m_loader.setParams(m_ioparams);
+    m_loader.open(m_binfilePath);
+    emit maxFramesChanged(m_loader.size());
 
     // Init buffers
     {
-      QMutexLocker lock(&paramsMutex);
-      rfPair = ioparams.allocateSplitPair<double>(loader.getAlinesPerBscan());
+      QMutexLocker lock(&m_paramsMutex);
+      m_rfPair =
+          m_ioparams.allocateSplitPair<double>(m_loader.getAlinesPerBscan());
     }
-    rfLog = io::PAUSpair<uint8_t>::zeros_like(rfPair);
+    m_rfLog = io::PAUSpair<uint8_t>::zeros_like(m_rfPair);
 
     // Save init params
     saveParamsToFile();
@@ -142,46 +143,46 @@ void DataProcWorker::setBinfile(const QString &binfile) {
 }
 
 void DataProcWorker::play() {
-  _isPlaying = true;
+  m_isPlaying = true;
 
-  while (_isPlaying && frameIdx < loader.size()) {
-    playOne(frameIdx);
-    frameIdx++;
+  while (m_isPlaying && m_frameIdx < m_loader.size()) {
+    playOne(m_frameIdx);
+    m_frameIdx++;
   }
 
-  if (_isPlaying) {
+  if (m_isPlaying) {
     emit error("DataProcWorker::play Finished.");
   } else {
     emit error("DataProcWorker::play Paused.");
   }
-  _isPlaying = false;
+  m_isPlaying = false;
 
   emit finishedOneFile();
 }
 
 void DataProcWorker::playOne(int idx) {
-  frameIdx = idx;
+  m_frameIdx = idx;
 
   processCurrentFrame();
 }
 void DataProcWorker::replayOne() { processCurrentFrame(); }
 
-void DataProcWorker::pause() { _isPlaying = false; }
+void DataProcWorker::pause() { m_isPlaying = false; }
 
 void DataProcWorker::updateParams(uspam::recon::ReconParams2 params,
                                   uspam::io::IOParams ioparams) {
 
   emit error("DataProcWorker updateParams");
-  QMutexLocker lock(&paramsMutex);
-  this->params = std::move(params);
-  this->ioparams = std::move(ioparams);
+  QMutexLocker lock(&m_paramsMutex);
+  this->m_params = std::move(params);
+  this->m_ioparams = std::move(ioparams);
 }
 
 void DataProcWorker::saveParamsToFile() {
-  QMutexLocker lock(&paramsMutex);
-  const auto savedir = imageSaveDir;
-  params.serializeToFile(savedir / "params.json");
-  ioparams.serializeToFile(savedir / "ioparams.json");
+  QMutexLocker lock(&m_paramsMutex);
+  const auto savedir = m_imageSaveDir;
+  m_params.serializeToFile(savedir / "params.json");
+  m_ioparams.serializeToFile(savedir / "ioparams.json");
 }
 
 namespace {
@@ -225,7 +226,7 @@ struct PerformanceMetrics {
 } // namespace
 
 void DataProcWorker::processCurrentFrame() {
-  const bool flip{frameIdx % 2 == 0};
+  const bool flip{m_frameIdx % 2 == 0};
 
   PerformanceMetrics perfMetrics{};
   uspam::TimeIt timeit;
@@ -233,27 +234,27 @@ void DataProcWorker::processCurrentFrame() {
   // Read next RF scan from file
   {
     const uspam::TimeIt timeit;
-    loader.get(rf, frameIdx);
+    m_loader.get(m_rf, m_frameIdx);
     perfMetrics.fileloader_ms = timeit.get_ms();
   }
 
   const auto [paramsPA, paramsUS] = [&] {
     // Estimate background from current RF
-    const auto rf_f64 = arma::conv_to<arma::mat>::from(rf);
+    const auto rf_f64 = arma::conv_to<arma::mat>::from(m_rf);
     const arma::vec background_aline = arma::mean(rf_f64, 1);
 
     // this->params and this->ioparams are used in this block
     // lock with paramsMutex
-    QMutexLocker lock(&paramsMutex);
+    QMutexLocker lock(&m_paramsMutex);
     {
       // Split RF into PA and US scan lines
       const uspam::TimeIt timeit;
-      ioparams.splitRfPAUS_sub(rf_f64, background_aline, rfPair);
+      m_ioparams.splitRfPAUS_sub(rf_f64, background_aline, m_rfPair);
       perfMetrics.splitRfPAUS_ms = timeit.get_ms();
     }
 
-    const auto paramsPA = params.getPA();
-    const auto paramsUS = params.getUS();
+    const auto paramsPA = m_params.getPA();
+    const auto paramsUS = m_params.getUS();
     return std::tuple(paramsPA, paramsUS);
   }();
 
@@ -281,13 +282,13 @@ void DataProcWorker::processCurrentFrame() {
   {
     const uspam::TimeIt timeit;
 
-    const auto a1 = std::async(std::launch::async, procOne, std::ref(paramsPA),
-                               std::ref(rfPair.PA), std::ref(rfLog.PA), flip,
-                               std::ref(PAradial), std::ref(PAradial_img));
+    const auto a1 = std::async(
+        std::launch::async, procOne, std::ref(paramsPA), std::ref(m_rfPair.PA),
+        std::ref(m_rfLog.PA), flip, std::ref(PAradial), std::ref(PAradial_img));
 
-    const auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
-                               std::ref(rfPair.US), std::ref(rfLog.US), flip,
-                               std::ref(USradial), std::ref(USradial_img));
+    const auto a2 = std::async(
+        std::launch::async, procOne, std::ref(paramsUS), std::ref(m_rfPair.US),
+        std::ref(m_rfLog.US), flip, std::ref(USradial), std::ref(USradial_img));
 
     a1.wait();
     a2.wait();
@@ -305,7 +306,7 @@ void DataProcWorker::processCurrentFrame() {
     constexpr double fctRect = soundSpeed / fs;
 
     // [points]
-    const auto USpoints_rect = static_cast<double>(rfPair.US.n_rows);
+    const auto USpoints_rect = static_cast<double>(m_rfPair.US.n_rows);
 
     // [points]
     const auto USpoints_radial = static_cast<double>(USradial.rows) / 2;
@@ -326,7 +327,7 @@ void DataProcWorker::processCurrentFrame() {
 
   // Send images to GUI thread
   emit resultReady(USradial_img, PAUSradial_img, fct);
-  emit frameIdxChanged(frameIdx);
+  emit frameIdxChanged(m_frameIdx);
 
   // Save to file
   {
@@ -344,16 +345,16 @@ void DataProcWorker::processCurrentFrame() {
     // using snprintf because apple clang doesn't support std::format yet...
     // NOLINTBEGIN(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
     char _buf[64];
-    std::snprintf(_buf, sizeof(_buf), "US_%03d.png", frameIdx);
-    auto fname = path2QString(imageSaveDir / std::string(_buf));
+    std::snprintf(_buf, sizeof(_buf), "US_%03d.png", m_frameIdx);
+    auto fname = path2QString(m_imageSaveDir / std::string(_buf));
     pool->start(new ImageWriteTask(USradial_img, fname));
 
-    std::snprintf(_buf, sizeof(_buf), "PA_%03d.png", frameIdx);
-    fname = path2QString(imageSaveDir / std::string(_buf));
+    std::snprintf(_buf, sizeof(_buf), "PA_%03d.png", m_frameIdx);
+    fname = path2QString(m_imageSaveDir / std::string(_buf));
     pool->start(new ImageWriteTask(PAradial_img, fname));
 
-    std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", frameIdx);
-    fname = path2QString(imageSaveDir / std::string(_buf));
+    std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", m_frameIdx);
+    fname = path2QString(m_imageSaveDir / std::string(_buf));
     pool->start(new ImageWriteTask(PAUSradial_img, fname));
     // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
 
@@ -363,8 +364,8 @@ void DataProcWorker::processCurrentFrame() {
   const auto elapsed = timeit.get_ms();
 
   auto msg = QString("Frame %1/%2 took %3 ms. ")
-                 .arg(frameIdx)
-                 .arg(loader.size())
+                 .arg(m_frameIdx)
+                 .arg(m_loader.size())
                  .arg(static_cast<int>(elapsed));
   msg += perfMetrics.toString();
 
