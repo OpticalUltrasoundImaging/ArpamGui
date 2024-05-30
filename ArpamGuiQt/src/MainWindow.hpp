@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QAction>
 #include <QImage>
 #include <QLabel>
 #include <QMainWindow>
@@ -37,4 +38,13 @@ private:
 
   QThread workerThread;
   DataProcWorker *worker;
+
+  // Actions
+
+  // Action to undo the last cursor action in the canvas
+  QAction *actCursorUndo;
+  // Action to set the cursor mode to line measure
+  QAction *actCursorLine;
+  // Action to set the cursor mode to box zoom
+  QAction *actCursorZoom;
 };

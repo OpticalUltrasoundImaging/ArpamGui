@@ -2,7 +2,6 @@
 #include "About.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
-#include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -160,17 +159,34 @@ MainWindow::MainWindow(QWidget *parent)
 
   //// Define Actions
   // Action to set the cursor mode to line measure
-  auto *actCursorLine = new QAction(QIcon(), "Line");
+  actCursorUndo = new QAction(QIcon(), "Undo");
+  // Action to set the cursor mode to line measure
+  actCursorLine = new QAction(QIcon(), "Line");
+  // Action to set the cursor mode to box zoom
+  actCursorZoom = new QAction(QIcon(), "Zoom");
+
+  connect(actCursorUndo, &QAction::triggered, [=] {
+    canvasLeft->undo();
+    canvasRight->undo();
+  });
+
+  actCursorLine->setCheckable(true);
+  actCursorLine->setChecked(true);
   connect(actCursorLine, &QAction::triggered, [=] {
     canvasLeft->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
     canvasRight->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
+
+    actCursorLine->setChecked(true);
+    actCursorZoom->setChecked(false);
   });
 
-  // Action to set the cursor mode to box zoom
-  auto *actCursorZoom = new QAction(QIcon(), "Zoom");
+  actCursorZoom->setCheckable(true);
   connect(actCursorZoom, &QAction::triggered, [=] {
     canvasLeft->setCursorMode(ImshowCanvas::CursorMode::BoxZoom);
     canvasRight->setCursorMode(ImshowCanvas::CursorMode::BoxZoom);
+
+    actCursorLine->setChecked(false);
+    actCursorZoom->setChecked(true);
   });
 
   {
@@ -182,6 +198,8 @@ MainWindow::MainWindow(QWidget *parent)
       auto *toolbar = new QToolBar("Cursor type");
       vlayout->addWidget(toolbar);
 
+      toolbar->addAction(actCursorUndo);
+      toolbar->addSeparator();
       toolbar->addAction(actCursorLine);
       toolbar->addAction(actCursorZoom);
     }

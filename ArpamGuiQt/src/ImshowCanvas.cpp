@@ -218,6 +218,39 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
   // }
 }
 
+void ImshowCanvas::undo() {
+  switch (m_cursorMode) {
+
+  case CursorMode::LineMeasure: {
+    if (!m_anno.lines.empty()) {
+      m_anno.lines.pop();
+      update();
+    }
+    break;
+  }
+
+  case CursorMode::BoxZoom: {
+
+    // Go back in zoom history
+    if (m_zoomed) {
+      if (m_zoomRectHistory.size() > 1) {
+        m_zoomRectHistory.pop_back();
+        m_zoomRect = m_zoomRectHistory.back();
+        m_zoomed = true;
+        m_zoomTranslated = true;
+      } else {
+        m_zoomRectHistory.clear();
+        m_zoomed = false;
+        m_zoomTranslated = false;
+        m_zoomRect.setTopLeft({0.0, 0.0});
+      }
+      update();
+    }
+    break;
+  }
+  }
+}
+
 void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
   m_cursor.startPos = event->position() - m_offset;
 
@@ -234,36 +267,7 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = true;
 
-    switch (m_cursorMode) {
-
-    case CursorMode::LineMeasure: {
-      if (!m_anno.lines.empty()) {
-        m_anno.lines.pop();
-        update();
-      }
-      break;
-    }
-
-    case CursorMode::BoxZoom: {
-
-      // Go back in zoom history
-      if (m_zoomed) {
-        if (m_zoomRectHistory.size() > 1) {
-          m_zoomRectHistory.pop_back();
-          m_zoomRect = m_zoomRectHistory.back();
-          m_zoomed = true;
-          m_zoomTranslated = true;
-        } else {
-          m_zoomRectHistory.clear();
-          m_zoomed = false;
-          m_zoomTranslated = false;
-          m_zoomRect.setTopLeft({0.0, 0.0});
-        }
-        update();
-      }
-      break;
-    }
-    }
+    undo();
   }
 }
 
@@ -346,11 +350,5 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
   }
 }
 
-void ImshowCanvas::keyPressEvent(QKeyEvent *event) {
-  if (event->key() == Qt::Key_L) {
-    m_cursorMode = CursorMode::LineMeasure;
-  } else if (event->key() == Qt::Key_Z) {
-    m_cursorMode = CursorMode::BoxZoom;
-  }
-}
+void ImshowCanvas::keyPressEvent(QKeyEvent *event) {}
 // NOLINTEND(*-casting, *-narrowing-conversions)

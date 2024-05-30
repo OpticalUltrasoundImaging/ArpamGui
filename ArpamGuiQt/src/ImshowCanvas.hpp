@@ -12,15 +12,20 @@
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
+#include <qtmetamacros.h>
 #include <vector>
 
 class ImshowCanvas : public QLabel {
   Q_OBJECT
+
+  Q_PROPERTY(CursorMode cursorMode READ cursorMode WRITE setCursorMode)
+
 public:
   enum class CursorMode {
     LineMeasure = 0,
     BoxZoom,
   };
+  Q_ENUM(CursorMode);
 
   explicit ImshowCanvas(QWidget *parent = nullptr);
 
@@ -28,12 +33,16 @@ public:
   void setName(QString name) { m_name = name; }
 
   auto cursorMode() const { return m_cursorMode; }
-  void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
 
 public slots:
   void imshow(const cv::Mat &cv_img, double pix2m);
   void imshow(const QImage &img, double pix2m);
   void imshow(const QPixmap &pixmap, double pix2m);
+
+  void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
+
+  // Roll back the last cursor action
+  void undo();
 
 signals:
   void error(QString err);
