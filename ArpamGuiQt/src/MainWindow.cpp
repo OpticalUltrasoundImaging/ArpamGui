@@ -2,16 +2,21 @@
 #include "About.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
+#include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QScrollArea>
 #include <QSlider>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QtDebug>
 #include <QtLogging>
 #include <format>
 #include <opencv2/opencv.hpp>
+#include <qboxlayout.h>
+#include <qtoolbar.h>
 
 namespace {
 void setGlobalStyle(QLayout *layout) {
@@ -153,28 +158,58 @@ MainWindow::MainWindow(QWidget *parent)
 
   //   layout->addWidget(modeSwitchButton);
 
-  // Image Canvas
+  //// Define Actions
+  // Action to set the cursor mode to line measure
+  auto *actCursorLine = new QAction(QIcon(), "Line");
+  connect(actCursorLine, &QAction::triggered, [=] {
+    canvasLeft->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
+    canvasRight->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
+  });
+
+  // Action to set the cursor mode to box zoom
+  auto *actCursorZoom = new QAction(QIcon(), "Zoom");
+  connect(actCursorZoom, &QAction::triggered, [=] {
+    canvasLeft->setCursorMode(ImshowCanvas::CursorMode::BoxZoom);
+    canvasRight->setCursorMode(ImshowCanvas::CursorMode::BoxZoom);
+  });
+
   {
-    auto *layout = new QHBoxLayout;
-    centralLayout->addLayout(layout);
+    auto *vlayout = new QVBoxLayout;
+    centralLayout->addLayout(vlayout);
 
-    canvasLeft->setName("US");
-    canvasRight->setName("PAUS");
+    // Toolbar
+    {
+      auto *toolbar = new QToolBar("Cursor type");
+      vlayout->addWidget(toolbar);
 
-    for (auto *const canvas : {canvasLeft, canvasRight}) {
-      layout->addWidget(canvas);
-      canvas->setStyleSheet("border: 1px solid black");
-      canvas->setDisabled(true);
+      toolbar->addAction(actCursorLine);
+      toolbar->addAction(actCursorZoom);
+    }
 
-      connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
+    // Image Canvas
+    {
+      auto *layout = new QHBoxLayout;
+      vlayout->addLayout(layout);
 
-      connect(canvas, &ImshowCanvas::mouseMoved, this,
-              [&](QPoint pos, double depth_mm) {
-                statusBar()->showMessage(QString("Pos: (%1, %2), depth: %3 mm")
-                                             .arg(pos.x())
-                                             .arg(pos.y())
-                                             .arg(depth_mm));
-              });
+      canvasLeft->setName("US");
+      canvasRight->setName("PAUS");
+
+      for (auto *const canvas : {canvasLeft, canvasRight}) {
+        layout->addWidget(canvas);
+        canvas->setStyleSheet("border: 1px solid black");
+        canvas->setDisabled(true);
+
+        connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
+
+        connect(canvas, &ImshowCanvas::mouseMoved, this,
+                [&](QPoint pos, double depth_mm) {
+                  statusBar()->showMessage(
+                      QString("Pos: (%1, %2), depth: %3 mm")
+                          .arg(pos.x())
+                          .arg(pos.y())
+                          .arg(depth_mm));
+                });
+      }
     }
   }
 

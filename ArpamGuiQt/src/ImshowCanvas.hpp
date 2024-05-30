@@ -24,7 +24,11 @@ public:
 
   explicit ImshowCanvas(QWidget *parent = nullptr);
 
+  auto name() const { return m_name; }
   void setName(QString name) { m_name = name; }
+
+  auto cursorMode() const { return m_cursorMode; }
+  void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
 
 public slots:
   void imshow(const cv::Mat &cv_img, double pix2m);
