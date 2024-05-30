@@ -16,6 +16,7 @@
 #include <opencv2/opencv.hpp>
 #include <qboxlayout.h>
 #include <qtoolbar.h>
+#include <uspam/defer.h>
 
 namespace {
 void setGlobalStyle(QLayout *layout) {
@@ -171,7 +172,7 @@ MainWindow::MainWindow(QWidget *parent)
   });
 
   actCursorLine->setCheckable(true);
-  actCursorLine->setChecked(true);
+  defer { actCursorLine->trigger(); };
   connect(actCursorLine, &QAction::triggered, [=] {
     canvasLeft->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
     canvasRight->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
