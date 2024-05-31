@@ -13,8 +13,8 @@ struct ImshowCanvasCursorState {
 
   QPointF currPosOrigal; // cursor position in original pixmap coord
 
-  auto getLine() const { return QLineF(startPos, currPos); }
-  auto getRect() const {
+  [[nodiscard]] auto getLine() const { return QLineF(startPos, currPos); }
+  [[nodiscard]] auto getRect() const {
     qreal x = qMin(currPos.x(), startPos.x());
     qreal y = qMin(currPos.y(), startPos.y());
 

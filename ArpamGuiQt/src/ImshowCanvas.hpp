@@ -51,6 +51,10 @@ signals:
   // domain
   void mouseMoved(QPoint pos, double depth_mm);
 
+  void annoLineDrawn();
+  void annoBoxDrawn();
+  void annoFanDrawn();
+
 protected:
   void paintEvent(QPaintEvent *event) override;
 
@@ -104,7 +108,6 @@ private:
 
   // State of the cursor for drawing annotations
   ImshowCanvasCursorState m_cursor;
-
   CursorMode m_cursorMode{CursorMode::BoxZoom};
 
   ImshowCanvasAnnotations m_anno;

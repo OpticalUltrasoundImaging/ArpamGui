@@ -47,4 +47,10 @@ private:
   QAction *actCursorLine;
   // Action to set the cursor mode to box zoom
   QAction *actCursorZoom;
+
+  // Action to set the cursor mode to box annotation
+  QAction *actCursorAnnoBox;
+  // Action to set the cursor mode to fan annotation
+  QAction *actCursorAnnoFan;
+
 };

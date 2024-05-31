@@ -15,7 +15,7 @@ struct ImshowCanvasAnnotations {
     std::vector<QLineF> whiskers; // Line whiskers in scaled pixmap space
 
     void clear() noexcept;
-    bool empty() const noexcept;
+    [[nodiscard]] bool empty() const noexcept;
     void pop();
 
     static auto computeLineWhisker(QLineF line) -> std::array<QLineF, 2>;
@@ -32,7 +32,7 @@ struct ImshowCanvasAnnotations {
     std::vector<QRectF> scaled;
 
     void clear() noexcept;
-    bool empty() const noexcept;
+    [[nodiscard]] bool empty() const noexcept;
     void pop() noexcept;
 
     void rescale(double scale, QPointF offset);
