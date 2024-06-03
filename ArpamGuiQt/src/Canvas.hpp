@@ -4,6 +4,8 @@
 #include "CanvasCursorState.hpp"
 #include "CanvasTicks.hpp"
 #include "geometryUtils.hpp"
+#include <QGraphicsScene>
+#include <QGraphicsView>
 #include <QImage>
 #include <QLayout>
 #include <QRect>
@@ -12,10 +14,12 @@
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
+#include <qgraphicsitem.h>
+#include <qgraphicsscene.h>
 #include <qtmetamacros.h>
 #include <vector>
 
-class Canvas : public QLabel {
+class Canvas : public QGraphicsView {
   Q_OBJECT
 
   Q_PROPERTY(CursorMode cursorMode READ cursorMode WRITE setCursorMode)
@@ -30,7 +34,7 @@ public:
   explicit Canvas(QWidget *parent = nullptr);
 
   auto name() const { return m_name; }
-  void setName(QString name) { m_name = name; }
+  void setName(QString name) { m_name = std::move(name); }
 
   auto cursorMode() const { return m_cursorMode; }
 
@@ -56,6 +60,9 @@ signals:
   void annoFanDrawn();
 
 protected:
+  // Override event specifically to handle gesture events
+  bool event(QEvent *event) override;
+
   void paintEvent(QPaintEvent *event) override;
 
   void mousePressEvent(QMouseEvent *event) override;
@@ -65,13 +72,16 @@ protected:
   void keyPressEvent(QKeyEvent *event) override;
 
 private:
+  bool gestureEvent(QGestureEvent *event);
+  void pinchTriggered(QPinchGesture *gesture);
+
   // Convert mouse position to frame coordinates using the current offset and
   // scale
   inline auto widgetPosToFramePos(QPoint pos) {
-    return (pos - m_offset) / m_scale;
+    return (pos - m_offset) / m_scaleFactor;
   }
   inline auto framePosToWidgetPos(QPoint pos) {
-    return pos * m_scale + m_offset;
+    return pos * m_scaleFactor + m_offset;
   }
 
   void drawTicks(QPainter *painter);
@@ -81,14 +91,20 @@ private:
   // [mm] Get distance between 2 points in the scaled // pixmap.
   double computeDistanceScaled_mm(QPointF pt1, QPointF pt2) const;
 
+  // Update m_scale, m_offset, and m_pixmapScaled
+  void updateScaleOffsetAndScaledPixmap();
+
 private:
+  QGraphicsScene *m_scene;
   QString m_name;
 
-  QPixmap m_pixmap;       // Original pixmap.
-  QPixmap m_pixmapScaled; // Cache of scaled pixmap
+  double m_scaleFactor{1.0}; // factor for m_pixmap to maintain aspect ratio
+  QPixmap m_Pixmap;          // Original pixmap.
+  QPixmap m_pixmapScaled;    // Cache of scaled pixmap
+
+  QGraphicsPixmapItem *m_PixmapItem{nullptr};
 
   double m_pix2m{}; // [m] Factor converting pixel (in m_pixmap) to meters
-  double m_scale{}; // factor for m_pixmap to maintain aspect ratio
 
   // Offset of displayed scaled m_pixmap to keep center.
   // m_offset is updated on every paintEvent so it should never be zero

@@ -1,24 +1,39 @@
 #include "Canvas.hpp"
 #include "geometryUtils.hpp"
+#include <QGestureEvent>
 #include <QHBoxLayout>
 #include <QImage>
 #include <QPainter>
+#include <QPinchGesture>
 #include <QVBoxLayout>
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
 #include <array>
 #include <cmath>
+#include <qgraphicsview.h>
 #include <tuple>
 #include <uspam/timeit.hpp>
 
-Canvas::Canvas(QWidget *parent) : QLabel(parent) {
+Canvas::Canvas(QWidget *parent)
+    : QGraphicsView(parent), m_scene(new QGraphicsScene) {
   setBackgroundRole(QPalette::Base);
   setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
   setAlignment(Qt::AlignCenter);
-  setMouseTracking(true);
 
+  // Enable mouse tracking
+  setMouseTracking(true);
   setFocusPolicy(Qt::StrongFocus);
+
+  // Enable pinch gesture handling
+  setDragMode(DragMode::ScrollHandDrag);
+  viewport()->setAttribute(Qt::WA_AcceptTouchEvents);
+  grabGesture(Qt::PinchGesture);
+
+  // Graphics rendering parameters
+  setRenderHint(QPainter::Antialiasing);
+  setRenderHint(QPainter::SmoothPixmapTransform);
+  setScene(m_scene);
 }
 
 void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
@@ -32,11 +47,20 @@ void Canvas::imshow(const QImage &img, double pix2m) {
 }
 
 void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
-  m_pixmap = pixmap;
+  m_Pixmap = pixmap;
   m_pix2m = pix2m;
 
   // clear cached scaled pixmap
   m_pixmapScaled = QPixmap();
+
+  // updateScaleOffsetAndScaledPixmap();
+
+  // Add image pixmap to scene
+  if (m_PixmapItem != nullptr) {
+    m_scene->removeItem(m_PixmapItem);
+  }
+  // m_pixmap_item = m_scene->addPixmap(m_pixmapScaled);
+  m_PixmapItem = m_scene->addPixmap(m_Pixmap);
 
   update();
 }
@@ -46,7 +70,7 @@ void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
 void Canvas::drawTicks(QPainter *painter) {
   // Update scale bar
   constexpr int m2mm = 1000;
-  m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
+  m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scaleFactor);
 
   // Painting
   m_ticks.draw(painter);
@@ -60,162 +84,175 @@ double Canvas::computeDistance_mm(QPointF pt1, QPointF pt2) const {
 }
 
 double Canvas::computeDistanceScaled_mm(QPointF pt1, QPointF pt2) const {
-  return computeDistance_mm(pt1, pt2) / m_scale;
+  return computeDistance_mm(pt1, pt2) / m_scaleFactor;
+}
+
+void Canvas::updateScaleOffsetAndScaledPixmap() {
+  // Canvas size
+  const auto w = width();
+  const auto h = height();
+
+  const auto [pw, ph, scale] = [&] {
+    // Pixmap size
+    int pw, ph;
+    if (m_zoomed) {
+      pw = m_zoomRect.width();
+      ph = m_zoomRect.height();
+    } else {
+      pw = m_Pixmap.width();
+      ph = m_Pixmap.height();
+    }
+
+    // Calculate scale factor to maintain aspect ratio
+    qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
+    return std::tuple{pw, ph, scale};
+  }();
+
+  // Calculate the position to center pixmap
+  m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
+
+  // if m_pixmapScaled is null OR scale changed, recompute scaled pixmap
+  if (m_pixmapScaled.isNull() || scale != m_scaleFactor ||
+      (m_zoomed && m_zoomTranslated)) {
+    m_scaleFactor = scale;
+    // Rescale everything here!
+
+    transformForward = QTransform()
+                           .scale(scale, scale)
+                           .translate(-m_zoomRect.left(), -m_zoomRect.top());
+
+    transformBackward = QTransform()
+                            .translate(m_zoomRect.left(), m_zoomRect.top())
+                            .scale(1 / scale, 1 / scale);
+
+    if (m_zoomed) {
+      auto tmp = m_Pixmap.copy(m_zoomRect.toRect());
+      m_pixmapScaled =
+          tmp.scaled(m_scaleFactor * tmp.size(), Qt::KeepAspectRatio);
+
+      // m_pixmapScaled = m_pixmap.transformed(transformForward);
+    } else {
+      m_pixmapScaled =
+          m_Pixmap.scaled(m_scaleFactor * m_Pixmap.size(), Qt::KeepAspectRatio);
+    }
+
+    // Update scalebar
+    {
+      constexpr int m2mm = 1000;
+      m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scaleFactor);
+    }
+
+    // Update annotations
+    // m_anno.rescale(m_scale, m_zoomRect.topLeft());
+    m_anno.rescale(transformForward);
+  }
+}
+
+bool Canvas::event(QEvent *event) {
+  if (event->type() == QEvent::Gesture) {
+    return gestureEvent(static_cast<QGestureEvent *>(event));
+  }
+  return QGraphicsView::event(event);
 }
 
 void Canvas::paintEvent(QPaintEvent *event) {
-  if (m_pixmap.isNull()) {
+  if (m_Pixmap.isNull()) {
     return;
   }
 
   uspam::TimeIt timeit;
-  QPainter painter(this);
-  painter.setRenderHint(QPainter::Antialiasing);
 
-  // Draw scaled pixmap
-  {
-    // Canvas size
-    const auto w = width();
-    const auto h = height();
+  QGraphicsView::paintEvent(event);
 
-    const auto [pw, ph, scale] = [&] {
-      // Pixmap size
-      int pw, ph;
-      if (m_zoomed) {
-        pw = m_zoomRect.width();
-        ph = m_zoomRect.height();
-      } else {
-        pw = m_pixmap.width();
-        ph = m_pixmap.height();
-      }
+  // QPainter painter(this);
 
-      // Calculate scale factor to maintain aspect ratio
-      qreal scale = qMin(w / (qreal)pw, h / (qreal)ph);
-      return std::tuple{pw, ph, scale};
-    }();
+  // this->updateScaleOffsetAndScaledPixmap();
 
-    // Calculate the position to center pixmap
-    m_offset = QPoint((w - pw * scale) / 2, (h - ph * scale) / 2);
+  // // Set transformation
+  // painter.translate(m_offset);
 
-    // Set transformation
-    painter.translate(m_offset);
+  // // Draw scaled pixmap
+  // painter.drawPixmap(QPoint{}, m_pixmapScaled);
 
-    // if m_pixmapScaled is null OR scale changed, recompute scaled pixmap
-    if (m_pixmapScaled.isNull() || scale != m_scale ||
-        (m_zoomed && m_zoomTranslated)) {
-      m_scale = scale;
-      // Rescale everything here!
+  // // Draw ticks
+  // m_ticks.draw(&painter);
 
-      transformForward = QTransform()
-                             .scale(scale, scale)
-                             .translate(-m_zoomRect.left(), -m_zoomRect.top());
+  // // Draw canvas name
+  // if (!m_name.isNull()) {
+  //   const int margin = 10;
 
-      transformBackward = QTransform()
-                              .translate(m_zoomRect.left(), m_zoomRect.top())
-                              .scale(1 / scale, 1 / scale);
+  //   QRect boundingRect = QRect(QPoint{}, m_pixmapScaled.size());
+  //   boundingRect.adjust(0, 0, -margin, -margin);
 
-      if (m_zoomed) {
-        auto tmp = m_pixmap.copy(m_zoomRect.toRect());
-        m_pixmapScaled = tmp.scaled(m_scale * tmp.size(), Qt::KeepAspectRatio);
+  //   painter.setPen(Qt::white);
+  //   painter.drawText(boundingRect, Qt::AlignRight | Qt::AlignBottom, m_name);
+  // }
 
-        // m_pixmapScaled = m_pixmap.transformed(transformForward);
-      } else {
-        m_pixmapScaled =
-            m_pixmap.scaled(m_scale * m_pixmap.size(), Qt::KeepAspectRatio);
-      }
+  // // Draw existing annotations
+  // {
+  //   painter.setPen(Qt::white);
 
-      // Update scalebar
-      {
-        constexpr int m2mm = 1000;
-        m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
-      }
+  //   // Draw lines
+  //   {
+  //     painter.drawLines(m_anno.lines.scaled.data(),
+  //     m_anno.lines.scaled.size());
 
-      // Update annotations
-      // m_anno.rescale(m_scale, m_zoomRect.topLeft());
-      m_anno.rescale(transformForward);
-    }
+  //     for (const auto &line : m_anno.lines.scaled) {
+  //       const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
+  //       const auto msg = QString("%1 mm").arg(distance);
+  //       const auto textPos = line.p2() + QPointF(5, 5);
+  //       painter.drawText(textPos, msg);
+  //     }
 
-    // Draw scaled pixmap
-    painter.drawPixmap(QPoint{}, m_pixmapScaled);
-  }
+  //     painter.drawLines(m_anno.lines.whiskers.data(),
+  //                       m_anno.lines.whiskers.size());
+  //   }
 
-  // Draw ticks
-  m_ticks.draw(&painter);
+  //   // Draw rects
+  //   {
+  //     painter.drawRects(m_anno.rects.scaled.data(),
+  //     m_anno.rects.scaled.size());
+  //   }
+  // }
 
-  // Draw canvas name
-  if (!m_name.isNull()) {
-    const int margin = 10;
+  // // Draw curr annotation
+  // switch (m_cursorMode) {
+  // case CursorMode::LineMeasure: {
 
-    QRect boundingRect = QRect(QPoint{}, m_pixmapScaled.size());
-    boundingRect.adjust(0, 0, -margin, -margin);
+  //   if (m_cursor.leftButtonDown) {
+  //     painter.setPen(Qt::white);
+  //     const auto line = m_cursor.getLine();
+  //     painter.drawLine(line);
 
-    painter.setPen(Qt::white);
-    painter.drawText(boundingRect, Qt::AlignRight | Qt::AlignBottom, m_name);
-  }
+  //     const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
+  //     const auto msg = QString("%1 mm").arg(distance);
+  //     const auto textPos = line.p2() + QPointF(5, 5);
+  //     painter.drawText(textPos, msg);
 
-  // Draw existing annotations
-  {
-    painter.setPen(Qt::white);
+  //     const auto whiskers = m_anno.lines.computeLineWhisker(line);
+  //     painter.drawLines(whiskers.data(), whiskers.size());
+  //   }
+  //   break;
+  // }
 
-    // Draw lines
-    {
-      painter.drawLines(m_anno.lines.scaled.data(), m_anno.lines.scaled.size());
+  // case CursorMode::BoxZoom: {
+  //   if (m_cursor.leftButtonDown) {
+  //     painter.setPen(Qt::white);
 
-      for (const auto &line : m_anno.lines.scaled) {
-        const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
-        const auto msg = QString("%1 mm").arg(distance);
-        const auto textPos = line.p2() + QPointF(5, 5);
-        painter.drawText(textPos, msg);
-      }
+  //     const auto rect = m_cursor.getRect();
+  //     painter.drawRect(rect);
+  //   }
 
-      painter.drawLines(m_anno.lines.whiskers.data(),
-                        m_anno.lines.whiskers.size());
-    }
-
-    // Draw rects
-    {
-      painter.drawRects(m_anno.rects.scaled.data(), m_anno.rects.scaled.size());
-    }
-  }
-
-  // Draw curr annotation
-  switch (m_cursorMode) {
-  case CursorMode::LineMeasure: {
-
-    if (m_cursor.leftButtonDown) {
-      painter.setPen(Qt::white);
-      const auto line = m_cursor.getLine();
-      painter.drawLine(line);
-
-      const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
-      const auto msg = QString("%1 mm").arg(distance);
-      const auto textPos = line.p2() + QPointF(5, 5);
-      painter.drawText(textPos, msg);
-
-      const auto whiskers = m_anno.lines.computeLineWhisker(line);
-      painter.drawLines(whiskers.data(), whiskers.size());
-    }
-    break;
-  }
-
-  case CursorMode::BoxZoom: {
-    if (m_cursor.leftButtonDown) {
-      painter.setPen(Qt::white);
-
-      const auto rect = m_cursor.getRect();
-      painter.drawRect(rect);
-    }
-
-    break;
-  }
-  }
+  //   break;
+  // }
+  // }
 
   // Measure rendering time
-  // {
-  //   const auto renderTime_ms = timeit.get_ms();
-  //   auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
-  //   emit error(msg);
-  // }
+  {
+    const auto renderTime_ms = timeit.get_ms();
+    auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
+    emit error(msg);
+  }
 }
 
 void Canvas::undo() {
@@ -274,14 +311,14 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
   m_cursor.currPos = event->position() - m_offset;
-  QPointF pos = m_cursor.currPos / m_scale;
+  QPointF pos = m_cursor.currPos / m_scaleFactor;
   if (m_zoomed) {
     pos += m_zoomRect.topLeft();
   }
   m_cursor.currPosOrigal = pos;
 
   // [px] Compute distance to center
-  const QPointF center(m_pixmap.width() / 2.0, m_pixmap.height() / 2.0);
+  const QPointF center(m_Pixmap.width() / 2.0, m_Pixmap.height() / 2.0);
   auto distanceToCenter_mm = computeDistance_mm(center, pos);
   emit mouseMoved(pos.toPoint(), distanceToCenter_mm);
 
@@ -291,11 +328,12 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
   } else if (m_cursor.middleButtonDown && m_zoomed) {
     // Move in Zoomed mode
-    const auto displacement = (m_cursor.startPos - m_cursor.currPos) / m_scale;
+    const auto displacement =
+        (m_cursor.startPos - m_cursor.currPos) / m_scaleFactor;
     m_cursor.startPos = m_cursor.currPos;
 
     // Advanced translate - clip to m_pixmap boundary
-    QRectF bound(QPointF{0, 0}, m_pixmap.size());
+    QRectF bound(QPointF{0, 0}, m_Pixmap.size());
     const auto zoomRectTranslated =
         geometry::translateBounded(m_zoomRect, displacement, bound);
 
@@ -351,4 +389,23 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void Canvas::keyPressEvent(QKeyEvent *event) {}
+
+bool Canvas::gestureEvent(QGestureEvent *event) {
+  if (QGesture *pinch = event->gesture(Qt::PinchGesture)) {
+    pinchTriggered(static_cast<QPinchGesture *>(pinch));
+  }
+  return true;
+}
+
+void Canvas::pinchTriggered(QPinchGesture *gesture) {
+  if (gesture->state() == Qt::GestureState::GestureUpdated) {
+    const qreal scaleFactor = gesture->scaleFactor();
+    qDebug() << "   scaleFactor" << scaleFactor;
+    m_scaleFactor = m_scaleFactor * scaleFactor;
+    QTransform transform;
+    transform.scale(m_scaleFactor, m_scaleFactor);
+    setTransform(transform);
+  }
+}
+
 // NOLINTEND(*-casting, *-narrowing-conversions)
