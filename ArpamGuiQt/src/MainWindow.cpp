@@ -27,7 +27,7 @@ void setGlobalStyle(QLayout *layout) {
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
-      canvasLeft(new ImshowCanvas(this)), canvasRight(new ImshowCanvas(this)),
+      canvasLeft(new Canvas(this)), canvasRight(new Canvas(this)),
       worker(new DataProcWorker) {
 
   // Enable QStatusBar at the bottom of the MainWindow
@@ -174,8 +174,8 @@ MainWindow::MainWindow(QWidget *parent)
   actCursorLine->setCheckable(true);
   defer { actCursorLine->trigger(); };
   connect(actCursorLine, &QAction::triggered, [=] {
-    canvasLeft->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
-    canvasRight->setCursorMode(ImshowCanvas::CursorMode::LineMeasure);
+    canvasLeft->setCursorMode(Canvas::CursorMode::LineMeasure);
+    canvasRight->setCursorMode(Canvas::CursorMode::LineMeasure);
 
     actCursorLine->setChecked(true);
     actCursorZoom->setChecked(false);
@@ -183,8 +183,8 @@ MainWindow::MainWindow(QWidget *parent)
 
   actCursorZoom->setCheckable(true);
   connect(actCursorZoom, &QAction::triggered, [=] {
-    canvasLeft->setCursorMode(ImshowCanvas::CursorMode::BoxZoom);
-    canvasRight->setCursorMode(ImshowCanvas::CursorMode::BoxZoom);
+    canvasLeft->setCursorMode(Canvas::CursorMode::BoxZoom);
+    canvasRight->setCursorMode(Canvas::CursorMode::BoxZoom);
 
     actCursorLine->setChecked(false);
     actCursorZoom->setChecked(true);
@@ -218,9 +218,9 @@ MainWindow::MainWindow(QWidget *parent)
         canvas->setStyleSheet("border: 1px solid black");
         canvas->setDisabled(true);
 
-        connect(canvas, &ImshowCanvas::error, this, &MainWindow::logError);
+        connect(canvas, &Canvas::error, this, &MainWindow::logError);
 
-        connect(canvas, &ImshowCanvas::mouseMoved, this,
+        connect(canvas, &Canvas::mouseMoved, this,
                 [&](QPoint pos, double depth_mm) {
                   statusBar()->showMessage(
                       QString("Pos: (%1, %2), depth: %3 mm")

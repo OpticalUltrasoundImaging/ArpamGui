@@ -1,16 +1,14 @@
-#include "ImshowCanvasAnnotations.hpp"
+#include "CanvasAnnotations.hpp"
 
-void ImshowCanvasAnnotations::Lines::clear() noexcept {
+void CanvasAnnotations::Lines::clear() noexcept {
   lines.clear();
   scaled.clear();
   whiskers.clear();
 }
 
-bool ImshowCanvasAnnotations::Lines::empty() const noexcept {
-  return lines.empty();
-}
+bool CanvasAnnotations::Lines::empty() const noexcept { return lines.empty(); }
 
-auto ImshowCanvasAnnotations::Lines::computeLineWhisker(QLineF line)
+auto CanvasAnnotations::Lines::computeLineWhisker(QLineF line)
     -> std::array<QLineF, 2> {
   std::array<QLineF, 2> whiskers;
   const auto normalVecWhiskerHalf =
@@ -22,8 +20,8 @@ auto ImshowCanvasAnnotations::Lines::computeLineWhisker(QLineF line)
   return whiskers;
 }
 
-void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled, double scale,
-                                               QPointF offset) {
+void CanvasAnnotations::Lines::addScaled(QLineF lineScaled, double scale,
+                                         QPointF offset) {
   const QLineF line(lineScaled.p1() / scale + offset,
                     lineScaled.p2() / scale + offset);
   scaled.push_back(lineScaled);
@@ -34,8 +32,8 @@ void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled, double scale,
   whiskers.push_back(_whiskers[1]);
 }
 
-void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled,
-                                               QTransform transformBackward) {
+void CanvasAnnotations::Lines::addScaled(QLineF lineScaled,
+                                         QTransform transformBackward) {
   scaled.push_back(lineScaled);
   lines.push_back(transformBackward.map(lineScaled));
 
@@ -44,14 +42,14 @@ void ImshowCanvasAnnotations::Lines::addScaled(QLineF lineScaled,
   whiskers.push_back(_whiskers[1]);
 }
 
-void ImshowCanvasAnnotations::Lines::pop() {
+void CanvasAnnotations::Lines::pop() {
   lines.pop_back();
   scaled.pop_back();
   whiskers.pop_back();
   whiskers.pop_back();
 }
 
-void ImshowCanvasAnnotations::Lines::rescale(double scale, QPointF offset) {
+void CanvasAnnotations::Lines::rescale(double scale, QPointF offset) {
   // Re scale lines and whiskers
   scaled.clear();
   whiskers.clear();
@@ -66,7 +64,7 @@ void ImshowCanvasAnnotations::Lines::rescale(double scale, QPointF offset) {
   }
 }
 
-void ImshowCanvasAnnotations::Lines::rescale(QTransform forwardTransform) {
+void CanvasAnnotations::Lines::rescale(QTransform forwardTransform) {
   scaled.clear();
   whiskers.clear();
   for (const auto &line : lines) {
@@ -79,21 +77,19 @@ void ImshowCanvasAnnotations::Lines::rescale(QTransform forwardTransform) {
   }
 }
 
-void ImshowCanvasAnnotations::Rects::clear() noexcept {
+void CanvasAnnotations::Rects::clear() noexcept {
   rects.clear();
   scaled.clear();
 }
 
-bool ImshowCanvasAnnotations::Rects::empty() const noexcept {
-  return rects.empty();
-}
+bool CanvasAnnotations::Rects::empty() const noexcept { return rects.empty(); }
 
-void ImshowCanvasAnnotations::Rects::pop() noexcept {
+void CanvasAnnotations::Rects::pop() noexcept {
   rects.pop_back();
   scaled.pop_back();
 }
 
-void ImshowCanvasAnnotations::Rects::rescale(double scale, QPointF offset) {
+void CanvasAnnotations::Rects::rescale(double scale, QPointF offset) {
   scaled.clear();
   for (const auto &rect : rects) {
     const QRectF rectScaled(rect.x() * scale, rect.y() * scale,
@@ -102,28 +98,28 @@ void ImshowCanvasAnnotations::Rects::rescale(double scale, QPointF offset) {
   }
 }
 
-void ImshowCanvasAnnotations::Rects::rescale(QTransform forwardTransform) {
+void CanvasAnnotations::Rects::rescale(QTransform forwardTransform) {
   scaled.clear();
   for (const auto &rect : rects) {
     scaled.push_back(forwardTransform.mapRect(rect));
   }
 }
 
-void ImshowCanvasAnnotations::clear() noexcept {
+void CanvasAnnotations::clear() noexcept {
   lines.clear();
   rects.clear();
 }
 
-bool ImshowCanvasAnnotations::empty() const noexcept {
+bool CanvasAnnotations::empty() const noexcept {
   return lines.empty() && rects.empty();
 }
 
-void ImshowCanvasAnnotations::rescale(double scale, QPointF offset) {
+void CanvasAnnotations::rescale(double scale, QPointF offset) {
   lines.rescale(scale, offset);
   rects.rescale(scale, offset);
 }
 
-void ImshowCanvasAnnotations::rescale(QTransform forwardTransform) {
+void CanvasAnnotations::rescale(QTransform forwardTransform) {
   lines.rescale(forwardTransform);
   rects.rescale(forwardTransform);
 }

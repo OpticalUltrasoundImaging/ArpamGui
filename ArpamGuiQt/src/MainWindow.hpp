@@ -10,9 +10,9 @@
 #include <QThread>
 #include <QVBoxLayout>
 
+#include "Canvas.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
-#include "ImshowCanvas.hpp"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -33,8 +33,8 @@ private:
 
   QPlainTextEdit *textEdit;
   // CoregDisplay *coregDisplay;
-  ImshowCanvas *canvasLeft;
-  ImshowCanvas *canvasRight;
+  Canvas *canvasLeft;
+  Canvas *canvasRight;
 
   QThread workerThread;
   DataProcWorker *worker;
@@ -52,5 +52,4 @@ private:
   QAction *actCursorAnnoBox;
   // Action to set the cursor mode to fan annotation
   QAction *actCursorAnnoFan;
-
 };

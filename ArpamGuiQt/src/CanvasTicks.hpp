@@ -4,7 +4,7 @@
 #include <QPainter>
 #include <vector>
 
-struct ImshowCanvasTicks {
+struct CanvasTicks {
   static constexpr int margin = 5; // [px]
 
   template <bool isVertical> struct Ticks {

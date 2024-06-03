@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ImshowCanvasAnnotations.hpp"
-#include "ImshowCanvasCursorState.hpp"
-#include "ImshowCanvasTicks.hpp"
+#include "CanvasAnnotations.hpp"
+#include "CanvasCursorState.hpp"
+#include "CanvasTicks.hpp"
 #include "geometryUtils.hpp"
 #include <QImage>
 #include <QLayout>
@@ -15,7 +15,7 @@
 #include <qtmetamacros.h>
 #include <vector>
 
-class ImshowCanvas : public QLabel {
+class Canvas : public QLabel {
   Q_OBJECT
 
   Q_PROPERTY(CursorMode cursorMode READ cursorMode WRITE setCursorMode)
@@ -27,7 +27,7 @@ public:
   };
   Q_ENUM(CursorMode);
 
-  explicit ImshowCanvas(QWidget *parent = nullptr);
+  explicit Canvas(QWidget *parent = nullptr);
 
   auto name() const { return m_name; }
   void setName(QString name) { m_name = name; }
@@ -104,11 +104,11 @@ private:
   QTransform transformBackward; // from scaled to original pixmap space
 
   // State of ticks
-  ImshowCanvasTicks m_ticks;
+  CanvasTicks m_ticks;
 
   // State of the cursor for drawing annotations
-  ImshowCanvasCursorState m_cursor;
+  CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::BoxZoom};
 
-  ImshowCanvasAnnotations m_anno;
+  CanvasAnnotations m_anno;
 };

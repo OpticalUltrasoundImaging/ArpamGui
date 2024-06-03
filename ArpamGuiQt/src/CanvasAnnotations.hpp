@@ -8,7 +8,7 @@
 #include <array>
 #include <vector>
 
-struct ImshowCanvasAnnotations {
+struct CanvasAnnotations {
   struct Lines {
     std::vector<QLineF> lines;    // Line annotations in original pixmap space
     std::vector<QLineF> scaled;   // Lines in scaled pixmap space

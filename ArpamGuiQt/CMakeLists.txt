@@ -11,13 +11,13 @@ qt_add_executable(${EXE_NAME}
     src/main.cpp
     src/MainWindow.hpp
     src/MainWindow.cpp
-    src/ImshowCanvas.hpp
-    src/ImshowCanvas.cpp
-    src/ImshowCanvasAnnotations.hpp
-    src/ImshowCanvasAnnotations.cpp
-    src/ImshowCanvasCursorState.hpp
-    src/ImshowCanvasTicks.hpp
-    src/ImshowCanvasTicks.cpp
+    src/Canvas.hpp
+    src/Canvas.cpp
+    src/CanvasAnnotations.hpp
+    src/CanvasAnnotations.cpp
+    src/CanvasCursorState.hpp
+    src/CanvasTicks.hpp
+    src/CanvasTicks.cpp
     src/CoregDisplay.hpp
     src/CoregDisplay.cpp
     src/DataProcWorker.hpp

@@ -4,7 +4,7 @@
 #include <QPointF>
 #include <QRectF>
 
-struct ImshowCanvasCursorState {
+struct CanvasCursorState {
   bool leftButtonDown = false;
   bool middleButtonDown = false;
   bool rightButtonDown = false;

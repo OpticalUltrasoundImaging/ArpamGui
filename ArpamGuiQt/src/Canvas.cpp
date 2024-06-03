@@ -1,4 +1,4 @@
-#include "ImshowCanvas.hpp"
+#include "Canvas.hpp"
 #include "geometryUtils.hpp"
 #include <QHBoxLayout>
 #include <QImage>
@@ -12,7 +12,7 @@
 #include <tuple>
 #include <uspam/timeit.hpp>
 
-ImshowCanvas::ImshowCanvas(QWidget *parent) : QLabel(parent) {
+Canvas::Canvas(QWidget *parent) : QLabel(parent) {
   setBackgroundRole(QPalette::Base);
   setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
   setAlignment(Qt::AlignCenter);
@@ -21,17 +21,17 @@ ImshowCanvas::ImshowCanvas(QWidget *parent) : QLabel(parent) {
   setFocusPolicy(Qt::StrongFocus);
 }
 
-void ImshowCanvas::imshow(const cv::Mat &cv_img, double pix2m) {
+void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
   QImage qi(cv_img.data, cv_img.cols, cv_img.rows,
             static_cast<int>(cv_img.step), QImage::Format_BGR888);
   this->imshow(QPixmap::fromImage(qi), pix2m);
 }
 
-void ImshowCanvas::imshow(const QImage &img, double pix2m) {
+void Canvas::imshow(const QImage &img, double pix2m) {
   this->imshow(QPixmap::fromImage(img), pix2m);
 }
 
-void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
+void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
   m_pixmap = pixmap;
   m_pix2m = pix2m;
 
@@ -43,7 +43,7 @@ void ImshowCanvas::imshow(const QPixmap &pixmap, double pix2m) {
 
 // NOLINTBEGIN(*-casting, *-narrowing-conversions)
 
-void ImshowCanvas::drawTicks(QPainter *painter) {
+void Canvas::drawTicks(QPainter *painter) {
   // Update scale bar
   constexpr int m2mm = 1000;
   m_ticks.update(m_pixmapScaled.size(), m2mm * m_pix2m / m_scale);
@@ -53,17 +53,17 @@ void ImshowCanvas::drawTicks(QPainter *painter) {
 }
 
 // Compute the distance between two points in the scaled pixmap domain
-double ImshowCanvas::computeDistance_mm(QPointF pt1, QPointF pt2) const {
+double Canvas::computeDistance_mm(QPointF pt1, QPointF pt2) const {
   const auto distance = geometry::calcMagnitude(pt1 - pt2);
   const auto distance_mm = distance * m_pix2m * 1000;
   return distance_mm;
 }
 
-double ImshowCanvas::computeDistanceScaled_mm(QPointF pt1, QPointF pt2) const {
+double Canvas::computeDistanceScaled_mm(QPointF pt1, QPointF pt2) const {
   return computeDistance_mm(pt1, pt2) / m_scale;
 }
 
-void ImshowCanvas::paintEvent(QPaintEvent *event) {
+void Canvas::paintEvent(QPaintEvent *event) {
   if (m_pixmap.isNull()) {
     return;
   }
@@ -218,7 +218,7 @@ void ImshowCanvas::paintEvent(QPaintEvent *event) {
   // }
 }
 
-void ImshowCanvas::undo() {
+void Canvas::undo() {
   switch (m_cursorMode) {
 
   case CursorMode::LineMeasure: {
@@ -251,7 +251,7 @@ void ImshowCanvas::undo() {
   }
 }
 
-void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
+void Canvas::mousePressEvent(QMouseEvent *event) {
   m_cursor.startPos = event->position() - m_offset;
 
   if (event->button() == Qt::LeftButton) {
@@ -271,7 +271,7 @@ void ImshowCanvas::mousePressEvent(QMouseEvent *event) {
   }
 }
 
-void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
+void Canvas::mouseMoveEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
   m_cursor.currPos = event->position() - m_offset;
   QPointF pos = m_cursor.currPos / m_scale;
@@ -307,7 +307,7 @@ void ImshowCanvas::mouseMoveEvent(QMouseEvent *event) {
   }
 }
 
-void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
+void Canvas::mouseReleaseEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = false;
 
@@ -350,5 +350,5 @@ void ImshowCanvas::mouseReleaseEvent(QMouseEvent *event) {
   }
 }
 
-void ImshowCanvas::keyPressEvent(QKeyEvent *event) {}
+void Canvas::keyPressEvent(QKeyEvent *event) {}
 // NOLINTEND(*-casting, *-narrowing-conversions)

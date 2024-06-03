@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ImshowCanvas.hpp"
+#include "Canvas.hpp"
 #include <QLabel>
 #include <QWidget>
 
@@ -9,6 +9,6 @@ class CoregDisplay : public QWidget {
 public:
   CoregDisplay(QWidget *parent = nullptr);
 
-  ImshowCanvas *canvas1;
-  ImshowCanvas *canvas2;
+  Canvas *canvas1;
+  Canvas *canvas2;
 };
