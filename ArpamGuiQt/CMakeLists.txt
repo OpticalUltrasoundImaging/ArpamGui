@@ -74,14 +74,18 @@ if (WIN32)
 elseif (APPLE)
     # Post-build steps for macOS
     # https://doc.qt.io/qt-6/macos-deployment.html
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+    set_target_properties(${EXE_NAME} PROPERTIES
         MACOSX_BUNDLE ON
         MACOSX_BUNDLE_INFO_PLIST cmake/MacOSXBundleInfo.plist.in
     )
 
+    # Find macdeployqt
+    get_target_property(QT_BIN_DIR Qt::qmake IMPORTED_LOCATION)
+    find_program(MACDEPLOYQT NAMES macdeployqt HINTS "${QT_BIN_DIR}")
+
     # Use macdeployqt to bundle Qt libraries
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${Qt6_DIR}/../../tools/Qt6/bin/macdeployqt 
+    add_custom_command(TARGET ${EXE_NAME} POST_BUILD
+        COMMAND ${MACDEPLOYQT}
         "$<TARGET_BUNDLE_DIR:${EXE_NAME}>"
         -verbose=1
         -always-overwrite
