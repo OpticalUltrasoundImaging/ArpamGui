@@ -22,7 +22,7 @@ public:
 
 public slots:
   // Log error message to a text box on screen
-  void logError(const QString &message);
+  void logError(QString message);
 
   void switchMode();
 

@@ -247,7 +247,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
   event->accept();
 }
 
-void MainWindow::logError(const QString &message) {
+void MainWindow::logError(QString message) {
   textEdit->appendPlainText(message);
 }
 
