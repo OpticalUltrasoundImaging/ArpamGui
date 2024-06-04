@@ -23,7 +23,7 @@
 void addDatetime(std::ostream &os) {
   auto now = std::chrono::system_clock::now();
   auto now_time_t = std::chrono::system_clock::to_time_t(now);
-  std::tm tm;
+  std::tm tm{};
 #if defined(_WIN32) || defined(_WIN64)
   localtime_s(&tm, &now_time_t); // Use localtime_s on Windows
 #else
@@ -70,8 +70,9 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
     break;
   }
 
-  sLogStream << localMsg.constData() << "(" << file << ":" << context.line
-             << ")\n";
+  sLogStream << localMsg.constData();
+  // sLogStream << "(" << file << ":" << context.line;
+  sLogStream << ")\n";
 }
 
 auto main(int argc, char **argv) -> int {

@@ -9,10 +9,12 @@
 #include <QStackedWidget>
 #include <QThread>
 #include <QVBoxLayout>
+#include <qevent.h>
 
 #include "Canvas.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
+#include "FrameController.hpp"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -28,16 +30,23 @@ public slots:
 
   void handleNewImages(QImage img1, QImage img2, double pix2m);
 
+protected:
+  // Support dropping file
+  void dragEnterEvent(QDragEnterEvent *event) override;
+  void dropEvent(QDropEvent *event) override;
+
 private:
   void closeEvent(QCloseEvent *event) override;
+
+  QThread workerThread;
+  DataProcWorker *worker;
 
   QPlainTextEdit *textEdit;
   // CoregDisplay *coregDisplay;
   Canvas *canvasLeft;
   Canvas *canvasRight;
 
-  QThread workerThread;
-  DataProcWorker *worker;
+  FrameController *m_frameController;
 
   // Actions
 

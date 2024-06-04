@@ -12,6 +12,7 @@ public:
   explicit FrameController(QWidget *parent = nullptr);
 
 public slots:
+  void acceptNewBinfile(const QString &filename);
   void updateFrameNum(int frameNum);
   void updateMaxFrameNum(int maxFrameNum);
 
@@ -26,9 +27,9 @@ signals:
   void frameNumUpdated(int);
 
 private:
-  QPushButton *btnPlay;
-  QPushButton *btnPause;
+  QPushButton *m_btnPlay;
+  QPushButton *m_btnPause;
 
-  QSpinBox *frameNumSpinBox;
-  QSlider *frameSlider;
+  QSpinBox *m_frameNumSpinBox;
+  QSlider *m_frameSlider;
 };

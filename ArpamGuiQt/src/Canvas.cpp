@@ -193,10 +193,6 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = true;
 
-    // // Only show one annotation on screen for now
-    // m_anno.clear();
-    // update();
-
     switch (m_cursorMode) {
     case (CursorMode::LineMeasure): {
       const auto line = m_cursor.getLine();
@@ -229,9 +225,6 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
   emit mouseMoved(m_cursor.pos.toPoint(), distanceToCenter_mm);
 
   if (m_cursor.leftButtonDown) {
-    // // draw annotation currently drawing
-    // update();
-
     switch (m_cursorMode) {
     case (CursorMode::LineMeasure): {
       if (m_currLineItem != nullptr) {

@@ -1,6 +1,7 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
 #include "CanvasAnnotationModel.hpp"
+#include "DataProcWorker.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
 #include <QDockWidget>
@@ -16,6 +17,7 @@
 #include <format>
 #include <opencv2/opencv.hpp>
 #include <qboxlayout.h>
+#include <qobjectdefs.h>
 #include <qtoolbar.h>
 #include <uspam/defer.h>
 
@@ -33,6 +35,9 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Enable QStatusBar at the bottom of the MainWindow
   statusBar();
+
+  // Enable drop (bin files)
+  setAcceptDrops(true);
 
   /**
    * Setup worker thread
@@ -80,22 +85,22 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Frame controller
   {
-    auto *frameController = new FrameController;
-    dockLayout->addWidget(frameController);
-    connect(frameController, &FrameController::binfileSelected, worker,
+    m_frameController = new FrameController;
+    dockLayout->addWidget(m_frameController);
+    connect(m_frameController, &FrameController::binfileSelected, worker,
             &DataProcWorker::setBinfile);
-    connect(frameController, &FrameController::frameNumUpdated, worker,
+    connect(m_frameController, &FrameController::frameNumUpdated, worker,
             &DataProcWorker::playOne);
-    connect(frameController, &FrameController::playClicked, worker,
+    connect(m_frameController, &FrameController::playClicked, worker,
             &DataProcWorker::play);
-    connect(frameController, &FrameController::pauseClicked, this,
+    connect(m_frameController, &FrameController::pauseClicked, this,
             [&]() { worker->pause(); });
 
-    connect(worker, &DataProcWorker::maxFramesChanged, frameController,
+    connect(worker, &DataProcWorker::maxFramesChanged, m_frameController,
             &FrameController::updateMaxFrameNum);
-    connect(worker, &DataProcWorker::frameIdxChanged, frameController,
+    connect(worker, &DataProcWorker::frameIdxChanged, m_frameController,
             &FrameController::updateFrameNum);
-    connect(worker, &DataProcWorker::finishedOneFile, frameController,
+    connect(worker, &DataProcWorker::finishedOneFile, m_frameController,
             &FrameController::updatePlayingStatePause);
   }
 
@@ -243,6 +248,31 @@ MainWindow::MainWindow(QWidget *parent)
   // Set global style
   setGlobalStyle(dockLayout);
   setGlobalStyle(centralLayout);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
+  if (event->mimeData()->hasUrls()) {
+    event->acceptProposedAction();
+  }
+}
+
+void MainWindow::dropEvent(QDropEvent *event) {
+  const auto *mimeData = event->mimeData();
+  if (mimeData->hasUrls()) {
+    const auto urls = mimeData->urls();
+
+    if (urls.size() > 1) {
+      QMessageBox mbox;
+      mbox.setText(
+          QString("Please drop 1 file at at a time. Received %1 files.")
+              .arg(urls.size()));
+      mbox.exec();
+    } else {
+      const auto filepath = urls[0].toLocalFile();
+      m_frameController->acceptNewBinfile(filepath);
+    }
+    event->acceptProposedAction();
+  }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

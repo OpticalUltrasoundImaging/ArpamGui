@@ -65,6 +65,14 @@
       }
     },
     {
+      "name": "clang-debug",
+      "displayName": "Clang RelWithDebInfo",
+      "inherits": "clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
       "name": "clang-release",
       "displayName": "Clang Release",
       "inherits": "clang",
