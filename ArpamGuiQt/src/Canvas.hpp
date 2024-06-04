@@ -52,10 +52,15 @@ public:
 
   auto cursorMode() const { return m_cursorMode; }
 
+  // Update the scale to fit the pixmap in the widget
+  void scaleToSize();
+
 public slots: // NOLINT
   void imshow(const cv::Mat &cv_img, double pix2m);
   void imshow(const QImage &img, double pix2m);
   void imshow(const QPixmap &pixmap, double pix2m);
+
+  void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
 
   void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
                      const QVector<int> &roles) {
@@ -77,8 +82,6 @@ public slots: // NOLINT
       removeAnnotationItem(row);
     }
   }
-
-  void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
 
   // Roll back the last cursor action
   void undo();
@@ -105,11 +108,15 @@ protected:
   void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
+  void updateTransform();
+
   // Pinch zoom handlers
   bool gestureEvent(QGestureEvent *event);
   void pinchTriggered(QPinchGesture *gesture);
 
   // Annotation handlers
+  // Add an existing annotation in the model at `row`
+  // to the view
   void addAnnotationItem(int row) {
     const Annotation &annotation = m_annotations->getAnnotation(row);
 
@@ -135,6 +142,8 @@ private:
     m_annotationItems.append(item);
   }
 
+  // Update an existing annotation in the model at `row`
+  // to the view
   void updateAnnotationItem(int row) {
     QGraphicsItem *item = m_annotationItems[row];
     const Annotation &annotation = m_annotations->getAnnotation(row);
@@ -174,6 +183,7 @@ private:
   QString m_name;
 
   double m_scaleFactor{1.0}; // factor for global transform
+  double m_scaleFactorMin{0.5};
 
   QPixmap m_Pixmap; // Image pixmap
   QGraphicsPixmapItem *m_PixmapItem{nullptr};

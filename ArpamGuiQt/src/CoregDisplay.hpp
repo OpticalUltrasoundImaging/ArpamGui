@@ -38,4 +38,6 @@ private:
   QAction *actCursorLine;
   // Action to set the cursor mode to box zoom
   QAction *actCursorZoom;
+
+  QAction *actResetZoom;
 };

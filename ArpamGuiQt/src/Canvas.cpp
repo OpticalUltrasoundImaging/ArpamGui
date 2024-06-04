@@ -43,6 +43,18 @@ void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
   this->imshow(QPixmap::fromImage(qi), pix2m);
 }
 
+void Canvas::scaleToSize() {
+  const auto w = width();
+  const auto h = height();
+  const auto pw = m_Pixmap.width();
+  const auto ph = m_Pixmap.height();
+  const qreal scale =
+      qMin(w / static_cast<qreal>(pw), h / static_cast<qreal>(ph));
+  m_scaleFactor = scale;
+
+  updateTransform();
+}
+
 void Canvas::imshow(const QImage &img, double pix2m) {
   this->imshow(QPixmap::fromImage(img), pix2m);
 }
@@ -275,12 +287,14 @@ bool Canvas::gestureEvent(QGestureEvent *event) {
 void Canvas::pinchTriggered(QPinchGesture *gesture) {
   if (gesture->state() == Qt::GestureState::GestureUpdated) {
     const qreal scaleFactor = gesture->scaleFactor();
-    qDebug() << "   scaleFactor" << scaleFactor;
-    m_scaleFactor = m_scaleFactor * scaleFactor;
-    QTransform transform;
-    transform.scale(m_scaleFactor, m_scaleFactor);
-    setTransform(transform);
+    m_scaleFactor = std::max(m_scaleFactor * scaleFactor, m_scaleFactorMin);
+    updateTransform();
   }
 }
 
+void Canvas::updateTransform() {
+  QTransform transform;
+  transform.scale(m_scaleFactor, m_scaleFactor);
+  setTransform(transform);
+}
 // NOLINTEND(*-casting, *-narrowing-conversions)

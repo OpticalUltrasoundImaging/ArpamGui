@@ -10,7 +10,10 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       m_canvasRight(new Canvas(this)), m_model(new AnnotationModel),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
-      actCursorZoom(new QAction(QIcon(), "Zoom")) {
+      actCursorZoom(new QAction(QIcon(), "Zoom")),
+      actResetZoom(new QAction(QIcon(), "Reset zoom"))
+
+{
   m_model->setParent(this);
 
   // Signals and slots
@@ -35,6 +38,11 @@ CoregDisplay::CoregDisplay(QWidget *parent)
     actCursorZoom->setChecked(true);
   });
 
+  connect(actResetZoom, &QAction::triggered, [=] {
+    m_canvasLeft->scaleToSize();
+    m_canvasRight->scaleToSize();
+  });
+
   // Setup UI
   auto *vlayout = new QVBoxLayout;
   this->setLayout(vlayout);
@@ -42,6 +50,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   // Toolbar
   auto *toolbar = new QToolBar("Cursor type");
   vlayout->addWidget(toolbar);
+  toolbar->addAction(actResetZoom);
+  toolbar->addSeparator();
   toolbar->addAction(actCursorUndo);
   toolbar->addSeparator();
   toolbar->addAction(actCursorLine);
