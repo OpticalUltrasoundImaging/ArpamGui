@@ -28,8 +28,6 @@ public slots:
 
   void switchMode();
 
-  void handleNewImages(QImage img1, QImage img2, double pix2m);
-
 protected:
   // Support dropping file
   void dragEnterEvent(QDragEnterEvent *event) override;
@@ -42,23 +40,6 @@ private:
   DataProcWorker *worker;
 
   QPlainTextEdit *textEdit;
-  // CoregDisplay *coregDisplay;
-  Canvas *canvasLeft;
-  Canvas *canvasRight;
-
   FrameController *m_frameController;
-
-  // Actions
-
-  // Action to undo the last cursor action in the canvas
-  QAction *actCursorUndo;
-  // Action to set the cursor mode to line measure
-  QAction *actCursorLine;
-  // Action to set the cursor mode to box zoom
-  QAction *actCursorZoom;
-
-  // Action to set the cursor mode to box annotation
-  QAction *actCursorAnnoBox;
-  // Action to set the cursor mode to fan annotation
-  QAction *actCursorAnnoFan;
+  CoregDisplay *m_coregDisplay;
 };

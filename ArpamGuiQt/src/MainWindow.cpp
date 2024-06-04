@@ -1,6 +1,7 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
 #include "CanvasAnnotationModel.hpp"
+#include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
@@ -18,7 +19,9 @@
 #include <opencv2/opencv.hpp>
 #include <qboxlayout.h>
 #include <qobjectdefs.h>
+#include <qscrollarea.h>
 #include <qtoolbar.h>
+#include <qwidget.h>
 #include <uspam/defer.h>
 
 namespace {
@@ -30,8 +33,7 @@ void setGlobalStyle(QLayout *layout) {
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
-      canvasLeft(new Canvas(this)), canvasRight(new Canvas(this)),
-      worker(new DataProcWorker) {
+      m_coregDisplay(new CoregDisplay), worker(new DataProcWorker) {
 
   // Enable QStatusBar at the bottom of the MainWindow
   statusBar();
@@ -47,19 +49,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
 
-    connect(worker, &DataProcWorker::resultReady, this,
-            &MainWindow::handleNewImages);
+    connect(worker, &DataProcWorker::resultReady, m_coregDisplay,
+            &CoregDisplay::imshow);
+
     connect(worker, &DataProcWorker::error, this, &MainWindow::logError);
 
     workerThread.start();
   }
-
-  /**
-   * Setup annotation model
-   */
-  auto *annotations = new AnnotationModel;
-  canvasLeft->setModel(annotations);
-  canvasRight->setModel(annotations);
 
   /**
    * Setup GUI
@@ -151,14 +147,17 @@ MainWindow::MainWindow(QWidget *parent)
   }
   // End dock config
 
-  // Central scroll area
-  auto *centralLayout = new QVBoxLayout;
-  {
-    auto *centralWidget = new QScrollArea(this);
-    centralWidget->setWidgetResizable(true);
-    this->setCentralWidget(centralWidget);
-    centralWidget->setLayout(centralLayout);
-  }
+  // Coreg display
+  setCentralWidget(m_coregDisplay);
+
+  connect(m_coregDisplay, &CoregDisplay::message, this, &MainWindow::logError);
+  connect(m_coregDisplay, &CoregDisplay::mouseMoved, this,
+          [&](QPoint pos, double depth_mm) {
+            auto msg = QString("Pos: (%1, %2), depth: %3 mm")
+                           .arg(pos.x())
+                           .arg(pos.y())
+                           .arg(depth_mm);
+          });
 
   // auto *modeSwitchButton = new QPushButton("Switch Mode", this);
   // connect(modeSwitchButton, &QPushButton::clicked, this,
@@ -171,83 +170,9 @@ MainWindow::MainWindow(QWidget *parent)
 
   //   layout->addWidget(modeSwitchButton);
 
-  //// Define Actions
-  // Action to set the cursor mode to line measure
-  actCursorUndo = new QAction(QIcon(), "Undo");
-  // Action to set the cursor mode to line measure
-  actCursorLine = new QAction(QIcon(), "Line");
-  // Action to set the cursor mode to box zoom
-  actCursorZoom = new QAction(QIcon(), "Zoom");
-
-  connect(actCursorUndo, &QAction::triggered, [=] {
-    canvasLeft->undo();
-    canvasRight->undo();
-  });
-
-  actCursorLine->setCheckable(true);
-  defer { actCursorLine->trigger(); };
-  connect(actCursorLine, &QAction::triggered, [=] {
-    canvasLeft->setCursorMode(Canvas::CursorMode::LineMeasure);
-    canvasRight->setCursorMode(Canvas::CursorMode::LineMeasure);
-
-    actCursorLine->setChecked(true);
-    actCursorZoom->setChecked(false);
-  });
-
-  actCursorZoom->setCheckable(true);
-  connect(actCursorZoom, &QAction::triggered, [=] {
-    canvasLeft->setCursorMode(Canvas::CursorMode::BoxZoom);
-    canvasRight->setCursorMode(Canvas::CursorMode::BoxZoom);
-
-    actCursorLine->setChecked(false);
-    actCursorZoom->setChecked(true);
-  });
-
-  {
-    auto *vlayout = new QVBoxLayout;
-    centralLayout->addLayout(vlayout);
-
-    // Toolbar
-    {
-      auto *toolbar = new QToolBar("Cursor type");
-      vlayout->addWidget(toolbar);
-
-      toolbar->addAction(actCursorUndo);
-      toolbar->addSeparator();
-      toolbar->addAction(actCursorLine);
-      toolbar->addAction(actCursorZoom);
-    }
-
-    // Image Canvas
-    {
-      auto *layout = new QHBoxLayout;
-      vlayout->addLayout(layout);
-
-      canvasLeft->setName("US");
-      canvasRight->setName("PAUS");
-
-      for (auto *const canvas : {canvasLeft, canvasRight}) {
-        layout->addWidget(canvas);
-        canvas->setStyleSheet("border: 1px solid black");
-        canvas->setDisabled(true);
-
-        connect(canvas, &Canvas::error, this, &MainWindow::logError);
-
-        connect(canvas, &Canvas::mouseMoved, this,
-                [&](QPoint pos, double depth_mm) {
-                  statusBar()->showMessage(
-                      QString("Pos: (%1, %2), depth: %3 mm")
-                          .arg(pos.x())
-                          .arg(pos.y())
-                          .arg(depth_mm));
-                });
-      }
-    }
-  }
-
   // Set global style
   setGlobalStyle(dockLayout);
-  setGlobalStyle(centralLayout);
+  setGlobalStyle(m_coregDisplay->layout());
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
@@ -293,11 +218,4 @@ void MainWindow::switchMode() {
   //   int currentIndex = stackedWidget->currentIndex();
   //   stackedWidget->setCurrentIndex(1 - currentIndex); // Toggle between 0 and
   //   1
-}
-
-void MainWindow::handleNewImages(QImage img1, QImage img2, double pix2m) {
-  canvasLeft->imshow(QPixmap::fromImage(std::move(img1)), pix2m);
-  canvasRight->imshow(QPixmap::fromImage(std::move(img2)), pix2m);
-  canvasLeft->setEnabled(true);
-  canvasRight->setEnabled(true);
 }
