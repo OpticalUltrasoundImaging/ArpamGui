@@ -203,7 +203,7 @@ void Canvas::undo() {
     break;
   }
 
-  case CursorMode::BoxZoom: {
+  case CursorMode::LabelRect: {
   }
 
   default:
@@ -222,10 +222,29 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     case (CursorMode::LineMeasure): {
       const auto line = m_cursor.getLine();
 
-      delete m_currLineItem;
-      m_currLineItem = m_scene->addLine(line, QPen(Qt::white));
+      // Make line item
+      {
+        QPen pen(Qt::white);
+        pen.setWidth(2);
+        pen.setCosmetic(true);
+        delete m_currLineItem;
+        m_currLineItem = m_scene->addLine(line, pen);
+      }
+
+      // Make simple text label item
+      {
+        delete m_currLabelItem;
+        QFont font;
+        font.setPointSize(12);
+        m_currLabelItem = m_scene->addSimpleText("", font);
+
+        QPen pen(Qt::white);
+        pen.setWidth(2);
+        pen.setCosmetic(true);
+        m_currLabelItem->setPen(pen);
+      }
     }
-    case CursorMode::BoxZoom: {
+    case CursorMode::LabelRect: {
       break;
     }
     }
@@ -252,12 +271,20 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
   if (m_cursor.leftButtonDown) {
     switch (m_cursorMode) {
     case (CursorMode::LineMeasure): {
-      if (m_currLineItem != nullptr) {
-        m_currLineItem->setLine(m_cursor.getLine());
+      if (m_currLineItem != nullptr) [[likely]] {
+
+        const auto line = m_cursor.getLine();
+        const auto dist = computeDistance_mm(line.p1(), line.p2());
+
+        m_currLineItem->setLine(line);
+
+        m_currLabelItem->setPos(line.center() + QPointF{10, 10});
+        m_currLabelItem->setText(QString("%1 mm").arg(dist));
       }
       break;
     }
-    case CursorMode::BoxZoom: {
+    case CursorMode::LabelRect: {
+
       break;
     }
     }
@@ -276,7 +303,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       m_anno.lines.add(line);
       break;
     }
-    case CursorMode::BoxZoom: {
+    case CursorMode::LabelRect: {
       break;
     }
     }

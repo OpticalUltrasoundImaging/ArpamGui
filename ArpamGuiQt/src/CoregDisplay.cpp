@@ -10,7 +10,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       m_canvasRight(new Canvas(this)), m_model(new AnnotationModel),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
-      actCursorZoom(new QAction(QIcon(), "Zoom")),
+      actCursorLabelRect(new QAction(QIcon(), "Zoom")),
       actResetZoom(new QAction(QIcon(), "Reset zoom"))
 
 {
@@ -26,16 +26,16 @@ CoregDisplay::CoregDisplay(QWidget *parent)
     m_canvasRight->setCursorMode(Canvas::CursorMode::LineMeasure);
 
     actCursorLine->setChecked(true);
-    actCursorZoom->setChecked(false);
+    actCursorLabelRect->setChecked(false);
   });
 
-  actCursorZoom->setCheckable(true);
-  connect(actCursorZoom, &QAction::triggered, [=] {
-    m_canvasLeft->setCursorMode(Canvas::CursorMode::BoxZoom);
-    m_canvasRight->setCursorMode(Canvas::CursorMode::BoxZoom);
+  actCursorLabelRect->setCheckable(true);
+  connect(actCursorLabelRect, &QAction::triggered, [=] {
+    m_canvasLeft->setCursorMode(Canvas::CursorMode::LabelRect);
+    m_canvasRight->setCursorMode(Canvas::CursorMode::LabelRect);
 
     actCursorLine->setChecked(false);
-    actCursorZoom->setChecked(true);
+    actCursorLabelRect->setChecked(true);
   });
 
   connect(actResetZoom, &QAction::triggered, [=] {
@@ -55,7 +55,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   toolbar->addAction(actCursorUndo);
   toolbar->addSeparator();
   toolbar->addAction(actCursorLine);
-  toolbar->addAction(actCursorZoom);
+  toolbar->addAction(actCursorLabelRect);
 
   // Image Canvas
   auto *hlayout = new QHBoxLayout;

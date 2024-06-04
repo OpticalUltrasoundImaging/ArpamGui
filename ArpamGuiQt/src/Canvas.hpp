@@ -36,7 +36,7 @@ class Canvas : public QGraphicsView {
 public:
   enum class CursorMode {
     LineMeasure = 0,
-    BoxZoom,
+    LabelRect,
   };
   Q_ENUM(CursorMode);
 
@@ -202,8 +202,9 @@ private:
 
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;
-  CursorMode m_cursorMode{CursorMode::BoxZoom};
+  CursorMode m_cursorMode{CursorMode::LabelRect};
   QGraphicsLineItem *m_currLineItem{nullptr};
+  QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
   CanvasAnnotations m_anno;
 

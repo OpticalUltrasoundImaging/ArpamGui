@@ -43,7 +43,7 @@ private:
   // Action to set the cursor mode to line measure
   QAction *actCursorLine;
   // Action to set the cursor mode to box zoom
-  QAction *actCursorZoom;
+  QAction *actCursorLabelRect;
   // Reset image zoom
   QAction *actResetZoom;
 };
