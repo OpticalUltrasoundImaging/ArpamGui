@@ -14,9 +14,21 @@
 #include <mutex>
 #include <uspam/fft.hpp>
 
+// void addDatetime(std::ostream &os) {
+//   std::time_t t = std::time(nullptr);
+//   std::tm tm = *std::localtime(&t);
+//   os << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] ";
+// }
+
 void addDatetime(std::ostream &os) {
-  std::time_t t = std::time(nullptr);
-  std::tm tm = *std::localtime(&t);
+  auto now = std::chrono::system_clock::now();
+  auto now_time_t = std::chrono::system_clock::to_time_t(now);
+  std::tm tm;
+#if defined(_WIN32) || defined(_WIN64)
+  localtime_s(&tm, &now_time_t); // Use localtime_s on Windows
+#else
+  localtime_r(&now_time_t, &tm); // Use localtime_r on other platforms
+#endif
   os << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] ";
 }
 
@@ -68,8 +80,8 @@ auto main(int argc, char **argv) -> int {
 
   qInstallMessageHandler(myMessageHandler);
 
+  QApplication::setStyle("Fusion"); // Dark mode
   QApplication app(argc, argv);
-  app.setStyle("Fusion"); // Dark mode
 
   // load style sheet
   {

@@ -15,6 +15,7 @@ qt_add_executable(${EXE_NAME}
     src/Canvas.cpp
     src/CanvasAnnotations.hpp
     src/CanvasAnnotations.cpp
+    src/CanvasAnnotationModel.hpp
     src/CanvasCursorState.hpp
     src/CanvasTicks.hpp
     src/CanvasTicks.cpp
@@ -90,6 +91,7 @@ elseif (APPLE)
         -verbose=1
         -always-overwrite
         -codesign=-
+        -no-strip
         "$<IF:$<CONFIG:Release>,-dmg,-use-debug-libs>"
         COMMENT "Bundling Qt libraries"
     )

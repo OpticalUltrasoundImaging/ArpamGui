@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
+#include "CanvasAnnotationModel.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
 #include <QDockWidget>
@@ -47,6 +48,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     workerThread.start();
   }
+
+  /**
+   * Setup annotation model
+   */
+  auto *annotations = new AnnotationModel;
+  canvasLeft->setModel(annotations);
+  canvasRight->setModel(annotations);
 
   /**
    * Setup GUI

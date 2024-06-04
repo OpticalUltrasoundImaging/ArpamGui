@@ -171,11 +171,9 @@ void DataProcWorker::pause() { m_isPlaying = false; }
 
 void DataProcWorker::updateParams(uspam::recon::ReconParams2 params,
                                   uspam::io::IOParams ioparams) {
-
-  emit error("DataProcWorker updateParams");
   QMutexLocker lock(&m_paramsMutex);
   this->m_params = std::move(params);
-  this->m_ioparams = std::move(ioparams);
+  this->m_ioparams = ioparams;
 }
 
 void DataProcWorker::saveParamsToFile() {

@@ -9,6 +9,15 @@ class CoregDisplay : public QWidget {
 public:
   CoregDisplay(QWidget *parent = nullptr);
 
-  Canvas *canvas1;
-  Canvas *canvas2;
+signals:
+
+public slots:
+  void setCursorMode(Canvas::CursorMode mode) {
+    canvasLeft->setCursorMode(mode);
+    canvasRight->setCursorMode(mode);
+  }
+
+private:
+  Canvas *canvasLeft;
+  Canvas *canvasRight;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CanvasAnnotationModel.hpp"
 #include "CanvasAnnotations.hpp"
 #include "CanvasCursorState.hpp"
 #include "CanvasTicks.hpp"
@@ -14,11 +15,19 @@
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
+#include <qabstractitemmodel.h>
+#include <qcontainerfwd.h>
 #include <qgraphicsitem.h>
 #include <qgraphicsscene.h>
+#include <qgraphicssceneevent.h>
 #include <qtmetamacros.h>
 #include <vector>
 
+// Canvas displays and image in a QGraphicsView
+// and supports drawing annotations.
+//
+// Annotations are stored in AnnotationModel (model),
+// and the Canvas acts as its view and controller.
 class Canvas : public QGraphicsView {
   Q_OBJECT
 
@@ -36,12 +45,38 @@ public:
   auto name() const { return m_name; }
   void setName(QString name) { m_name = std::move(name); }
 
+  void setModel(AnnotationModel *model) {
+    this->m_annotations = model;
+    connect(model, &AnnotationModel::dataChanged, this, &Canvas::onDataChanged);
+  }
+
   auto cursorMode() const { return m_cursorMode; }
 
-public slots:
+public slots: // NOLINT
   void imshow(const cv::Mat &cv_img, double pix2m);
   void imshow(const QImage &img, double pix2m);
   void imshow(const QPixmap &pixmap, double pix2m);
+
+  void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
+                     const QVector<int> &roles) {
+    for (int row = topLeft.row(); row <= bottomRight.row(); ++row) {
+      updateAnnotationItem(row);
+    }
+  }
+
+  void onRowsInserted(const QModelIndex &parent, int first, int last) {
+    Q_UNUSED(parent);
+    for (int row = first; row <= last; ++row) {
+      addAnnotationItem(row);
+    }
+  }
+
+  void onRowsRemoved(const QModelIndex &parent, int first, int last) {
+    Q_UNUSED(parent);
+    for (int row = first; row <= last; ++row) {
+      removeAnnotationItem(row);
+    }
+  }
 
   void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
 
@@ -69,52 +104,81 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
 
-  void keyPressEvent(QKeyEvent *event) override;
-
 private:
+  // Pinch zoom handlers
   bool gestureEvent(QGestureEvent *event);
   void pinchTriggered(QPinchGesture *gesture);
 
-  // Convert mouse position to frame coordinates using the current offset and
-  // scale
-  inline auto widgetPosToFramePos(QPoint pos) {
-    return (pos - m_offset) / m_scaleFactor;
+  // Annotation handlers
+  void addAnnotationItem(int row) {
+    const Annotation &annotation = m_annotations->getAnnotation(row);
+
+    QGraphicsItem *item = [&]() -> QGraphicsItem * {
+      switch (annotation.type()) {
+
+      case Annotation::Line: {
+        auto *item = new QGraphicsLineItem(QLineF(
+            annotation.rect().topLeft(), annotation.rect().bottomRight()));
+        item->setPen(QPen(annotation.color()));
+        return item;
+      }
+
+      case Annotation::Box: {
+        auto *item = new QGraphicsRectItem(annotation.rect());
+        item->setPen(QPen(annotation.color()));
+        return item;
+      }
+      }
+    }();
+
+    scene()->addItem(item);
+    m_annotationItems.append(item);
   }
-  inline auto framePosToWidgetPos(QPoint pos) {
-    return pos * m_scaleFactor + m_offset;
+
+  void updateAnnotationItem(int row) {
+    QGraphicsItem *item = m_annotationItems[row];
+    const Annotation &annotation = m_annotations->getAnnotation(row);
+
+    switch (annotation.type()) {
+    case Annotation::Line:
+      if (auto *lineItem = dynamic_cast<QGraphicsLineItem *>(item);
+          lineItem != nullptr) {
+        lineItem->setLine(QLineF(annotation.rect().topLeft(),
+                                 annotation.rect().bottomRight()));
+        lineItem->setPen(QPen(annotation.color()));
+      }
+      break;
+
+    case Annotation::Box:
+      if (auto *rectItem = dynamic_cast<QGraphicsRectItem *>(item);
+          rectItem != nullptr) {
+        rectItem->setRect(annotation.rect());
+        rectItem->setPen(QPen(annotation.color()));
+      }
+      break;
+    }
+  }
+
+  void removeAnnotationItem(int row) {
+    QGraphicsItem *item = m_annotationItems.takeAt(row);
+    scene()->removeItem(item);
+    delete item;
   }
 
   void drawTicks(QPainter *painter);
 
-  // [mm] Get distance between 2 points in the original // pixmap.
+  // [mm] Get distance between 2 points in the original pixmap space.
   double computeDistance_mm(QPointF pt1, QPointF pt2) const;
-  // [mm] Get distance between 2 points in the scaled // pixmap.
-  double computeDistanceScaled_mm(QPointF pt1, QPointF pt2) const;
 
-  // Update m_scale, m_offset, and m_pixmapScaled
-  void updateScaleOffsetAndScaledPixmap();
-
-private:
   QGraphicsScene *m_scene;
   QString m_name;
 
-  double m_scaleFactor{1.0}; // factor for m_pixmap to maintain aspect ratio
-  QPixmap m_Pixmap;          // Original pixmap.
-  QPixmap m_pixmapScaled;    // Cache of scaled pixmap
+  double m_scaleFactor{1.0}; // factor for global transform
 
+  QPixmap m_Pixmap; // Image pixmap
   QGraphicsPixmapItem *m_PixmapItem{nullptr};
 
   double m_pix2m{}; // [m] Factor converting pixel (in m_pixmap) to meters
-
-  // Offset of displayed scaled m_pixmap to keep center.
-  // m_offset is updated on every paintEvent so it should never be zero
-  // when a m_pixmap is present.
-  QPoint m_offset{};
-
-  bool m_zoomed{false};
-  bool m_zoomTranslated{false};
-  QRectF m_zoomRect;
-  std::vector<QRectF> m_zoomRectHistory;
 
   QTransform transformForward;  // From original to scaled pixmap space
   QTransform transformBackward; // from scaled to original pixmap space
@@ -125,6 +189,10 @@ private:
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::BoxZoom};
+  QGraphicsLineItem *m_currLineItem{nullptr};
 
   CanvasAnnotations m_anno;
+
+  AnnotationModel *m_annotations{};
+  QList<QGraphicsItem *> m_annotationItems;
 };

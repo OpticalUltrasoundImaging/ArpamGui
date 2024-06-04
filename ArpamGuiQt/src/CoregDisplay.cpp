@@ -4,10 +4,11 @@
 #include <QPushButton>
 
 CoregDisplay::CoregDisplay(QWidget *parent)
-    : QWidget(parent), canvas1(new Canvas(this)), canvas2(new Canvas(this)) {
+    : QWidget(parent), canvasLeft(new Canvas(this)),
+      canvasRight(new Canvas(this)) {
 
   auto *layout = new QHBoxLayout(this);
-  layout->addWidget(canvas1);
-  layout->addWidget(canvas2);
+  layout->addWidget(canvasLeft);
+  layout->addWidget(canvasRight);
   // layout->addWidget(new QPushButton);
 }
