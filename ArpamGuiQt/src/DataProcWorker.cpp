@@ -297,7 +297,7 @@ void DataProcWorker::processCurrentFrame() {
     constexpr double fs = 180e6;          // [1/s] Sample frequency
 
     // [m] multiplier to convert sampled US points to meters. 2x travel path
-    constexpr double fctRect = soundSpeed / fs;
+    constexpr double fctRect = soundSpeed / fs / 2;
 
     // [points]
     const auto USpoints_rect = static_cast<double>(m_rfPair.US.n_rows);
