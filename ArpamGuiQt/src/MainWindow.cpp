@@ -23,6 +23,7 @@
 #include <qtoolbar.h>
 #include <qwidget.h>
 #include <uspam/defer.h>
+#include <utility>
 
 namespace {
 void setGlobalStyle(QLayout *layout) {
@@ -70,12 +71,13 @@ MainWindow::MainWindow(QWidget *parent)
     dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable |
                                           QDockWidget::DockWidgetFloatable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
+  }
 
+  {
     // Error box
     dockLayout->addWidget(textEdit);
     textEdit->setReadOnly(true);
     textEdit->setPlainText("Application started.\n");
-
     textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
   }
 
@@ -109,7 +111,7 @@ MainWindow::MainWindow(QWidget *parent)
             [this](uspam::recon::ReconParams2 params,
                    uspam::io::IOParams ioparams) {
               // Update params
-              this->worker->updateParams(params, ioparams);
+              this->worker->updateParams(std::move(params), ioparams);
 
               // Only invoke "replayOne" if not currently worker is not playing
               if (this->worker->isReady() && !this->worker->isPlaying()) {
