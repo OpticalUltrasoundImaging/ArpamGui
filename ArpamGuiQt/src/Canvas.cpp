@@ -44,13 +44,21 @@ void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
 }
 
 void Canvas::scaleToSize() {
+  if (m_Pixmap.isNull()) [[unlikely]] {
+    return;
+  }
+
   const auto w = width();
   const auto h = height();
   const auto pw = m_Pixmap.width();
   const auto ph = m_Pixmap.height();
+
+  // Calculate the scaleFactor needed to fill the viewport with the image
+  // This is also the minimum scale factor
   const qreal scale =
       qMin(w / static_cast<qreal>(pw), h / static_cast<qreal>(ph));
   m_scaleFactor = scale;
+  m_scaleFactorMin = scale;
 
   updateTransform();
 }
@@ -71,6 +79,11 @@ void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
 
   // Add image pixmap to scene
   m_PixmapItem = m_scene->addPixmap(m_Pixmap);
+
+  if (m_resetZoomOnNextImshow) {
+    scaleToSize();
+    m_resetZoomOnNextImshow = false;
+  }
 }
 
 // NOLINTBEGIN(*-casting, *-narrowing-conversions)

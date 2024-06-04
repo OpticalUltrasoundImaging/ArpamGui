@@ -89,8 +89,10 @@ MainWindow::MainWindow(QWidget *parent)
             &DataProcWorker::setBinfile);
     connect(m_frameController, &FrameController::sigFrameNumUpdated, worker,
             &DataProcWorker::playOne);
-    connect(m_frameController, &FrameController::sigPlay, worker,
-            &DataProcWorker::play);
+    connect(m_frameController, &FrameController::sigPlay, [=] {
+      QMetaObject::invokeMethod(worker, &DataProcWorker::play);
+      m_coregDisplay->resetZoomOnNextImshow();
+    });
     connect(m_frameController, &FrameController::sigPause, this,
             [&]() { worker->pause(); });
 
@@ -98,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent)
             &FrameController::updateMaxFrameNum);
     connect(worker, &DataProcWorker::frameIdxChanged, m_frameController,
             &FrameController::updateFrameNum);
-    connect(worker, &DataProcWorker::finishedOneFile,
+    connect(worker, &DataProcWorker::finishedPlaying,
             [=] { m_frameController->updatePlayingState(false); });
   }
 

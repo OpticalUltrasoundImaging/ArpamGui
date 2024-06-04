@@ -69,7 +69,7 @@ signals:
   // pix2m is the depth [m] of each radial pixel
   void resultReady(QImage img1, QImage img2, double pix2m);
 
-  void finishedOneFile();
+  void finishedPlaying();
   void error(QString err);
 
 private:

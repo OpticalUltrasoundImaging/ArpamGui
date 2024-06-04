@@ -153,7 +153,7 @@ void DataProcWorker::play() {
   }
   m_isPlaying = false;
 
-  emit finishedOneFile();
+  emit finishedPlaying();
 }
 
 void DataProcWorker::playOne(int idx) {

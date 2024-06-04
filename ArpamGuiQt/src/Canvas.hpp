@@ -86,6 +86,8 @@ public slots: // NOLINT
   // Roll back the last cursor action
   void undo();
 
+  void resetZoomOnNextImshow() { m_resetZoomOnNextImshow = true; }
+
 signals:
   void error(QString err);
 
@@ -187,6 +189,7 @@ private:
   double m_scaleFactor{1.0}; // factor for global transform
   double m_scaleFactorMin{0.5};
   QPointF m_transformCenter;
+  bool m_resetZoomOnNextImshow{true};
 
   // Image
   QPixmap m_Pixmap; // Image pixmap

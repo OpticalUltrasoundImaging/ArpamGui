@@ -27,6 +27,12 @@ public slots:
 
   void imshow(const QImage &img1, const QImage &img2, double pix2m);
 
+  void resetZoom() { actResetZoom->trigger(); }
+  void resetZoomOnNextImshow() {
+    m_canvasLeft->resetZoomOnNextImshow();
+    m_canvasRight->resetZoomOnNextImshow();
+  }
+
 private:
   Canvas *m_canvasLeft;
   Canvas *m_canvasRight;
@@ -38,6 +44,6 @@ private:
   QAction *actCursorLine;
   // Action to set the cursor mode to box zoom
   QAction *actCursorZoom;
-
+  // Reset image zoom
   QAction *actResetZoom;
 };
