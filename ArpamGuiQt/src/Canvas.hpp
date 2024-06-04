@@ -179,19 +179,20 @@ private:
   // [mm] Get distance between 2 points in the original pixmap space.
   double computeDistance_mm(QPointF pt1, QPointF pt2) const;
 
+  // Scene
   QGraphicsScene *m_scene;
   QString m_name;
 
+  // Transform
   double m_scaleFactor{1.0}; // factor for global transform
   double m_scaleFactorMin{0.5};
+  QPointF m_transformCenter;
 
+  // Image
   QPixmap m_Pixmap; // Image pixmap
   QGraphicsPixmapItem *m_PixmapItem{nullptr};
 
   double m_pix2m{}; // [m] Factor converting pixel (in m_pixmap) to meters
-
-  QTransform transformForward;  // From original to scaled pixmap space
-  QTransform transformBackward; // from scaled to original pixmap space
 
   // State of ticks
   CanvasTicks m_ticks;

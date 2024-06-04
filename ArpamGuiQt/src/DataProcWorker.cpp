@@ -131,15 +131,11 @@ void DataProcWorker::setBinfile(const QString &binfile) {
     // Save init params
     saveParamsToFile();
 
-    // Start processing
-    this->play();
   } catch (const std::runtime_error &e) {
     const auto msg = QString::fromStdString(e.what());
     qWarning() << "DataProcWorker exception: " << msg;
     emit error("DataProcWorker exception: " + msg);
   }
-
-  emit finishedOneFile();
 }
 
 void DataProcWorker::play() {

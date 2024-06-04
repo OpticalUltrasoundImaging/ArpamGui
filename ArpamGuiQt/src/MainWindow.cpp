@@ -85,21 +85,21 @@ MainWindow::MainWindow(QWidget *parent)
   {
     m_frameController = new FrameController;
     dockLayout->addWidget(m_frameController);
-    connect(m_frameController, &FrameController::binfileSelected, worker,
+    connect(m_frameController, &FrameController::sigBinfileSelected, worker,
             &DataProcWorker::setBinfile);
-    connect(m_frameController, &FrameController::frameNumUpdated, worker,
+    connect(m_frameController, &FrameController::sigFrameNumUpdated, worker,
             &DataProcWorker::playOne);
-    connect(m_frameController, &FrameController::playClicked, worker,
+    connect(m_frameController, &FrameController::sigPlay, worker,
             &DataProcWorker::play);
-    connect(m_frameController, &FrameController::pauseClicked, this,
+    connect(m_frameController, &FrameController::sigPause, this,
             [&]() { worker->pause(); });
 
     connect(worker, &DataProcWorker::maxFramesChanged, m_frameController,
             &FrameController::updateMaxFrameNum);
     connect(worker, &DataProcWorker::frameIdxChanged, m_frameController,
             &FrameController::updateFrameNum);
-    connect(worker, &DataProcWorker::finishedOneFile, m_frameController,
-            &FrameController::updatePlayingStatePause);
+    connect(worker, &DataProcWorker::finishedOneFile,
+            [=] { m_frameController->updatePlayingState(false); });
   }
 
   // Recon parameters controller

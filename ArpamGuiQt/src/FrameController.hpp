@@ -17,19 +17,17 @@ public slots:
   void updateMaxFrameNum(int maxFrameNum);
 
   void updatePlayingState(bool playing);
-  void updatePlayingStatePlay();
-  void updatePlayingStatePause();
 
 signals:
-  void binfileSelected(QString);
-  void playClicked();
-  void pauseClicked();
-  void frameNumUpdated(int);
+  void sigBinfileSelected(QString);
+  void sigPlay();
+  void sigPause();
+  void sigFrameNumUpdated(int);
 
 private:
-  QPushButton *m_btnPlay;
-  QPushButton *m_btnPause;
+  QPushButton *m_btnPlayPause;
 
   QSpinBox *m_frameNumSpinBox;
   QSlider *m_frameSlider;
+  bool m_isPlaying{false};
 };

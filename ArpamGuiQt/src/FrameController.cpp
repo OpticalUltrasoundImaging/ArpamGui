@@ -13,8 +13,7 @@
 
 FrameController::FrameController(QWidget *parent)
     : QGroupBox("Frame controller", parent),
-      m_btnPlay(new QPushButton("Play", this)),
-      m_btnPause(new QPushButton("Pause", this)) {
+      m_btnPlayPause(new QPushButton("Play", this)) {
   {
     auto *vlayout = new QVBoxLayout;
     this->setLayout(vlayout);
@@ -31,21 +30,11 @@ FrameController::FrameController(QWidget *parent)
         acceptNewBinfile(filename);
       });
 
-      hlayout->addWidget(m_btnPlay);
-      m_btnPlay->setEnabled(false);
+      hlayout->addWidget(m_btnPlayPause);
+      m_btnPlayPause->setEnabled(false);
 
-      hlayout->addWidget(m_btnPause);
-      m_btnPause->setEnabled(false);
-
-      connect(m_btnPlay, &QPushButton::clicked, this, [&] {
-        updatePlayingState(true);
-        emit playClicked();
-      });
-
-      connect(m_btnPause, &QPushButton::clicked, this, [&] {
-        updatePlayingState(false);
-        emit pauseClicked();
-      });
+      connect(m_btnPlayPause, &QPushButton::clicked, this,
+              [&] { updatePlayingState(!m_isPlaying); });
     }
 
     {
@@ -62,7 +51,7 @@ FrameController::FrameController(QWidget *parent)
       m_frameNumSpinBox->setDisabled(true);
       connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
         auto val = m_frameNumSpinBox->value();
-        emit frameNumUpdated(val);
+        emit sigFrameNumUpdated(val);
         updatePlayingState(false);
       });
 
@@ -73,7 +62,6 @@ FrameController::FrameController(QWidget *parent)
       m_frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
 
       connect(m_frameSlider, &QSlider::sliderPressed, this, [&] {
-        emit pauseClicked();
         updatePlayingState(false);
         QToolTip::showText(QCursor::pos(),
                            QString::number(m_frameSlider->value()));
@@ -86,18 +74,19 @@ FrameController::FrameController(QWidget *parent)
       });
 
       connect(m_frameSlider, &QSlider::sliderReleased, this,
-              [&] { emit frameNumUpdated(m_frameSlider->value()); });
+              [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
     }
   }
 }
 
 void FrameController::acceptNewBinfile(const QString &filename) {
   updatePlayingState(false);
-  emit pauseClicked();
 
   if (!filename.isEmpty()) {
     qInfo() << "Selected binfile" << filename;
-    emit binfileSelected(filename);
+    emit sigBinfileSelected(filename);
+
+    m_btnPlayPause->setEnabled(true);
     updatePlayingState(true);
   }
 }
@@ -118,13 +107,14 @@ void FrameController::updateMaxFrameNum(int maxFrameNum) {
 }
 
 void FrameController::updatePlayingState(bool playing) {
+  m_isPlaying = playing;
   if (playing) {
-    m_btnPlay->setEnabled(false);
-    m_btnPause->setEnabled(true);
+    // Now playing
+    m_btnPlayPause->setText("Pause");
+    emit sigPlay();
   } else {
-    m_btnPlay->setEnabled(true);
-    m_btnPause->setEnabled(false);
+    // Now pausing
+    m_btnPlayPause->setText("Play");
+    emit sigPause();
   }
 }
-void FrameController::updatePlayingStatePlay() { updatePlayingState(true); }
-void FrameController::updatePlayingStatePause() { updatePlayingState(false); }
