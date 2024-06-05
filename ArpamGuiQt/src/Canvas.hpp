@@ -5,22 +5,20 @@
 #include "CanvasCursorState.hpp"
 #include "CanvasTicks.hpp"
 #include "geometryUtils.hpp"
+#include <QAbstractListModel>
+#include <QGraphicsItem>
 #include <QGraphicsScene>
+#include <QGraphicsSceneEvent>
 #include <QGraphicsView>
 #include <QImage>
 #include <QLayout>
 #include <QRect>
 #include <QString>
 #include <QTransform>
+#include <QWheelEvent>
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
-#include <qabstractitemmodel.h>
-#include <qcontainerfwd.h>
-#include <qgraphicsitem.h>
-#include <qgraphicsscene.h>
-#include <qgraphicssceneevent.h>
-#include <qtmetamacros.h>
 #include <vector>
 
 // Canvas displays and image in a QGraphicsView
@@ -108,6 +106,8 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
+
+  void wheelEvent(QWheelEvent *event) override;
 
 private:
   void updateTransform();

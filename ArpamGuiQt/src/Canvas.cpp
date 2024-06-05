@@ -13,6 +13,7 @@
 #include <array>
 #include <cmath>
 #include <qgraphicsview.h>
+#include <qnamespace.h>
 #include <tuple>
 #include <uspam/timeit.hpp>
 
@@ -313,6 +314,27 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = false;
+  }
+}
+
+void Canvas::wheelEvent(QWheelEvent *event) {
+  qDebug() << "wheelEvent triggered, modifiers: " << event->modifiers();
+
+  if (event->modifiers().testFlag(Qt::ControlModifier)) {
+    // Ctrl + scroll -> Zoom
+    event->accept();
+
+    // Calculate the scale factor adjustment
+    const double numDegrees = event->angleDelta().y() / 8.0;
+    const double numSteps = numDegrees / 15.0;
+    const double sensitivity = 0.1;
+    const double scaleFactor = 1.0 + numSteps * sensitivity;
+
+    m_scaleFactor = std::max(m_scaleFactor * scaleFactor, m_scaleFactorMin);
+
+    updateTransform();
+  } else {
+    QGraphicsView::wheelEvent(event);
   }
 }
 
