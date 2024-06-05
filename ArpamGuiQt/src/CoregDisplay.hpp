@@ -38,12 +38,15 @@ private:
   Canvas *m_canvasRight;
   AnnotationModel *m_model;
 
+  // Reset image zoom
+  QAction *actResetZoom;
+
+  // Action to use cursor to pan
+  QAction *actCursorPan;
   // Action to undo the last cursor action in the canvas
   QAction *actCursorUndo;
   // Action to set the cursor mode to line measure
   QAction *actCursorLine;
   // Action to set the cursor mode to box zoom
   QAction *actCursorLabelRect;
-  // Reset image zoom
-  QAction *actResetZoom;
 };

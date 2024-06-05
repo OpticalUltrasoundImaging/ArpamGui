@@ -19,6 +19,7 @@
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
+#include <qevent.h>
 #include <vector>
 
 // Canvas displays and image in a QGraphicsView
@@ -34,6 +35,7 @@ class Canvas : public QGraphicsView {
 public:
   enum class CursorMode {
     Default = 0, // Let the QGraphicsView handle
+    Pan,
     LineMeasure,
     LabelRect,
   };
@@ -41,7 +43,7 @@ public:
 
   explicit Canvas(QWidget *parent = nullptr);
 
-  auto name() const { return m_name; }
+  [[nodiscard]] auto name() const { return m_name; }
   void setName(QString name) { m_name = std::move(name); }
 
   void setModel(AnnotationModel *model) {
@@ -49,7 +51,7 @@ public:
     connect(model, &AnnotationModel::dataChanged, this, &Canvas::onDataChanged);
   }
 
-  auto cursorMode() const { return m_cursorMode; }
+  [[nodiscard]] auto cursorMode() const { return m_cursorMode; }
 
   // Update the scale to fit the pixmap in the widget
   void scaleToSize();
@@ -117,6 +119,10 @@ private:
   bool gestureEvent(QGestureEvent *event);
   void pinchTriggered(QPinchGesture *gesture);
 
+  // Panning
+  void panStartEvent(QMouseEvent *event);
+  void panMoveEvent(QMouseEvent *event);
+
   // Annotation handlers
   // Add an existing annotation in the model at `row`
   // to the view
@@ -180,7 +186,7 @@ private:
   void drawTicks(QPainter *painter);
 
   // [mm] Get distance between 2 points in the original pixmap space.
-  double computeDistance_mm(QPointF pt1, QPointF pt2) const;
+  [[nodiscard]] double computeDistance_mm(QPointF pt1, QPointF pt2) const;
 
   // Scene
   QGraphicsScene *m_scene;
@@ -188,7 +194,7 @@ private:
 
   // Transform
   double m_scaleFactor{1.0}; // factor for global transform
-  double m_scaleFactorMin{0.5};
+  double m_scaleFactorMin{1.0};
   QPointF m_transformCenter;
   bool m_resetZoomOnNextImshow{true};
 

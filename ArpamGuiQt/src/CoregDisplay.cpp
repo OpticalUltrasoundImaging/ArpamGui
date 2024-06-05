@@ -3,44 +3,55 @@
 
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <qaction.h>
 #include <uspam/defer.h>
 
 CoregDisplay::CoregDisplay(QWidget *parent)
     : QWidget(parent), m_canvasLeft(new Canvas(this)),
       m_canvasRight(new Canvas(this)), m_model(new AnnotationModel),
+      actResetZoom(new QAction(QIcon(), "Reset zoom")),
+      actCursorPan(new QAction(QIcon(), "Pan")),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
-      actCursorLabelRect(new QAction(QIcon(), "Zoom")),
-      actResetZoom(new QAction(QIcon(), "Reset zoom"))
+      actCursorLabelRect(new QAction(QIcon(), "Zoom"))
 
 {
   m_model->setParent(this);
 
   // Signals and slots
+  connect(actResetZoom, &QAction::triggered, [=] {
+    m_canvasLeft->scaleToSize();
+    m_canvasRight->scaleToSize();
+  });
+
   connect(actCursorUndo, &QAction::triggered, this, &CoregDisplay::undo);
+
+  actCursorPan->setCheckable(true);
+  connect(actCursorPan, &QAction::triggered, [=] {
+    setCursorMode(Canvas::CursorMode::Pan);
+
+    actCursorPan->setChecked(true);
+    actCursorLine->setChecked(false);
+    actCursorLabelRect->setChecked(false);
+  });
 
   actCursorLine->setCheckable(true);
   defer { actCursorLine->trigger(); };
   connect(actCursorLine, &QAction::triggered, [=] {
-    m_canvasLeft->setCursorMode(Canvas::CursorMode::LineMeasure);
-    m_canvasRight->setCursorMode(Canvas::CursorMode::LineMeasure);
+    setCursorMode(Canvas::CursorMode::LineMeasure);
 
+    actCursorPan->setChecked(false);
     actCursorLine->setChecked(true);
     actCursorLabelRect->setChecked(false);
   });
 
   actCursorLabelRect->setCheckable(true);
   connect(actCursorLabelRect, &QAction::triggered, [=] {
-    m_canvasLeft->setCursorMode(Canvas::CursorMode::LabelRect);
-    m_canvasRight->setCursorMode(Canvas::CursorMode::LabelRect);
+    setCursorMode(Canvas::CursorMode::LabelRect);
 
+    actCursorPan->setChecked(false);
     actCursorLine->setChecked(false);
     actCursorLabelRect->setChecked(true);
-  });
-
-  connect(actResetZoom, &QAction::triggered, [=] {
-    m_canvasLeft->scaleToSize();
-    m_canvasRight->scaleToSize();
   });
 
   // Setup UI
@@ -54,6 +65,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   toolbar->addSeparator();
   toolbar->addAction(actCursorUndo);
   toolbar->addSeparator();
+  toolbar->addAction(actCursorPan);
   toolbar->addAction(actCursorLine);
   toolbar->addAction(actCursorLabelRect);
 
