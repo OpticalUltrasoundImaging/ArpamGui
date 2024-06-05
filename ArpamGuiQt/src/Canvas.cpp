@@ -349,7 +349,7 @@ void Canvas::wheelEvent(QWheelEvent *event) {
     const double numDegrees = event->angleDelta().y() / 8.0;
     const double numSteps = numDegrees / 15.0;
     const double sensitivity = 0.1;
-    const double scaleFactor = 1.0 + numSteps * sensitivity;
+    const double scaleFactor = 1.0 - numSteps * sensitivity;
 
     m_scaleFactor = std::max(m_scaleFactor * scaleFactor, m_scaleFactorMin);
 
