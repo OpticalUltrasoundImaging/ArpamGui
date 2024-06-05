@@ -33,7 +33,8 @@ class Canvas : public QGraphicsView {
 
 public:
   enum class CursorMode {
-    LineMeasure = 0,
+    Default = 0, // Let the QGraphicsView handle
+    LineMeasure,
     LabelRect,
   };
   Q_ENUM(CursorMode);
@@ -190,6 +191,9 @@ private:
   double m_scaleFactorMin{0.5};
   QPointF m_transformCenter;
   bool m_resetZoomOnNextImshow{true};
+
+  // Panning
+  QPointF m_lastPanPoint;
 
   // Image
   QPixmap m_Pixmap; // Image pixmap

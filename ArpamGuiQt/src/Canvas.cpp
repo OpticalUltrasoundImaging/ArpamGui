@@ -217,10 +217,13 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
   m_cursor.startPos = m_PixmapItem->mapFromScene(mapToScene(event->pos()));
 
   if (event->button() == Qt::LeftButton) {
-    m_cursor.leftButtonDown = true;
-
     switch (m_cursorMode) {
+    case (CursorMode::Default):
+      QGraphicsView::mousePressEvent(event);
+      break;
     case (CursorMode::LineMeasure): {
+      event->accept();
+      m_cursor.leftButtonDown = true;
       const auto line = m_cursor.getLine();
 
       // Make line item
@@ -249,14 +252,18 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       break;
     }
     }
-
   } else if (event->button() == Qt::MiddleButton) {
+    // Middle button pan
+    event->accept();
     m_cursor.middleButtonDown = true;
+    m_lastPanPoint = event->pos();
 
   } else if (event->button() == Qt::RightButton) {
-    m_cursor.rightButtonDown = true;
+    // m_cursor.rightButtonDown = true;
+    // event->accept();
+    // undo();
 
-    undo();
+    QGraphicsView::mousePressEvent(event);
   }
 }
 
@@ -271,7 +278,11 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
   if (m_cursor.leftButtonDown) {
     switch (m_cursorMode) {
-    case (CursorMode::LineMeasure): {
+    case CursorMode::Default:
+      QGraphicsView::mouseMoveEvent(event);
+      break;
+    case (CursorMode::LineMeasure):
+      event->accept();
       if (m_currLineItem != nullptr) [[likely]] {
 
         const auto line = m_cursor.getLine();
@@ -283,12 +294,19 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         m_currLabelItem->setText(QString("%1 mm").arg(dist));
       }
       break;
-    }
-    case CursorMode::LabelRect: {
-
+    case CursorMode::LabelRect:
       break;
     }
-    }
+  } else if (m_cursor.middleButtonDown) {
+    // Panning
+    QPointF delta = event->pos() - m_lastPanPoint;
+    horizontalScrollBar()->setValue(horizontalScrollBar()->value() - delta.x());
+    verticalScrollBar()->setValue(verticalScrollBar()->value() - delta.y());
+    m_lastPanPoint = event->pos();
+    event->accept();
+
+  } else {
+    QGraphicsView::mouseMoveEvent(event);
   }
 }
 
@@ -298,22 +316,25 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
     switch (m_cursorMode) {
 
+    case CursorMode::Default:
+      QGraphicsView::mouseReleaseEvent(event);
+      break;
     case CursorMode::LineMeasure: {
       // Save line
       const auto line = m_cursor.getLine();
       m_anno.lines.add(line);
       break;
     }
-    case CursorMode::LabelRect: {
+    case CursorMode::LabelRect:
       break;
-    }
     }
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = false;
 
   } else if (event->button() == Qt::RightButton) {
-    m_cursor.rightButtonDown = false;
+    // m_cursor.rightButtonDown = false;
+    QGraphicsView::mouseReleaseEvent(event);
   }
 }
 
