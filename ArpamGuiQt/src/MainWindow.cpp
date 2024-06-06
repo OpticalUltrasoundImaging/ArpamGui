@@ -18,6 +18,7 @@
 #include <format>
 #include <opencv2/opencv.hpp>
 #include <qboxlayout.h>
+#include <qmimedata.h>
 #include <qnamespace.h>
 #include <qobjectdefs.h>
 #include <qscrollarea.h>
@@ -181,26 +182,28 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
-  if (event->mimeData()->hasUrls()) {
-    event->acceptProposedAction();
+  const auto *mimeData = event->mimeData();
+  if (mimeData->hasUrls()) {
+    const auto &urls = mimeData->urls();
+    // Only allow dropping a single file
+    if (urls.size() == 1) {
+      const auto filepath = urls[0].toLocalFile();
+
+      // Only allow a specific extension
+      if (filepath.endsWith(".bin")) {
+        event->acceptProposedAction();
+      }
+    }
   }
 }
 
 void MainWindow::dropEvent(QDropEvent *event) {
   const auto *mimeData = event->mimeData();
   if (mimeData->hasUrls()) {
-    const auto urls = mimeData->urls();
+    const auto &urls = mimeData->urls();
+    const auto filepath = urls[0].toLocalFile();
+    m_frameController->acceptNewBinfile(filepath);
 
-    if (urls.size() > 1) {
-      QMessageBox mbox;
-      mbox.setText(
-          QString("Please drop 1 file at at a time. Received %1 files.")
-              .arg(urls.size()));
-      mbox.exec();
-    } else {
-      const auto filepath = urls[0].toLocalFile();
-      m_frameController->acceptNewBinfile(filepath);
-    }
     event->acceptProposedAction();
   }
 }

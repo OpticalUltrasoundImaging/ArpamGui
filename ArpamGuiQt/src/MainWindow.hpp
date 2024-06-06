@@ -19,8 +19,7 @@
 class MainWindow : public QMainWindow {
   Q_OBJECT
 public:
-  MainWindow(QWidget *parent = nullptr);
-  ~MainWindow() = default;
+  explicit MainWindow(QWidget *parent = nullptr);
 
 public slots:
   // Log error message to a text box on screen
