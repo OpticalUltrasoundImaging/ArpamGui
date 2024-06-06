@@ -10,6 +10,7 @@
 #include <QVBoxLayout>
 #include <cassert>
 #include <qmessagebox.h>
+#include <qplaintextedit.h>
 
 FrameController::FrameController(QWidget *parent)
     : QGroupBox("Frame controller", parent),
@@ -31,7 +32,7 @@ FrameController::FrameController(QWidget *parent)
       });
 
       hlayout->addWidget(m_btnPlayPause);
-      m_btnPlayPause->setEnabled(false);
+      m_btnPlayPause->setDisabled(true);
 
       connect(m_btnPlayPause, &QPushButton::clicked, this,
               [&] { updatePlayingState(!m_isPlaying); });
@@ -83,7 +84,6 @@ void FrameController::acceptNewBinfile(const QString &filename) {
   updatePlayingState(false);
 
   if (!filename.isEmpty()) {
-    qInfo() << "Selected binfile" << filename;
     emit sigBinfileSelected(filename);
   }
 }
@@ -100,11 +100,16 @@ void FrameController::updateMaxFrameNum(int maxFrameNum) {
   m_frameNumSpinBox->setMinimum(0);
   m_frameNumSpinBox->setMaximum(maxFrameNum - 1);
 
+  m_btnPlayPause->setEnabled(true);
   m_frameNumSpinBox->setEnabled(true);
   m_frameSlider->setEnabled(true);
 }
 
 void FrameController::updatePlayingState(bool playing) {
+  if (m_isPlaying == playing) {
+    return;
+  }
+
   m_isPlaying = playing;
   if (playing) {
     // Now playing
@@ -114,5 +119,25 @@ void FrameController::updatePlayingState(bool playing) {
     // Now pausing
     m_btnPlayPause->setText("Play");
     emit sigPause();
+  }
+}
+
+void FrameController::togglePlayPause() { updatePlayingState(!m_isPlaying); }
+
+void FrameController::nextFrame() {
+  updatePlayingState(false);
+  const auto idx = m_frameNumSpinBox->value();
+  const auto maxIdx = m_frameNumSpinBox->maximum();
+  if (idx < maxIdx) {
+    updateFrameNum(idx + 1);
+    emit sigFrameNumUpdated(idx + 1);
+  }
+}
+void FrameController::prevFrame() {
+  updatePlayingState(false);
+  const auto idx = m_frameNumSpinBox->value();
+  if (idx > 0) {
+    updateFrameNum(idx - 1);
+    emit sigFrameNumUpdated(idx - 1);
   }
 }

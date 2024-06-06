@@ -17,6 +17,10 @@ public slots:
   void updateMaxFrameNum(int maxFrameNum);
 
   void updatePlayingState(bool playing);
+  void togglePlayPause();
+
+  void nextFrame();
+  void prevFrame();
 
 signals:
   void sigBinfileSelected(QString);

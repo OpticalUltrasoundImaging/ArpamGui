@@ -18,6 +18,7 @@
 #include <format>
 #include <opencv2/opencv.hpp>
 #include <qboxlayout.h>
+#include <qnamespace.h>
 #include <qobjectdefs.h>
 #include <qscrollarea.h>
 #include <qtoolbar.h>
@@ -201,6 +202,26 @@ void MainWindow::dropEvent(QDropEvent *event) {
       m_frameController->acceptNewBinfile(filepath);
     }
     event->acceptProposedAction();
+  }
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+  const auto KeyNextFrame = Qt::Key_Period;
+  const auto KeyPrevFrame = Qt::Key_Comma;
+  const auto KeyPlayPause = Qt::Key_Space;
+
+  switch (event->key()) {
+  case KeyNextFrame:
+    m_frameController->nextFrame();
+    break;
+  case KeyPrevFrame:
+    m_frameController->prevFrame();
+    break;
+  case KeyPlayPause:
+    m_frameController->togglePlayPause();
+    break;
+  default:
+    QMainWindow::keyPressEvent(event);
   }
 }
 

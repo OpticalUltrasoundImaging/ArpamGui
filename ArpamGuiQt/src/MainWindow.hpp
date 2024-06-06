@@ -2,6 +2,7 @@
 
 #include <QAction>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QMainWindow>
 #include <QPlainTextEdit>
@@ -9,7 +10,6 @@
 #include <QStackedWidget>
 #include <QThread>
 #include <QVBoxLayout>
-#include <qevent.h>
 
 #include "Canvas.hpp"
 #include "CoregDisplay.hpp"
@@ -32,6 +32,7 @@ protected:
   // Support dropping file
   void dragEnterEvent(QDragEnterEvent *event) override;
   void dropEvent(QDropEvent *event) override;
+  void keyPressEvent(QKeyEvent *event) override;
 
 private:
   void closeEvent(QCloseEvent *event) override;
