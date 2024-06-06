@@ -105,7 +105,11 @@ void DataProcWorker::setBinfile(const QString &binfile) {
   m_binfilePath = qString2Path(binfile);
   m_imageSaveDir = m_binfilePath.parent_path() / m_binfilePath.stem();
 
-  qInfo() << "Processing binfile: " << path2QString(m_binfilePath);
+  {
+    const auto msg = QString("Worker accepted binfile: %1").arg(binfile);
+    qInfo() << msg;
+    emit error(msg);
+  }
 
   if (!fs::create_directory(m_imageSaveDir) && !fs::exists(m_imageSaveDir)) {
     emit error(tr("Failed to create imageSaveDir ") +
@@ -131,10 +135,14 @@ void DataProcWorker::setBinfile(const QString &binfile) {
     // Save init params
     saveParamsToFile();
 
+    // Process the first frame
+    playOne(0);
+
   } catch (const std::runtime_error &e) {
-    const auto msg = QString::fromStdString(e.what());
-    qWarning() << "DataProcWorker exception: " << msg;
-    emit error("DataProcWorker exception: " + msg);
+    const auto msg = QString("DataProcWorker exception: ") +
+                     QString::fromStdString(e.what());
+    qWarning() << msg;
+    emit error(msg);
   }
 }
 

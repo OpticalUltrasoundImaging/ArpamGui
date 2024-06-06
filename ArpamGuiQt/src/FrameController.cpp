@@ -85,11 +85,9 @@ void FrameController::acceptNewBinfile(const QString &filename) {
   if (!filename.isEmpty()) {
     qInfo() << "Selected binfile" << filename;
     emit sigBinfileSelected(filename);
-
-    m_btnPlayPause->setEnabled(true);
-    updatePlayingState(true);
   }
 }
+
 void FrameController::updateFrameNum(int frameNum) {
   m_frameNumSpinBox->setValue(frameNum);
   m_frameSlider->setValue(frameNum);
