@@ -1,9 +1,9 @@
 #include "CoregDisplay.hpp"
 #include "CanvasAnnotationModel.hpp"
 
+#include <QAction>
 #include <QHBoxLayout>
 #include <QPushButton>
-#include <qaction.h>
 #include <uspam/defer.h>
 
 CoregDisplay::CoregDisplay(QWidget *parent)

@@ -45,75 +45,24 @@ class AnnotationModel : public QAbstractListModel {
 public:
   enum AnnotationRoles { TypeRole = Qt::UserRole + 1, PolygonRole, ColorRole };
 
-  [[nodiscard]] int rowCount(const QModelIndex &parent) const override {
-    Q_UNUSED(parent);
-    return static_cast<int>(m_annotations.size());
-  }
+  [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
 
   [[nodiscard]] QVariant data(const QModelIndex &index,
-                              int role) const override {
-    if (!index.isValid() || index.row() >= m_annotations.size()) {
-      return {};
-    }
-
-    const Annotation &annotation = m_annotations[index.row()];
-
-    switch (role) {
-    case TypeRole:
-      return annotation.type();
-    case PolygonRole:
-      return annotation.polygon();
-    case ColorRole:
-      return annotation.color();
-    default:
-      return {};
-    }
-  }
+                              int role) const override;
 
   bool setData(const QModelIndex &index, const QVariant &value,
-               int role) override {
-    if (!index.isValid() || index.row() >= m_annotations.size()) {
-      return false;
-    }
-
-    auto &annotation = m_annotations[index.row()];
-    switch (role) {
-    case TypeRole:
-      annotation.setType(static_cast<Annotation::Type>(value.toInt()));
-      break;
-    case PolygonRole:
-      annotation.setPolygon(value.value<QPolygon>());
-      break;
-    case ColorRole:
-      annotation.setColor(value.value<QColor>());
-      break;
-    default:
-      return false;
-    }
-
-    emit dataChanged(index, index, {role});
-    return true;
-  }
+               int role) override;
 
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex &index) const override {
     if (!index.isValid()) {
       return Qt::NoItemFlags;
     }
-
     return Qt::ItemIsEditable | QAbstractListModel::flags(index);
   }
 
-  void addAnnotation(const Annotation &annotation) {
-    beginInsertRows(QModelIndex(), m_annotations.size(), m_annotations.size());
-    m_annotations.append(annotation);
-    endInsertRows();
-  }
+  void addAnnotation(const Annotation &annotation);
 
-  void removeAnnotation(int row) {
-    beginRemoveRows(QModelIndex(), row, row);
-    m_annotations.removeAt(row);
-    endRemoveRows();
-  }
+  void removeAnnotation(int row);
 
   [[nodiscard]] Annotation const &getAnnotation(int row) const {
     return m_annotations[row];

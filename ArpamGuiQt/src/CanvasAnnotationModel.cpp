@@ -21,3 +21,67 @@ auto Annotation::rect() const -> QRectF {
   assert(m_polygon.size() == 2);
   return {m_polygon[0], m_polygon[1]};
 };
+
+/*******/
+
+[[nodiscard]] int AnnotationModel::rowCount(const QModelIndex &parent) const {
+  Q_UNUSED(parent);
+  return static_cast<int>(m_annotations.size());
+}
+
+[[nodiscard]] QVariant AnnotationModel::data(const QModelIndex &index,
+                                             int role) const {
+  if (!index.isValid() || index.row() >= m_annotations.size()) {
+    return {};
+  }
+
+  const Annotation &annotation = m_annotations[index.row()];
+
+  switch (role) {
+  case TypeRole:
+    return annotation.type();
+  case PolygonRole:
+    return annotation.polygon();
+  case ColorRole:
+    return annotation.color();
+  default:
+    return {};
+  }
+}
+
+bool AnnotationModel::setData(const QModelIndex &index, const QVariant &value,
+                              int role) {
+  if (!index.isValid() || index.row() >= m_annotations.size()) {
+    return false;
+  }
+
+  auto &annotation = m_annotations[index.row()];
+  switch (role) {
+  case TypeRole:
+    annotation.setType(static_cast<Annotation::Type>(value.toInt()));
+    break;
+  case PolygonRole:
+    annotation.setPolygon(value.value<QPolygon>());
+    break;
+  case ColorRole:
+    annotation.setColor(value.value<QColor>());
+    break;
+  default:
+    return false;
+  }
+
+  emit dataChanged(index, index, {role});
+  return true;
+}
+
+void AnnotationModel::addAnnotation(const Annotation &annotation) {
+  beginInsertRows(QModelIndex(), m_annotations.size(), m_annotations.size());
+  m_annotations.append(annotation);
+  endInsertRows();
+}
+
+void AnnotationModel::removeAnnotation(int row) {
+  beginRemoveRows(QModelIndex(), row, row);
+  m_annotations.removeAt(row);
+  endRemoveRows();
+}

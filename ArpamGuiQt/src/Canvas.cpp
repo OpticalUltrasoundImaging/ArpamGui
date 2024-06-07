@@ -257,6 +257,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         delete m_currItem;
         m_currItem = m_scene->addRect(rect, pen);
       }
+
+      delete m_currLabelItem;
     } break;
     }
   } else if (event->button() == Qt::MiddleButton) {
