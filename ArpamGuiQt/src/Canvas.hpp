@@ -1,11 +1,12 @@
 #pragma once
 
+#include "CanvasAnnotationItem.hpp"
 #include "CanvasAnnotationModel.hpp"
-#include "CanvasAnnotations.hpp"
 #include "CanvasCursorState.hpp"
 #include "CanvasTicks.hpp"
 #include "geometryUtils.hpp"
 #include <QAbstractListModel>
+#include <QEvent>
 #include <QGraphicsItem>
 #include <QGraphicsPolygonItem>
 #include <QGraphicsScene>
@@ -20,7 +21,6 @@
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
-#include <qevent.h>
 #include <stdexcept>
 #include <vector>
 
@@ -233,7 +233,7 @@ private:
   CursorMode m_cursorMode{CursorMode::LabelRect};
 
   // The graphics item currently being drawn by the cursor
-  QGraphicsItem *m_currItem{nullptr};
+  AnnotationGraphicsItemBase *m_currItem{nullptr};
   QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
   AnnotationModel *m_annotations{};

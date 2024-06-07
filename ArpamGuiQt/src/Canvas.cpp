@@ -1,5 +1,5 @@
 #include "Canvas.hpp"
-#include "CanvasAnnotations.hpp"
+#include "CanvasAnnotationItem.hpp"
 #include "geometryUtils.hpp"
 #include <QGestureEvent>
 #include <QHBoxLayout>
@@ -194,17 +194,17 @@ void Canvas::paintEvent(QPaintEvent *event) {
 }
 
 void Canvas::undo() {
-  switch (m_cursorMode) {
+  // switch (m_cursorMode) {
 
-  case CursorMode::MeasureLine:
-    break;
+  // case CursorMode::MeasureLine:
+  //   break;
 
-  case CursorMode::LabelRect:
-    break;
+  // case CursorMode::LabelRect:
+  //   break;
 
-  default:
-    break;
-  }
+  // default:
+  //   break;
+  // }
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
@@ -223,20 +223,29 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       break;
     case (CursorMode::MeasureLine): {
       event->accept();
-      const auto line = m_cursor.getLine();
 
-      // Make line item
-      {
-        QPen pen(Qt::white);
-        pen.setWidth(2);
-        pen.setCosmetic(true);
+      if (m_currItem != nullptr) {
+        m_scene->removeItem(m_currItem);
         delete m_currItem;
-        m_currItem = m_scene->addLine(line, pen);
+        m_currItem = nullptr;
+      }
+
+      if (m_currLabelItem != nullptr) {
+        m_scene->removeItem(m_currLabelItem);
+        delete m_currLabelItem;
+        m_currLabelItem = nullptr;
+      }
+
+      const auto line = m_cursor.getLine();
+      const auto color = Qt::white;
+
+      {
+        m_currItem = new LineItem(line, color);
+        m_scene->addItem(m_currItem);
       }
 
       // Make simple text label item
       {
-        delete m_currLabelItem;
         QFont font;
         font.setPointSize(12);
         m_currLabelItem = m_scene->addSimpleText("", font);
@@ -247,19 +256,30 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         m_currLabelItem->setPen(pen);
       }
     } break;
+
     case CursorMode::LabelRect: {
       event->accept();
+
+      if (m_currItem != nullptr) {
+        m_scene->removeItem(m_currItem);
+        delete m_currItem;
+        m_currItem = nullptr;
+      }
+
+      if (m_currLabelItem != nullptr) {
+        m_scene->removeItem(m_currLabelItem);
+        delete m_currLabelItem;
+        m_currLabelItem = nullptr;
+      }
+
       const auto rect = m_cursor.getRect();
       {
-        QPen pen(Qt::white);
-        pen.setWidth(2);
-        pen.setCosmetic(true);
-        delete m_currItem;
-        m_currItem = m_scene->addRect(rect, pen);
+        m_currItem = new RectItem(rect, Qt::white);
+        m_scene->addItem(m_currItem);
       }
 
       delete m_currLabelItem;
-      m_currLabelItem=nullptr;
+      m_currLabelItem = nullptr;
     } break;
     }
   } else if (event->button() == Qt::MiddleButton) {
@@ -298,13 +318,10 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
     case CursorMode::MeasureLine:
       event->accept();
-      // if (auto *item = dynamic_cast<QGraphicsLineItem *>(m_currItem);
-      //     item != nullptr) [[likely]] {
 
-      if (auto *item = dynamic_cast<QGraphicsLineItem *>(m_currItem);
-          item != nullptr) [[likely]] {
+      if (auto *item = dynamic_cast<LineItem *>(m_currItem); item != nullptr)
+          [[likely]] {
 
-        // emit error("Drawing line");
         const auto line = m_cursor.getLine();
         const auto dist = computeDistance_mm(line.p1(), line.p2());
         item->setLine(line);
@@ -313,15 +330,14 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
           m_currLabelItem->setPos(line.center() + QPointF{10, 10});
           m_currLabelItem->setText(QString("%1 mm").arg(dist));
         }
-      } else {
-        // emit error("Failed to cast m_currItem to QGraphicsLineItem*");
       }
+
       break;
 
     case CursorMode::LabelRect:
       event->accept();
-      if (auto *item = dynamic_cast<QGraphicsRectItem *>(m_currItem);
-          item != nullptr) [[likely]] {
+      if (auto *item = dynamic_cast<RectItem *>(m_currItem); item != nullptr)
+          [[likely]] {
         item->setRect(m_cursor.getRect());
       }
       break;
@@ -350,13 +366,17 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       break;
 
     case CursorMode::MeasureLine: {
-      // Save line
-      const auto line = m_cursor.getLine();
+      // Save
+      Annotation anno(m_cursor.getLine(), m_currItem->color());
+      m_annotations->addAnnotation(anno);
 
-      break;
-    }
-    case CursorMode::LabelRect:
-      break;
+    } break;
+    case CursorMode::LabelRect: {
+      // Save
+      Annotation anno(m_cursor.getRect(), m_currItem->color());
+      m_annotations->addAnnotation(anno);
+
+    } break;
     }
 
   } else if (event->button() == Qt::MiddleButton) {
@@ -369,10 +389,10 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void Canvas::wheelEvent(QWheelEvent *event) {
-  qDebug() << "wheelEvent triggered, modifiers: " << event->modifiers();
+  const auto WHEEL_ZOOM_MODIFIER = Qt::ControlModifier;
 
-  if (event->modifiers().testFlag(Qt::ControlModifier)) {
-    // Ctrl + scroll -> Zoom
+  if (event->modifiers().testFlag(WHEEL_ZOOM_MODIFIER)) {
+    // modifier + scroll -> Zoom
     event->accept();
 
     // Calculate the scale factor adjustment
