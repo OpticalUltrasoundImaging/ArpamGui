@@ -6,6 +6,8 @@
 #include <QPolygonF>
 #include <QRectF>
 #include <QVariant>
+#include <array>
+#include <qnamespace.h>
 #include <utility>
 
 // Points are stored in a QPolygonF, which is just a QList<QPointF>
@@ -34,6 +36,17 @@ public:
   [[nodiscard]] auto color() const -> QColor { return m_color; }
   void setColor(QColor color) { m_color = color; }
 
+  static QString typeToString(Type type) {
+    switch (type) {
+    case Line:
+      return "Line";
+    case Rect:
+      return "Rect";
+    case Polygon:
+      return "Polygon";
+    }
+  }
+
 private:
   Type m_type;
   QPolygonF m_polygon;
@@ -44,8 +57,14 @@ class AnnotationModel : public QAbstractListModel {
   Q_OBJECT
 public:
   enum AnnotationRoles { TypeRole = Qt::UserRole + 1, PolygonRole, ColorRole };
+  const inline static std::array<QString, 3> HEADER_DATA{"Color", "Type",
+                                                         "Points"};
 
   [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+  [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
+
+  [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation,
+                                    int role = Qt::DisplayRole) const override;
 
   [[nodiscard]] QVariant data(const QModelIndex &index,
                               int role) const override;

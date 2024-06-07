@@ -3,12 +3,15 @@
 #include "Canvas.hpp"
 #include "CanvasAnnotationModel.hpp"
 #include <QLabel>
+#include <QTableView>
 #include <QWidget>
 
 class CoregDisplay : public QWidget {
   Q_OBJECT
 public:
   explicit CoregDisplay(QWidget *parent = nullptr);
+
+  auto getTableView() { return m_tableView; }
 
 signals:
   void message(const QString &msg);
@@ -33,9 +36,15 @@ public slots:
     m_canvasRight->resetZoomOnNextImshow();
   }
 
+protected:
+  void closeEvent(QCloseEvent *event) override;
+
 private:
   Canvas *m_canvasLeft;
   Canvas *m_canvasRight;
+
+  QTableView *m_tableView;
+
   AnnotationModel *m_model;
 
   // Reset image zoom

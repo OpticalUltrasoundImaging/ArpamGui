@@ -1,5 +1,7 @@
 #include "CanvasAnnotationModel.hpp"
 #include <cassert>
+#include <qabstractitemmodel.h>
+#include <qnamespace.h>
 
 Annotation::Annotation(Type type, const QList<QPointF> &points,
                        const QColor &color)
@@ -29,15 +31,43 @@ auto Annotation::rect() const -> QRectF {
   return static_cast<int>(m_annotations.size());
 }
 
+[[nodiscard]] int
+AnnotationModel::columnCount(const QModelIndex &parent) const {
+  return HEADER_DATA.size();
+}
+
+[[nodiscard]] QVariant AnnotationModel::headerData(int section,
+                                                   Qt::Orientation orientation,
+                                                   int role) const {
+  if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+    assert(sectino < HEADER_DATA.size());
+    return HEADER_DATA.at(section);
+  }
+  return QAbstractListModel::headerData(section, orientation, role);
+}
+
 [[nodiscard]] QVariant AnnotationModel::data(const QModelIndex &index,
                                              int role) const {
   if (!index.isValid() || index.row() >= m_annotations.size()) {
     return {};
   }
 
-  const Annotation &annotation = m_annotations[index.row()];
+  const auto &annotation = m_annotations[index.row()];
 
   switch (role) {
+  case Qt::DisplayRole:
+    if (index.column() == 0) {
+      return annotation.color();
+    }
+
+    if (index.column() == 1) {
+      return Annotation::typeToString(annotation.type());
+    }
+
+    if (index.column() == 2) {
+      return annotation.polygon();
+    }
+
   case TypeRole:
     return annotation.type();
   case PolygonRole:

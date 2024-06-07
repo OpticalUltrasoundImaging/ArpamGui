@@ -4,11 +4,17 @@
 #include <QAction>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <qtableview.h>
 #include <uspam/defer.h>
 
 CoregDisplay::CoregDisplay(QWidget *parent)
-    : QWidget(parent), m_canvasLeft(new Canvas(this)),
-      m_canvasRight(new Canvas(this)), m_model(new AnnotationModel),
+    : QWidget(parent),
+
+      m_canvasLeft(new Canvas(this)), m_canvasRight(new Canvas(this)),
+
+      m_tableView(new QTableView),
+
+      m_model(new AnnotationModel),
       actResetZoom(new QAction(QIcon(), "Reset zoom")),
       actCursorPan(new QAction(QIcon(), "Pan")),
       actCursorUndo(new QAction(QIcon(), "Undo")),
@@ -20,6 +26,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   m_model->setParent(this);
   m_canvasLeft->setModel(m_model);
   m_canvasRight->setModel(m_model);
+  m_tableView->setModel(m_model);
 
   // Signals from canvas
   connect(m_canvasLeft, &Canvas::error, this, &CoregDisplay::message);
@@ -89,6 +96,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
     canvas->setDisabled(true);
     connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
   }
+
+  m_tableView->show();
 }
 
 void CoregDisplay::imshow(const QImage &img1, const QImage &img2,
@@ -98,4 +107,9 @@ void CoregDisplay::imshow(const QImage &img1, const QImage &img2,
 
   m_canvasLeft->setEnabled(true);
   m_canvasRight->setEnabled(true);
+}
+
+void CoregDisplay::closeEvent(QCloseEvent *event) {
+  m_tableView->close();
+  QWidget::closeEvent(event);
 }
