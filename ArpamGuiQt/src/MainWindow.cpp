@@ -72,8 +72,9 @@ MainWindow::MainWindow(QWidget *parent)
     auto *dockWidget = new QWidget;
     dockWidget->setLayout(dockLayout);
     dock->setWidget(dockWidget);
-    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable |
-                                          QDockWidget::DockWidgetFloatable));
+    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable |
+    //                                       QDockWidget::DockWidgetFloatable));
+    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
   }
 

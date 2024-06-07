@@ -74,7 +74,7 @@ public:
   [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
 
   [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation,
-                                    int role = Qt::DisplayRole) const override;
+                                    int role) const override;
 
   [[nodiscard]] QVariant data(const QModelIndex &index,
                               int role) const override;
