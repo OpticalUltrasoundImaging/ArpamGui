@@ -72,12 +72,7 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value,
                int role) override;
 
-  [[nodiscard]] Qt::ItemFlags flags(const QModelIndex &index) const override {
-    if (!index.isValid()) {
-      return Qt::NoItemFlags;
-    }
-    return Qt::ItemIsEditable | QAbstractListModel::flags(index);
-  }
+  [[nodiscard]] Qt::ItemFlags flags(const QModelIndex &index) const override;
 
   void addAnnotation(const Annotation &annotation);
 

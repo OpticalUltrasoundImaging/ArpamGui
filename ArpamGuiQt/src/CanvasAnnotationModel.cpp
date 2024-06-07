@@ -104,6 +104,13 @@ bool AnnotationModel::setData(const QModelIndex &index, const QVariant &value,
   return true;
 }
 
+Qt::ItemFlags AnnotationModel::flags(const QModelIndex &index) const {
+  if (!index.isValid()) {
+    return Qt::NoItemFlags;
+  }
+  return QAbstractListModel::flags(index);
+}
+
 void AnnotationModel::addAnnotation(const Annotation &annotation) {
   beginInsertRows(QModelIndex(), m_annotations.size(), m_annotations.size());
   m_annotations.append(annotation);
