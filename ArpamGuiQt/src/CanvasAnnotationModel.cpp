@@ -65,6 +65,10 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
     }
 
     if (index.column() == 2) {
+      return annotation.name();
+    }
+
+    if (index.column() == 3) {
       return annotation.polygon();
     }
 
@@ -74,6 +78,8 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
     return annotation.polygon();
   case ColorRole:
     return annotation.color();
+  case NameRole:
+    return annotation.name();
   default:
     return {};
   }
@@ -96,6 +102,8 @@ bool AnnotationModel::setData(const QModelIndex &index, const QVariant &value,
   case ColorRole:
     annotation.setColor(value.value<QColor>());
     break;
+  case NameRole:
+    annotation.setName(value.toString());
   default:
     return false;
   }

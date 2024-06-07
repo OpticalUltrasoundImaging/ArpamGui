@@ -17,6 +17,8 @@ qt_add_executable(${EXE_NAME}
     src/CanvasAnnotationItem.cpp
     src/CanvasAnnotationModel.hpp
     src/CanvasAnnotationModel.cpp
+    src/CanvasAnnotationView.hpp
+    src/CanvasAnnotationView.cpp
     src/CanvasCursorState.hpp
     src/CanvasTicks.hpp
     src/CanvasTicks.cpp

@@ -48,6 +48,9 @@ public:
   [[nodiscard]] auto color() const { return m_color; }
   void setColor(const QColor &color) { m_color = color; }
 
+  [[nodiscard]] auto name() const { return m_name; }
+  void setName(QString name) { m_name = std::move(name); }
+
 protected:
   void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override {
     Q_UNUSED(event)
@@ -63,6 +66,7 @@ protected:
 
 private:
   QColor m_color;
+  QString m_name;
   bool m_inHover{false};
 };
 

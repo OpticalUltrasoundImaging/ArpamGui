@@ -2,6 +2,7 @@
 
 #include "Canvas.hpp"
 #include "CanvasAnnotationModel.hpp"
+#include "CanvasAnnotationView.hpp"
 #include <QLabel>
 #include <QTableView>
 #include <QWidget>
@@ -11,7 +12,7 @@ class CoregDisplay : public QWidget {
 public:
   explicit CoregDisplay(QWidget *parent = nullptr);
 
-  auto getTableView() { return m_tableView; }
+  auto getAnnotationView() { return m_annoView; }
 
 signals:
   void message(const QString &msg);
@@ -51,16 +52,13 @@ public slots:
     m_canvasRight->overlay()->setIdx(idx);
   }
 
-protected:
-  void closeEvent(QCloseEvent *event) override;
-
 private:
   Canvas *m_canvasLeft;
   Canvas *m_canvasRight;
 
-  QTableView *m_tableView;
-
   AnnotationModel *m_model;
+
+  AnnotationView *m_annoView;
 
   // Reset image zoom
   QAction *actResetZoom;

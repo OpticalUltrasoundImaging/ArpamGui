@@ -5,6 +5,7 @@
 #include <QList>
 #include <QPolygonF>
 #include <QRectF>
+#include <QString>
 #include <QVariant>
 #include <array>
 #include <qnamespace.h>
@@ -36,6 +37,9 @@ public:
   [[nodiscard]] auto color() const -> QColor { return m_color; }
   void setColor(QColor color) { m_color = color; }
 
+  [[nodiscard]] auto name() const { return m_name; }
+  void setName(QString name) { m_name = std::move(name); }
+
   static QString typeToString(Type type) {
     switch (type) {
     case Line:
@@ -51,14 +55,20 @@ private:
   Type m_type;
   QPolygonF m_polygon;
   QColor m_color;
+  QString m_name;
 };
 
 class AnnotationModel : public QAbstractListModel {
   Q_OBJECT
 public:
-  enum AnnotationRoles { TypeRole = Qt::UserRole + 1, PolygonRole, ColorRole };
-  const inline static std::array<QString, 3> HEADER_DATA{"Color", "Type",
-                                                         "Points"};
+  enum AnnotationRoles {
+    TypeRole = Qt::UserRole + 1,
+    PolygonRole,
+    ColorRole,
+    NameRole
+  };
+  const inline static std::array<QString, 4> HEADER_DATA{"Color", "Type",
+                                                         "Name", "Points"};
 
   [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
   [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
