@@ -1,3 +1,7 @@
+QLabel {
+    font-size: 14pt;
+}
+
 QPushButton#closeButton {
     background-color: red;
     color: white;

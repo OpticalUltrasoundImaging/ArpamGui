@@ -263,12 +263,12 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       // Make simple text label item
       {
         QFont font;
-        font.setPointSize(12);
+        font.setPointSize(16);
         m_currLabelItem = m_scene->addSimpleText("", font);
 
         QPen pen(Qt::white);
-        pen.setWidth(2);
-        pen.setCosmetic(true);
+        // pen.setWidth(1);
+        // pen.setCosmetic(true);
         m_currLabelItem->setPen(pen);
       }
     } break;
