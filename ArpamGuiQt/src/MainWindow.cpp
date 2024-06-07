@@ -5,6 +5,7 @@
 #include "DataProcWorker.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
+#include "strConvUtils.hpp"
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -15,6 +16,7 @@
 #include <QVBoxLayout>
 #include <QtDebug>
 #include <QtLogging>
+#include <filesystem>
 #include <format>
 #include <opencv2/opencv.hpp>
 #include <qboxlayout.h>
@@ -87,21 +89,38 @@ MainWindow::MainWindow(QWidget *parent)
   {
     m_frameController = new FrameController;
     dockLayout->addWidget(m_frameController);
-    connect(m_frameController, &FrameController::sigBinfileSelected, worker,
-            &DataProcWorker::setBinfile);
+    connect(m_frameController, &FrameController::sigBinfileSelected,
+            [=](const QString &filepath) {
+              const auto pathUtf8 = filepath.toUtf8();
+              std::filesystem::path path(pathUtf8.constData());
+
+              QMetaObject::invokeMethod(worker, &DataProcWorker::setBinfile,
+                                        path);
+
+              m_coregDisplay->setSequenceName(path2QString(path.stem()));
+            });
+
     connect(m_frameController, &FrameController::sigFrameNumUpdated, worker,
             &DataProcWorker::playOne);
+
     connect(m_frameController, &FrameController::sigPlay, [=] {
       QMetaObject::invokeMethod(worker, &DataProcWorker::play);
       m_coregDisplay->resetZoomOnNextImshow();
     });
+
     connect(m_frameController, &FrameController::sigPause, this,
             [&]() { worker->pause(); });
 
-    connect(worker, &DataProcWorker::maxFramesChanged, m_frameController,
-            &FrameController::updateMaxFrameNum);
-    connect(worker, &DataProcWorker::frameIdxChanged, m_frameController,
-            &FrameController::updateFrameNum);
+    connect(worker, &DataProcWorker::maxFramesChanged, [=](int maxIdx) {
+      m_frameController->updateMaxFrameNum(maxIdx);
+      m_coregDisplay->setMaxIdx(maxIdx);
+    });
+
+    connect(worker, &DataProcWorker::frameIdxChanged, [=](int idx) {
+      m_frameController->updateFrameNum(idx);
+      m_coregDisplay->setIdx(idx);
+    });
+
     connect(worker, &DataProcWorker::finishedPlaying,
             [=] { m_frameController->updatePlayingState(false); });
   }

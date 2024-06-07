@@ -4,8 +4,10 @@
 #include <QAction>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <array>
 #include <qtableview.h>
 #include <uspam/defer.h>
+#include <utility>
 
 CoregDisplay::CoregDisplay(QWidget *parent)
     : QWidget(parent),
@@ -16,6 +18,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 
       m_model(new AnnotationModel),
       actResetZoom(new QAction(QIcon(), "Reset zoom")),
+      actCursorDefault(new QAction(QIcon(), "Default")),
       actCursorPan(new QAction(QIcon(), "Pan")),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
@@ -40,33 +43,30 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 
   connect(actCursorUndo, &QAction::triggered, this, &CoregDisplay::undo);
 
-  actCursorPan->setCheckable(true);
-  connect(actCursorPan, &QAction::triggered, [=] {
-    setCursorMode(Canvas::CursorMode::Pan);
+  // Exclusive, checkable actions that change the cursor mode
+  using AP = std::pair<QAction *, Canvas::CursorMode>;
+  using CursorMode = Canvas::CursorMode;
 
-    actCursorPan->setChecked(true);
-    actCursorLine->setChecked(false);
-    actCursorLabelRect->setChecked(false);
-  });
+  const std::array CursorModeActions = {
+      AP{actCursorDefault, CursorMode::Default},
+      AP{actCursorPan, CursorMode::Pan},
+      AP{actCursorLine, CursorMode::MeasureLine},
+      AP{actCursorLabelRect, CursorMode::LabelRect}};
 
-  actCursorLine->setCheckable(true);
-  defer { actCursorLine->trigger(); };
-  connect(actCursorLine, &QAction::triggered, [=] {
-    setCursorMode(Canvas::CursorMode::MeasureLine);
+  // Init state and connect exclusive checking of actions
+  for (const auto &[act1, enum1] : CursorModeActions) {
+    act1->setCheckable(true);
+    connect(act1, &QAction::triggered, [=] {
+      setCursorMode(enum1);
 
-    actCursorPan->setChecked(false);
-    actCursorLine->setChecked(true);
-    actCursorLabelRect->setChecked(false);
-  });
+      for (const auto &[act2, enum2] : CursorModeActions) {
+        act2->setChecked(false);
+      }
+      act1->setChecked(true);
+    });
+  }
 
-  actCursorLabelRect->setCheckable(true);
-  connect(actCursorLabelRect, &QAction::triggered, [=] {
-    setCursorMode(Canvas::CursorMode::LabelRect);
-
-    actCursorPan->setChecked(false);
-    actCursorLine->setChecked(false);
-    actCursorLabelRect->setChecked(true);
-  });
+  defer { actCursorDefault->trigger(); };
 
   // Setup UI
   auto *vlayout = new QVBoxLayout;
@@ -75,10 +75,12 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   // Toolbar
   auto *toolbar = new QToolBar("Cursor type");
   vlayout->addWidget(toolbar);
+
   toolbar->addAction(actResetZoom);
+  // toolbar->addSeparator();
+  // toolbar->addAction(actCursorUndo);
   toolbar->addSeparator();
-  toolbar->addAction(actCursorUndo);
-  toolbar->addSeparator();
+  toolbar->addAction(actCursorDefault);
   toolbar->addAction(actCursorPan);
   toolbar->addAction(actCursorLine);
   toolbar->addAction(actCursorLabelRect);
@@ -87,8 +89,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   auto *hlayout = new QHBoxLayout;
   vlayout->addLayout(hlayout);
 
-  m_canvasLeft->setName("US");
-  m_canvasRight->setName("PAUS");
+  m_canvasLeft->overlay()->setModality("US");
+  m_canvasRight->overlay()->setModality("PAUS");
 
   for (auto *const canvas : {m_canvasLeft, m_canvasRight}) {
     hlayout->addWidget(canvas);

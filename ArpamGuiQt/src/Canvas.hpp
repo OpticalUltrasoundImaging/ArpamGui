@@ -3,18 +3,22 @@
 #include "CanvasAnnotationItem.hpp"
 #include "CanvasAnnotationModel.hpp"
 #include "CanvasCursorState.hpp"
+#include "CanvasOverlay.hpp"
 #include "CanvasTicks.hpp"
 #include "geometryUtils.hpp"
 #include <QAbstractListModel>
 #include <QEvent>
 #include <QGraphicsItem>
 #include <QGraphicsPolygonItem>
+#include <QGraphicsProxyWidget>
 #include <QGraphicsScene>
 #include <QGraphicsSceneEvent>
 #include <QGraphicsView>
+#include <QGraphicsWidget>
 #include <QImage>
 #include <QLayout>
 #include <QRect>
+#include <QResizeEvent>
 #include <QString>
 #include <QTransform>
 #include <QWheelEvent>
@@ -45,17 +49,17 @@ public:
 
   explicit Canvas(QWidget *parent = nullptr);
 
-  [[nodiscard]] auto name() const { return m_name; }
-  void setName(QString name) { m_name = std::move(name); }
-
   void setModel(AnnotationModel *model) {
     this->m_annotations = model;
     connect(model, &AnnotationModel::dataChanged, this, &Canvas::onDataChanged);
   }
 
+  auto overlay() { return m_overlay; }
+
   [[nodiscard]] auto cursorMode() const { return m_cursorMode; }
 
   // Update the scale to fit the pixmap in the widget
+  void updateMinScaleFactor();
   void scaleToSize();
 
 public slots: // NOLINT
@@ -114,7 +118,10 @@ protected:
 
   void wheelEvent(QWheelEvent *event) override;
 
+  void resizeEvent(QResizeEvent *event) override;
+
 private:
+  // Called whenever m_scaleFactor changes
   void updateTransform();
 
   // Pinch zoom handlers
@@ -208,7 +215,9 @@ private:
 
   // Scene
   QGraphicsScene *m_scene;
-  QString m_name;
+
+  // Scene overlay items
+  CanvasOverlay *m_overlay;
 
   // Transform
   double m_scaleFactor{1.0}; // factor for global transform

@@ -1,4 +1,5 @@
 #include "DataProcWorker.hpp"
+#include "strConvUtils.hpp"
 #include <QThreadPool>
 #include <QtDebug>
 #include <QtLogging>
@@ -17,28 +18,6 @@
 namespace io = uspam::io;
 
 namespace {
-
-// Convert a QString to a fs::path
-auto qString2Path(const QString &str) {
-  const auto utf8array = str.toUtf8();
-  return fs::path(utf8array.constData());
-}
-
-auto path2string(const fs::path &path) {
-#if defined(_WIN32) || defined(_WIN64)
-  return path.wstring();
-#else
-  return path.string();
-#endif
-}
-
-auto path2QString(const fs::path &path) {
-#if defined(_WIN32) || defined(_WIN64)
-  return QString::fromStdWString(path.wstring());
-#else
-  return QString::fromStdString(path.string());
-#endif
-}
 
 auto estimate_aline_background_from_file(const io::IOParams &ioparams,
                                          const fs::path &fname,
@@ -100,16 +79,9 @@ struct ReconPerformanceStats {
   float reconTimeMs;
 };
 
-void DataProcWorker::setBinfile(const QString &binfile) {
-  qInfo() << "DataProcWorker set currentBinfile to" << binfile;
-  m_binfilePath = qString2Path(binfile);
+void DataProcWorker::setBinfile(const fs::path &binfile) {
+  m_binfilePath = binfile;
   m_imageSaveDir = m_binfilePath.parent_path() / m_binfilePath.stem();
-
-  {
-    const auto msg = QString("Worker accepted binfile: %1").arg(binfile);
-    qInfo() << msg;
-    emit error(msg);
-  }
 
   if (!fs::create_directory(m_imageSaveDir) && !fs::exists(m_imageSaveDir)) {
     emit error(tr("Failed to create imageSaveDir ") +

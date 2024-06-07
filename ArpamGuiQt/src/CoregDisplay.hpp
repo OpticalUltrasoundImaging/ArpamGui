@@ -36,6 +36,21 @@ public slots:
     m_canvasRight->resetZoomOnNextImshow();
   }
 
+  void setSequenceName(const QString &sequence) {
+    m_canvasLeft->overlay()->setSequence(sequence);
+    m_canvasRight->overlay()->setSequence(sequence);
+  }
+
+  void setMaxIdx(int maxIdx) {
+    m_canvasLeft->overlay()->setMaxIdx(maxIdx);
+    m_canvasRight->overlay()->setMaxIdx(maxIdx);
+  }
+
+  void setIdx(int idx) {
+    m_canvasLeft->overlay()->setIdx(idx);
+    m_canvasRight->overlay()->setIdx(idx);
+  }
+
 protected:
   void closeEvent(QCloseEvent *event) override;
 
@@ -50,6 +65,8 @@ private:
   // Reset image zoom
   QAction *actResetZoom;
 
+  // Action to use default cursor
+  QAction *actCursorDefault;
   // Action to use cursor to pan
   QAction *actCursorPan;
   // Action to undo the last cursor action in the canvas

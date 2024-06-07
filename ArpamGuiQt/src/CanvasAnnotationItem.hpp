@@ -27,7 +27,11 @@ public:
 
   explicit AnnotationGraphicsItemBase(const QColor &color,
                                       QGraphicsItem *parent = nullptr)
-      : QGraphicsItem(parent), m_color(color) {}
+      : QGraphicsItem(parent), m_color(color) {
+    setSelected(true);
+    setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
+             QGraphicsItem::ItemIsMovable);
+  }
 
   auto getPen() {
     if (m_inHover) [[unlikely]] {

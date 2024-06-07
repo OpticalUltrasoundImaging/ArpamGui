@@ -29,7 +29,7 @@ public:
 
 public slots:
   // Begin post processing data using the currentBinfile
-  void setBinfile(const QString &binfile);
+  void setBinfile(const fs::path &binfile);
 
   // Start processing frames sequentially
   // By default start playing at current frameIdx

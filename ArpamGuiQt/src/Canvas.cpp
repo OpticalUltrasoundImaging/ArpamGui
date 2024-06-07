@@ -2,6 +2,8 @@
 #include "CanvasAnnotationItem.hpp"
 #include "geometryUtils.hpp"
 #include <QGestureEvent>
+#include <QGraphicsView>
+#include <QGraphicsWidget>
 #include <QHBoxLayout>
 #include <QImage>
 #include <QPainter>
@@ -13,15 +15,24 @@
 #include <array>
 #include <cmath>
 #include <qgraphicsview.h>
+#include <qlogging.h>
 #include <qnamespace.h>
 #include <tuple>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)
-    : QGraphicsView(parent), m_scene(new QGraphicsScene) {
-  setBackgroundRole(QPalette::Base);
+    : QGraphicsView(parent), m_scene(new QGraphicsScene),
+      m_overlay(new CanvasOverlay(viewport()))
+
+{
+  setBackgroundBrush(QBrush(Qt::black));
+
   setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
   setAlignment(Qt::AlignCenter);
+
+  // Hide scrollbars
+  setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
   // Enable mouse tracking
   setMouseTracking(true);
@@ -33,9 +44,10 @@ Canvas::Canvas(QWidget *parent)
   grabGesture(Qt::PinchGesture);
 
   // Graphics rendering parameters
-  setRenderHint(QPainter::Antialiasing);
-  setRenderHint(QPainter::SmoothPixmapTransform);
+  setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
   setScene(m_scene);
+
+  m_overlay->hide();
 }
 
 void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
@@ -44,7 +56,7 @@ void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
   this->imshow(QPixmap::fromImage(qi), pix2m);
 }
 
-void Canvas::scaleToSize() {
+void Canvas::updateMinScaleFactor() {
   if (m_Pixmap.isNull()) [[unlikely]] {
     return;
   }
@@ -58,8 +70,12 @@ void Canvas::scaleToSize() {
   // This is also the minimum scale factor
   const qreal scale =
       qMin(w / static_cast<qreal>(pw), h / static_cast<qreal>(ph));
-  m_scaleFactor = scale;
   m_scaleFactorMin = scale;
+}
+
+void Canvas::scaleToSize() {
+  updateMinScaleFactor();
+  m_scaleFactor = m_scaleFactorMin;
 
   updateTransform();
 }
@@ -85,6 +101,9 @@ void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
     scaleToSize();
     m_resetZoomOnNextImshow = false;
   }
+
+  m_overlay->setSize(m_Pixmap.size());
+  m_overlay->show();
 }
 
 // NOLINTBEGIN(*-casting, *-narrowing-conversions)
@@ -105,12 +124,9 @@ bool Canvas::event(QEvent *event) {
 }
 
 void Canvas::paintEvent(QPaintEvent *event) {
-  if (m_Pixmap.isNull()) {
-    return;
-  }
-
   uspam::TimeIt timeit;
 
+  m_overlay->move(0, 0);
   QGraphicsView::paintEvent(event);
 
   // QPainter painter(this);
@@ -328,7 +344,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
         if (m_currLabelItem != nullptr) {
           m_currLabelItem->setPos(line.center() + QPointF{10, 10});
-          m_currLabelItem->setText(QString("%1 mm").arg(dist));
+          m_currLabelItem->setText(QString("%1 mm").arg(dist, 5, 'f', 2));
         }
       }
 
@@ -400,7 +416,6 @@ void Canvas::wheelEvent(QWheelEvent *event) {
     const double numSteps = numDegrees / 15.0;
     const double sensitivity = 0.1;
     const double scaleFactor = 1.0 - numSteps * sensitivity;
-
     m_scaleFactor = std::max(m_scaleFactor * scaleFactor, m_scaleFactorMin);
 
     updateTransform();
@@ -442,5 +457,15 @@ void Canvas::updateTransform() {
   QTransform transform;
   transform.scale(m_scaleFactor, m_scaleFactor);
   setTransform(transform);
+  m_overlay->setZoom(m_scaleFactor);
 }
+
+void Canvas::resizeEvent(QResizeEvent *event) {
+  updateMinScaleFactor();
+
+  QGraphicsView::resizeEvent(event);
+
+  m_overlay->resize(viewport()->size());
+}
+
 // NOLINTEND(*-casting, *-narrowing-conversions)

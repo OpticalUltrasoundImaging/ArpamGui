@@ -20,6 +20,8 @@ qt_add_executable(${EXE_NAME}
     src/CanvasCursorState.hpp
     src/CanvasTicks.hpp
     src/CanvasTicks.cpp
+    src/CanvasOverlay.hpp
+    src/CanvasOverlay.cpp
     src/CoregDisplay.hpp
     src/CoregDisplay.cpp
     src/DataProcWorker.hpp
