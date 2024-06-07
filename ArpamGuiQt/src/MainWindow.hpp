@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QAction>
+#include <QContextMenuEvent>
+#include <QEvent>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
@@ -32,6 +34,8 @@ protected:
   void dragEnterEvent(QDragEnterEvent *event) override;
   void dropEvent(QDropEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
+
+  // void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
   void closeEvent(QCloseEvent *event) override;

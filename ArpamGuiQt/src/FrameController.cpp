@@ -13,8 +13,7 @@
 #include <qplaintextedit.h>
 
 FrameController::FrameController(QWidget *parent)
-    : QGroupBox("Frame controller", parent),
-      m_btnPlayPause(new QPushButton("Play", this)) {
+    : QWidget(parent), m_btnPlayPause(new QPushButton("Play", this)) {
   {
     auto *vlayout = new QVBoxLayout;
     this->setLayout(vlayout);

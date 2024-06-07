@@ -10,6 +10,7 @@
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
+#include <QMimeData>
 #include <QScrollArea>
 #include <QSlider>
 #include <QToolBar>
@@ -19,12 +20,8 @@
 #include <filesystem>
 #include <format>
 #include <opencv2/opencv.hpp>
-#include <qboxlayout.h>
-#include <qmimedata.h>
+#include <qdockwidget.h>
 #include <qnamespace.h>
-#include <qobjectdefs.h>
-#include <qscrollarea.h>
-#include <qtoolbar.h>
 #include <qwidget.h>
 #include <uspam/defer.h>
 #include <utility>
@@ -65,22 +62,15 @@ MainWindow::MainWindow(QWidget *parent)
   /**
    * Setup GUI
    */
-  // Config params and testing dock
-  auto *dockLayout = new QHBoxLayout;
-  {
-    auto *dock = new QDockWidget("Config Widget", this);
-    auto *dockWidget = new QWidget;
-    dockWidget->setLayout(dockLayout);
-    dock->setWidget(dockWidget);
-    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable |
-    //                                       QDockWidget::DockWidgetFloatable));
-    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
-    this->addDockWidget(Qt::TopDockWidgetArea, dock);
-  }
 
   {
+    auto *dock = new QDockWidget("Log", this);
+    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    this->addDockWidget(Qt::TopDockWidgetArea, dock);
+
     // Error box
-    dockLayout->addWidget(textEdit);
+    // dockLayout->addWidget(textEdit);
+    dock->setWidget(textEdit);
     textEdit->setReadOnly(true);
     textEdit->setPlainText("Application started.\n");
     textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
@@ -88,8 +78,14 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Frame controller
   {
+    auto *dock = new QDockWidget("Frame Controller", this);
+    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    this->addDockWidget(Qt::TopDockWidgetArea, dock);
+
     m_frameController = new FrameController;
-    dockLayout->addWidget(m_frameController);
+    // dockLayout->addWidget(m_frameController);
+    dock->setWidget(m_frameController);
+
     connect(m_frameController, &FrameController::sigBinfileSelected,
             [=](const QString &filepath) {
               const auto pathUtf8 = filepath.toUtf8();
@@ -128,8 +124,13 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Recon parameters controller
   {
+    auto *dock = new QDockWidget("Recon Parameters", this);
+    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    this->addDockWidget(Qt::TopDockWidgetArea, dock);
+
     auto *reconParamsController = new ReconParamsController;
-    dockLayout->addWidget(reconParamsController);
+    // dockLayout->addWidget(reconParamsController);
+    dock->setWidget(reconParamsController);
 
     connect(reconParamsController, &ReconParamsController::paramsUpdated,
             [this](uspam::recon::ReconParams2 params,
@@ -152,8 +153,15 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Exit button
   {
+    auto *dock = new QDockWidget("Exit", this);
+    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    this->addDockWidget(Qt::TopDockWidgetArea, dock);
+
+    auto *w = new QWidget;
     auto *layout = new QVBoxLayout;
-    dockLayout->addLayout(layout);
+    // dockLayout->addLayout(layout);
+    w->setLayout(layout);
+    dock->setWidget(w);
 
     auto *closeBtn = new QPushButton("Close");
     layout->addWidget(closeBtn);
@@ -197,7 +205,6 @@ MainWindow::MainWindow(QWidget *parent)
   //   layout->addWidget(modeSwitchButton);
 
   // Set global style
-  setGlobalStyle(dockLayout);
   setGlobalStyle(m_coregDisplay->layout());
 }
 
