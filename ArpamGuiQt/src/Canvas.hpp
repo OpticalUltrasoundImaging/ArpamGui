@@ -7,6 +7,7 @@
 #include "geometryUtils.hpp"
 #include <QAbstractListModel>
 #include <QGraphicsItem>
+#include <QGraphicsPolygonItem>
 #include <QGraphicsScene>
 #include <QGraphicsSceneEvent>
 #include <QGraphicsView>
@@ -20,6 +21,7 @@
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
 #include <qevent.h>
+#include <stdexcept>
 #include <vector>
 
 // Canvas displays and image in a QGraphicsView
@@ -34,9 +36,9 @@ class Canvas : public QGraphicsView {
 
 public:
   enum class CursorMode {
-    Default = 0, // Let the QGraphicsView handle
+    Default = 0, // Let the parent (QGraphicsView) handle the mouse event
     Pan,
-    LineMeasure,
+    MeasureLine,
     LabelRect,
   };
   Q_ENUM(CursorMode);
@@ -139,11 +141,19 @@ private:
         return item;
       }
 
-      case Annotation::Box: {
+      case Annotation::Rect: {
         auto *item = new QGraphicsRectItem(annotation.rect());
         item->setPen(QPen(annotation.color()));
         return item;
       }
+
+      case Annotation::Polygon: {
+        auto *item = new QGraphicsPolygonItem(annotation.polygon());
+        item->setPen(QPen(annotation.color()));
+        return item;
+      }
+      default:
+        throw std::runtime_error("Shouldn't get here");
       }
     }();
 
@@ -167,11 +177,19 @@ private:
       }
       break;
 
-    case Annotation::Box:
+    case Annotation::Rect:
       if (auto *rectItem = dynamic_cast<QGraphicsRectItem *>(item);
           rectItem != nullptr) {
         rectItem->setRect(annotation.rect());
         rectItem->setPen(QPen(annotation.color()));
+      }
+      break;
+
+    case Annotation::Polygon:
+      if (auto *polygonItem = dynamic_cast<QGraphicsPolygonItem *>(item);
+          polygonItem != nullptr) {
+        polygonItem->setPolygon(annotation.polygon());
+        polygonItem->setPen(QPen(annotation.color()));
       }
       break;
     }
@@ -213,10 +231,10 @@ private:
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::LabelRect};
-  QGraphicsLineItem *m_currLineItem{nullptr};
-  QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
-  CanvasAnnotations m_anno;
+  // The graphics item currently being drawn by the cursor
+  QGraphicsItem *m_currItem{nullptr};
+  QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
   AnnotationModel *m_annotations{};
   QList<QGraphicsItem *> m_annotationItems;

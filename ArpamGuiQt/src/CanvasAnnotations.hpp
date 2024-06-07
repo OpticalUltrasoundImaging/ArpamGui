@@ -87,34 +87,3 @@ private:
   QRectF boxRect;
   QColor boxColor;
 };
-
-struct CanvasAnnotations {
-  struct Lines {
-    std::vector<QLineF> lines; // Line annotations in pixmap space
-
-    void clear() noexcept;
-    [[nodiscard]] bool empty() const noexcept;
-    void pop();
-
-    void add(QLineF line);
-  };
-
-  struct Rects {
-    std::vector<QRectF> rects;
-    std::vector<QRectF> scaled;
-
-    void clear() noexcept;
-    [[nodiscard]] bool empty() const noexcept;
-    void pop() noexcept;
-  };
-
-public:
-  static constexpr double whiskerLength = 10;
-
-  Lines lines;
-  Rects rects;
-
-public:
-  void clear() noexcept;
-  bool empty() const noexcept;
-};

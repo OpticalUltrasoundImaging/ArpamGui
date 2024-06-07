@@ -13,12 +13,19 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       actCursorPan(new QAction(QIcon(), "Pan")),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
-      actCursorLabelRect(new QAction(QIcon(), "Zoom"))
+      actCursorLabelRect(new QAction(QIcon(), "Rect"))
 
 {
+  // Connect annotation model
   m_model->setParent(this);
+  m_canvasLeft->setModel(m_model);
+  m_canvasRight->setModel(m_model);
 
-  // Signals and slots
+  // Signals from canvas
+  connect(m_canvasLeft, &Canvas::error, this, &CoregDisplay::message);
+  connect(m_canvasRight, &Canvas::error, this, &CoregDisplay::message);
+
+  // Connection actions
   connect(actResetZoom, &QAction::triggered, [=] {
     m_canvasLeft->scaleToSize();
     m_canvasRight->scaleToSize();
@@ -38,7 +45,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   actCursorLine->setCheckable(true);
   defer { actCursorLine->trigger(); };
   connect(actCursorLine, &QAction::triggered, [=] {
-    setCursorMode(Canvas::CursorMode::LineMeasure);
+    setCursorMode(Canvas::CursorMode::MeasureLine);
 
     actCursorPan->setChecked(false);
     actCursorLine->setChecked(true);

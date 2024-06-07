@@ -187,25 +187,20 @@ void Canvas::paintEvent(QPaintEvent *event) {
 
   // Measure rendering time
   {
-    const auto renderTime_ms = timeit.get_ms();
-    auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
-    emit error(msg);
+    // const auto renderTime_ms = timeit.get_ms();
+    // const auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
+    // emit error(msg);
   }
 }
 
 void Canvas::undo() {
   switch (m_cursorMode) {
 
-  case CursorMode::LineMeasure: {
-    if (!m_anno.lines.empty()) {
-      m_anno.lines.pop();
-      update();
-    }
+  case CursorMode::MeasureLine:
     break;
-  }
 
-  case CursorMode::LabelRect: {
-  }
+  case CursorMode::LabelRect:
+    break;
 
   default:
     break;
@@ -226,7 +221,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     case CursorMode::Pan:
       panStartEvent(event);
       break;
-    case (CursorMode::LineMeasure): {
+    case (CursorMode::MeasureLine): {
       event->accept();
       const auto line = m_cursor.getLine();
 
@@ -235,8 +230,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         QPen pen(Qt::white);
         pen.setWidth(2);
         pen.setCosmetic(true);
-        delete m_currLineItem;
-        m_currLineItem = m_scene->addLine(line, pen);
+        delete m_currItem;
+        m_currItem = m_scene->addLine(line, pen);
       }
 
       // Make simple text label item
@@ -251,10 +246,18 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         pen.setCosmetic(true);
         m_currLabelItem->setPen(pen);
       }
-    }
+    } break;
     case CursorMode::LabelRect: {
-      break;
-    }
+      event->accept();
+      const auto rect = m_cursor.getRect();
+      {
+        QPen pen(Qt::white);
+        pen.setWidth(2);
+        pen.setCosmetic(true);
+        delete m_currItem;
+        m_currItem = m_scene->addRect(rect, pen);
+      }
+    } break;
     }
   } else if (event->button() == Qt::MiddleButton) {
     // Middle button pan
@@ -284,26 +287,43 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
     case CursorMode::Default:
       QGraphicsView::mouseMoveEvent(event);
       break;
+
     case CursorMode::Pan: {
       panMoveEvent(event);
       break;
     }
-    case (CursorMode::LineMeasure):
-      event->accept();
-      if (m_currLineItem != nullptr) [[likely]] {
 
+    case CursorMode::MeasureLine:
+      event->accept();
+      // if (auto *item = dynamic_cast<QGraphicsLineItem *>(m_currItem);
+      //     item != nullptr) [[likely]] {
+
+      if (auto *item = dynamic_cast<QGraphicsLineItem *>(m_currItem);
+          item != nullptr) [[likely]] {
+
+        // emit error("Drawing line");
         const auto line = m_cursor.getLine();
         const auto dist = computeDistance_mm(line.p1(), line.p2());
+        item->setLine(line);
 
-        m_currLineItem->setLine(line);
-
-        m_currLabelItem->setPos(line.center() + QPointF{10, 10});
-        m_currLabelItem->setText(QString("%1 mm").arg(dist));
+        if (m_currLabelItem != nullptr) {
+          m_currLabelItem->setPos(line.center() + QPointF{10, 10});
+          m_currLabelItem->setText(QString("%1 mm").arg(dist));
+        }
+      } else {
+        // emit error("Failed to cast m_currItem to QGraphicsLineItem*");
       }
       break;
+
     case CursorMode::LabelRect:
+      event->accept();
+      if (auto *item = dynamic_cast<QGraphicsRectItem *>(m_currItem);
+          item != nullptr) [[likely]] {
+        item->setRect(m_cursor.getRect());
+      }
       break;
     }
+
   } else if (m_cursor.middleButtonDown) {
     // Panning
     panMoveEvent(event);
@@ -322,12 +342,14 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
     case CursorMode::Default:
       QGraphicsView::mouseReleaseEvent(event);
       break;
+
     case CursorMode::Pan:
       break;
-    case CursorMode::LineMeasure: {
+
+    case CursorMode::MeasureLine: {
       // Save line
       const auto line = m_cursor.getLine();
-      m_anno.lines.add(line);
+
       break;
     }
     case CursorMode::LabelRect:
