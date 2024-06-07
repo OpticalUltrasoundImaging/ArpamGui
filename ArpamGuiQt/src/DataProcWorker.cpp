@@ -110,6 +110,8 @@ void DataProcWorker::setBinfile(const fs::path &binfile) {
     // Process the first frame
     playOne(0);
 
+    m_ready = true;
+
   } catch (const std::runtime_error &e) {
     const auto msg = QString("DataProcWorker exception: ") +
                      QString::fromStdString(e.what());
