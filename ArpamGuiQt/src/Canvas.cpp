@@ -259,6 +259,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       }
 
       delete m_currLabelItem;
+      m_currLabelItem=nullptr;
     } break;
     }
   } else if (event->button() == Qt::MiddleButton) {
