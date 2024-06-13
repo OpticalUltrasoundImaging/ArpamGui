@@ -6,6 +6,7 @@
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
 #include "strConvUtils.hpp"
+#include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -13,17 +14,16 @@
 #include <QMimeData>
 #include <QScrollArea>
 #include <QSlider>
+#include <QTabWidget>
 #include <QToolBar>
 #include <QVBoxLayout>
+#include <QWidget>
 #include <QtDebug>
 #include <QtLogging>
 #include <filesystem>
 #include <format>
 #include <opencv2/opencv.hpp>
-#include <qaction.h>
-#include <qdockwidget.h>
 #include <qnamespace.h>
-#include <qwidget.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -137,34 +137,59 @@ MainWindow::MainWindow(QWidget *parent)
             [=] { m_frameController->updatePlayingState(false); });
   }
 
-  // Recon parameters controller
+  // Tabify ReconParamsController dock and Annotations dock on the left
   {
-    auto *dock = new QDockWidget("Recon Parameters", this);
-    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
-    this->addDockWidget(Qt::LeftDockWidgetArea, dock);
-    m_viewMenu->addAction(dock->toggleViewAction());
+    setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::North);
 
-    auto *reconParamsController = new ReconParamsController;
-    // dockLayout->addWidget(reconParamsController);
-    dock->setWidget(reconParamsController);
+    // Recon parameters controller
+    QDockWidget *reconParamsDock{};
+    {
+      auto *dock = new QDockWidget("Recon Parameters", this);
+      reconParamsDock = dock;
+      // dock->setFeatures(dock->features() ^
+      // (QDockWidget::DockWidgetClosable));
+      this->addDockWidget(Qt::LeftDockWidgetArea, dock);
+      m_viewMenu->addAction(dock->toggleViewAction());
 
-    connect(reconParamsController, &ReconParamsController::paramsUpdated,
-            [this](uspam::recon::ReconParams2 params,
-                   uspam::io::IOParams ioparams) {
-              // Update params
-              this->worker->updateParams(std::move(params), ioparams);
+      auto *reconParamsController = new ReconParamsController;
+      // dockLayout->addWidget(reconParamsController);
+      dock->setWidget(reconParamsController);
 
-              // Only invoke "replayOne" if not currently worker is not playing
-              if (this->worker->isReady() && !this->worker->isPlaying()) {
-                QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
+      connect(reconParamsController, &ReconParamsController::paramsUpdated,
+              [this](uspam::recon::ReconParams2 params,
+                     uspam::io::IOParams ioparams) {
+                // Update params
+                this->worker->updateParams(std::move(params), ioparams);
 
-                // Save params to file
-                this->worker->saveParamsToFile();
-              }
-            });
+                // Only invoke "replayOne" if not currently worker is not
+                // playing
+                if (this->worker->isReady() && !this->worker->isPlaying()) {
+                  QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
 
-    connect(reconParamsController, &ReconParamsController::error, this,
-            &MainWindow::logError);
+                  // Save params to file
+                  this->worker->saveParamsToFile();
+                }
+              });
+
+      connect(reconParamsController, &ReconParamsController::error, this,
+              &MainWindow::logError);
+    }
+
+    // Annotation view dock
+    {
+      auto *dock = new QDockWidget("Annotations", this);
+      this->addDockWidget(Qt::LeftDockWidgetArea, dock);
+      m_viewMenu->addAction(dock->toggleViewAction());
+
+      // Tabify annotation view and ReconParamsController
+      this->tabifyDockWidget(reconParamsDock, dock);
+
+      dock->setWidget(m_coregDisplay->annotationView());
+    }
+
+    // By default the last added tabified widget (Annotations) is activated.
+    // Manually activate reconParamsDock
+    reconParamsDock->raise();
   }
 
   // Exit button

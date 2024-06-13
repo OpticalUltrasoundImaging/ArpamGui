@@ -285,6 +285,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
             &ReconParamsController::resetParams);
   }
 
+  layout->addStretch();
+
   updateGuiFromParams();
 }
 

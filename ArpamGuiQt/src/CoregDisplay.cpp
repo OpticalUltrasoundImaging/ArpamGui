@@ -101,8 +101,6 @@ CoregDisplay::CoregDisplay(QWidget *parent)
     canvas->setDisabled(true);
     connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
   }
-
-  m_annoView->show();
 }
 
 void CoregDisplay::imshow(const QImage &img1, const QImage &img2,

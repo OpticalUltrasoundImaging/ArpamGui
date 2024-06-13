@@ -12,7 +12,7 @@ class CoregDisplay : public QWidget {
 public:
   explicit CoregDisplay(QWidget *parent = nullptr);
 
-  auto getAnnotationView() { return m_annoView; }
+  auto annotationView() { return m_annoView; }
 
 signals:
   void message(const QString &msg);
