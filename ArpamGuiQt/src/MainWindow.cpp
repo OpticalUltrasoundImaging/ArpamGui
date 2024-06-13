@@ -117,25 +117,25 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_frameController, &FrameController::sigFrameNumUpdated, worker,
             &DataProcWorker::playOne);
 
-    connect(m_frameController, &FrameController::sigPlay, [=] {
+    connect(m_frameController, &FrameController::sigPlay, this, [=] {
       QMetaObject::invokeMethod(worker, &DataProcWorker::play);
       m_coregDisplay->resetZoomOnNextImshow();
     });
 
     connect(m_frameController, &FrameController::sigPause, this,
-            [&]() { worker->pause(); });
+            [&] { worker->pause(); });
 
-    connect(worker, &DataProcWorker::maxFramesChanged, [=](int maxIdx) {
+    connect(worker, &DataProcWorker::maxFramesChanged, this, [=](int maxIdx) {
       m_frameController->updateMaxFrameNum(maxIdx);
       m_coregDisplay->setMaxIdx(maxIdx);
     });
 
-    connect(worker, &DataProcWorker::frameIdxChanged, [=](int idx) {
+    connect(worker, &DataProcWorker::frameIdxChanged, this, [=](int idx) {
       m_frameController->updateFrameNum(idx);
       m_coregDisplay->setIdx(idx);
     });
 
-    connect(worker, &DataProcWorker::finishedPlaying,
+    connect(worker, &DataProcWorker::finishedPlaying, this,
             [=] { m_frameController->updatePlayingState(false); });
   }
 
