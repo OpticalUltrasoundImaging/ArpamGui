@@ -40,7 +40,7 @@ class Canvas : public QGraphicsView {
 
 public:
   enum class CursorMode {
-    Default = 0, // Let the parent (QGraphicsView) handle the mouse event
+    Default = 0, // Let QGraphicsView handle the mouse event
     Pan,
     MeasureLine,
     LabelRect,
@@ -67,7 +67,7 @@ public slots: // NOLINT
   void imshow(const QImage &img, double pix2m);
   void imshow(const QPixmap &pixmap, double pix2m);
 
-  void setCursorMode(CursorMode mode) { m_cursorMode = mode; }
+  void setCursorMode(CursorMode mode);
 
   void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
                      const QVector<int> &roles) {
@@ -131,6 +131,7 @@ private:
   // Panning
   void panStartEvent(QMouseEvent *event);
   void panMoveEvent(QMouseEvent *event);
+  void panEndEvent(QMouseEvent *event);
 
   // Annotation handlers
   // Add an existing annotation in the model at `row`

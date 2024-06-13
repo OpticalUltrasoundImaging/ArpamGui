@@ -65,6 +65,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(worker, &DataProcWorker::error, this, &MainWindow::logError);
 
+    // Start the worker thread event loop
     workerThread.start();
   }
 

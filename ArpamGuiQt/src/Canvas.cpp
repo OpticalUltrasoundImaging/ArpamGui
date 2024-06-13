@@ -36,6 +36,7 @@ Canvas::Canvas(QWidget *parent)
 
   // Enable mouse tracking
   setMouseTracking(true);
+  setCursor(Qt::CrossCursor);
   setFocusPolicy(Qt::StrongFocus);
 
   // Enable pinch gesture handling
@@ -47,6 +48,7 @@ Canvas::Canvas(QWidget *parent)
   setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
   setScene(m_scene);
 
+  // Hide the overlay at init since no images are shown yet.
   m_overlay->hide();
 }
 
@@ -379,6 +381,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       break;
 
     case CursorMode::Pan:
+      panEndEvent(event);
       break;
 
     case CursorMode::MeasureLine: {
@@ -443,6 +446,8 @@ void Canvas::pinchTriggered(QPinchGesture *gesture) {
 void Canvas::panStartEvent(QMouseEvent *event) {
   event->accept();
   m_lastPanPoint = event->pos();
+
+  setCursor(Qt::ClosedHandCursor);
 }
 
 void Canvas::panMoveEvent(QMouseEvent *event) {
@@ -452,6 +457,8 @@ void Canvas::panMoveEvent(QMouseEvent *event) {
   verticalScrollBar()->setValue(verticalScrollBar()->value() - delta.y());
   m_lastPanPoint = event->pos();
 }
+
+void Canvas::panEndEvent(QMouseEvent *event) { setCursor(Qt::OpenHandCursor); }
 
 void Canvas::updateTransform() {
   QTransform transform;
@@ -466,6 +473,19 @@ void Canvas::resizeEvent(QResizeEvent *event) {
   QGraphicsView::resizeEvent(event);
 
   m_overlay->resize(viewport()->size());
+}
+
+void Canvas::setCursorMode(CursorMode mode) {
+  m_cursorMode = mode;
+
+  // Set cursor
+  switch (mode) {
+  case CursorMode::Pan:
+    setCursor(Qt::OpenHandCursor);
+    break;
+  default:
+    setCursor(Qt::CrossCursor);
+  }
 }
 
 // NOLINTEND(*-casting, *-narrowing-conversions)
