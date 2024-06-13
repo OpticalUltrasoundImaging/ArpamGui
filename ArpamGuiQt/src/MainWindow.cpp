@@ -87,14 +87,17 @@ MainWindow::MainWindow(QWidget *parent)
     // dockLayout->addWidget(m_frameController);
     dock->setWidget(m_frameController);
 
+    // Action for when a new binfile is selected
     connect(m_frameController, &FrameController::sigBinfileSelected,
             [=](const QString &filepath) {
               const auto pathUtf8 = filepath.toUtf8();
               std::filesystem::path path(pathUtf8.constData());
 
+              // Worker: load file
               QMetaObject::invokeMethod(worker, &DataProcWorker::setBinfile,
                                         path);
 
+              // Update canvas dipslay
               m_coregDisplay->setSequenceName(path2QString(path.stem()));
             });
 
