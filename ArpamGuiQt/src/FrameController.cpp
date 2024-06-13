@@ -13,70 +13,78 @@
 #include <qplaintextedit.h>
 
 FrameController::FrameController(QWidget *parent)
-    : QWidget(parent), m_btnPlayPause(new QPushButton("Play", this)) {
+    : QWidget(parent), m_btnPlayPause(new QPushButton("Play", this)),
+      m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
+
+  // Actions
+  connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
+          &FrameController::openFileSelectDialog);
+
+  // UI
+  auto *vlayout = new QVBoxLayout;
+  this->setLayout(vlayout);
   {
-    auto *vlayout = new QVBoxLayout;
-    this->setLayout(vlayout);
-    {
-      auto *hlayout = new QHBoxLayout;
-      vlayout->addLayout(hlayout);
+    auto *hlayout = new QHBoxLayout;
+    vlayout->addLayout(hlayout);
 
-      auto *btnPickFile = new QPushButton("Load bin file");
-      hlayout->addWidget(btnPickFile);
-      connect(btnPickFile, &QPushButton::clicked, this, [&] {
-        const QString filename = QFileDialog::getOpenFileName(
-            this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
+    auto *btnPickFile = new QPushButton("Load bin file");
+    hlayout->addWidget(btnPickFile);
+    connect(btnPickFile, &QPushButton::clicked, m_actOpenFileSelectDialog,
+            &QAction::triggered);
 
-        acceptNewBinfile(filename);
-      });
+    hlayout->addWidget(m_btnPlayPause);
+    m_btnPlayPause->setDisabled(true);
 
-      hlayout->addWidget(m_btnPlayPause);
-      m_btnPlayPause->setDisabled(true);
-
-      connect(m_btnPlayPause, &QPushButton::clicked, this,
-              [&] { updatePlayingState(!m_isPlaying); });
-    }
-
-    {
-      auto *hlayout = new QHBoxLayout;
-      vlayout->addLayout(hlayout);
-
-      auto *frameNumLabel = new QLabel;
-      frameNumLabel->setText("Frame:");
-      hlayout->addWidget(frameNumLabel);
-
-      // SpinBox to display frame num
-      m_frameNumSpinBox = new QSpinBox;
-      hlayout->addWidget(m_frameNumSpinBox);
-      m_frameNumSpinBox->setDisabled(true);
-      connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
-        auto val = m_frameNumSpinBox->value();
-        emit sigFrameNumUpdated(val);
-        updatePlayingState(false);
-      });
-
-      // Slider to select frame num in the sequence
-      m_frameSlider = new QSlider(Qt::Horizontal);
-      vlayout->addWidget(m_frameSlider);
-      m_frameSlider->setDisabled(true);
-      m_frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
-
-      connect(m_frameSlider, &QSlider::sliderPressed, this, [&] {
-        updatePlayingState(false);
-        QToolTip::showText(QCursor::pos(),
-                           QString::number(m_frameSlider->value()));
-      });
-
-      connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
-        const auto val = m_frameSlider->value();
-        QToolTip::showText(QCursor::pos(), QString::number(val));
-        m_frameNumSpinBox->setValue(val);
-      });
-
-      connect(m_frameSlider, &QSlider::sliderReleased, this,
-              [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
-    }
+    connect(m_btnPlayPause, &QPushButton::clicked, this,
+            [&] { updatePlayingState(!m_isPlaying); });
   }
+
+  {
+    auto *hlayout = new QHBoxLayout;
+    vlayout->addLayout(hlayout);
+
+    auto *frameNumLabel = new QLabel;
+    frameNumLabel->setText("Frame:");
+    hlayout->addWidget(frameNumLabel);
+
+    // SpinBox to display frame num
+    m_frameNumSpinBox = new QSpinBox;
+    hlayout->addWidget(m_frameNumSpinBox);
+    m_frameNumSpinBox->setDisabled(true);
+    connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
+      auto val = m_frameNumSpinBox->value();
+      emit sigFrameNumUpdated(val);
+      updatePlayingState(false);
+    });
+
+    // Slider to select frame num in the sequence
+    m_frameSlider = new QSlider(Qt::Horizontal);
+    vlayout->addWidget(m_frameSlider);
+    m_frameSlider->setDisabled(true);
+    m_frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
+
+    connect(m_frameSlider, &QSlider::sliderPressed, this, [&] {
+      updatePlayingState(false);
+      QToolTip::showText(QCursor::pos(),
+                         QString::number(m_frameSlider->value()));
+    });
+
+    connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
+      const auto val = m_frameSlider->value();
+      QToolTip::showText(QCursor::pos(), QString::number(val));
+      m_frameNumSpinBox->setValue(val);
+    });
+
+    connect(m_frameSlider, &QSlider::sliderReleased, this,
+            [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
+  }
+}
+
+void FrameController::openFileSelectDialog() {
+  const QString filename = QFileDialog::getOpenFileName(
+      this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
+
+  acceptNewBinfile(filename);
 }
 
 void FrameController::acceptNewBinfile(const QString &filename) {

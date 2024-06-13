@@ -1,12 +1,14 @@
 #pragma once
 
 #include <QAction>
+#include <QActionGroup>
 #include <QContextMenuEvent>
 #include <QEvent>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMainWindow>
+#include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QStackedWidget>
@@ -35,11 +37,19 @@ protected:
   void dropEvent(QDropEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
 
-  // void contextMenuEvent(QContextMenuEvent *event) override;
+  void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
   void closeEvent(QCloseEvent *event) override;
 
+  // Menu items
+  QMenu *m_fileMenu;
+  QMenu *m_viewMenu;
+  QMenu *m_helpMenu;
+
+  // Actions
+
+  // Worker
   QThread workerThread;
   DataProcWorker *worker;
 

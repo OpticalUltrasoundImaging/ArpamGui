@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <format>
 #include <opencv2/opencv.hpp>
+#include <qaction.h>
 #include <qdockwidget.h>
 #include <qnamespace.h>
 #include <qwidget.h>
@@ -206,6 +207,10 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Set global style
   setGlobalStyle(m_coregDisplay->layout());
+
+  // Create menus
+  m_fileMenu = menuBar()->addMenu(tr("&File"));
+  m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
@@ -253,6 +258,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
   default:
     QMainWindow::keyPressEvent(event);
   }
+}
+
+void MainWindow::contextMenuEvent(QContextMenuEvent *event) {
+  // TODO
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
