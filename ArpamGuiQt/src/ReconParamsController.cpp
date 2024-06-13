@@ -57,14 +57,14 @@ auto vectorToStdString(const std::vector<T> &vec) -> std::string {
 ReconParamsController::ReconParamsController(QWidget *parent)
     : QWidget(parent), params(uspam::recon::ReconParams2::system2024v1()),
       ioparams(uspam::io::IOParams::system2024v1()) {
-  auto *layout = new QHBoxLayout();
+  auto *layout = new QVBoxLayout();
   this->setLayout(layout);
 
   auto *doubleListValidator = new DoubleListValidator(this);
 
   const auto makeQSpinBox = [this](const std::pair<int, int> &range, int &value,
                                    auto *context) {
-    auto spinBox = new QSpinBox;
+    auto *spinBox = new QSpinBox;
     spinBox->setRange(range.first, range.second);
     spinBox->setValue(value);
     connect(spinBox, &QSpinBox::valueChanged, context, [&](int newValue) {
@@ -84,7 +84,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   // PA params
   {
-    auto *gb = new QGroupBox(tr("PA recon params"));
+    auto *gb = new QGroupBox(tr("PA"));
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
@@ -101,7 +101,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       filtFreqPA->setReadOnly(true);
       row++;
 
-      updateGuiFromParamsCallbacks.push_back([this] {
+      updateGuiFromParamsCallbacks.emplace_back([this] {
         this->filtFreqPA->setText(QString::fromStdString(
             vectorToStdString(this->params.filterFreqPA)));
       });
@@ -117,7 +117,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       filtGainPA->setReadOnly(true);
       row++;
 
-      updateGuiFromParamsCallbacks.push_back([this] {
+      updateGuiFromParamsCallbacks.emplace_back([this] {
         this->filtGainPA->setText(QString::fromStdString(
             vectorToStdString(this->params.filterGainPA)));
       });
@@ -130,7 +130,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorPA, this);
       layout->addWidget(spinBox, row++, 2);
 
-      updateGuiFromParamsCallbacks.push_back(
+      updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox] { spinBox->setValue(this->params.noiseFloorPA); });
     }
 
@@ -142,7 +142,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           makeQSpinBox({10, 70}, params.desiredDynamicRangePA, this);
       layout->addWidget(spinBox, row++, 2);
 
-      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
         spinBox->setValue(this->params.desiredDynamicRangePA);
       });
     }
@@ -150,7 +150,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   // US params
   {
-    auto *gb = new QGroupBox(tr("US recon params"));
+    auto *gb = new QGroupBox(tr("US"));
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
@@ -167,7 +167,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       filtFreqUS->setReadOnly(true);
       row++;
 
-      updateGuiFromParamsCallbacks.push_back([this] {
+      updateGuiFromParamsCallbacks.emplace_back([this] {
         this->filtFreqUS->setText(QString::fromStdString(
             vectorToStdString(this->params.filterFreqUS)));
       });
@@ -184,7 +184,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       filtGainUS->setReadOnly(true);
       row++;
 
-      updateGuiFromParamsCallbacks.push_back([this] {
+      updateGuiFromParamsCallbacks.emplace_back([this] {
         this->filtGainUS->setText(QString::fromStdString(
             vectorToStdString(this->params.filterGainUS)));
       });
@@ -197,7 +197,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorUS, this);
       layout->addWidget(spinBox, row++, 2);
 
-      updateGuiFromParamsCallbacks.push_back(
+      updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox] { spinBox->setValue(this->params.noiseFloorUS); });
     }
 
@@ -209,7 +209,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           makeQSpinBox({10, 70}, params.desiredDynamicRangeUS, this);
       layout->addWidget(spinBox, row++, 2);
 
-      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
         spinBox->setValue(this->params.desiredDynamicRangeUS);
       });
     }
@@ -217,7 +217,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   // Registration params
   {
-    auto *gb = new QGroupBox(tr("Coregestration params"));
+    auto *gb = new QGroupBox(tr("Coregistration"));
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
@@ -232,7 +232,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           makeQSpinBox({-500, 500}, params.alineRotationOffset, this);
       layout->addWidget(spinBox, row++, 1);
 
-      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
         spinBox->setValue(this->params.alineRotationOffset);
       });
     }
@@ -244,7 +244,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox = makeQSpinBox({0, 200}, ioparams.rf_size_spacer, this);
       layout->addWidget(spinBox, row++, 1);
 
-      updateGuiFromParamsCallbacks.push_back([this, spinBox] {
+      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
         spinBox->setValue(this->ioparams.rf_size_spacer);
       });
     }
@@ -257,7 +257,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetUS, this);
       layout->addWidget(spinBox, row++, 1);
 
-      updateGuiFromParamsCallbacks.push_back(
+      updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox] { spinBox->setValue(this->ioparams.offsetUS); });
     }
 
@@ -269,7 +269,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetPA, this);
       layout->addWidget(spinBox, row++, 1);
 
-      updateGuiFromParamsCallbacks.push_back(
+      updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox] { spinBox->setValue(this->ioparams.offsetPA); });
     }
   }

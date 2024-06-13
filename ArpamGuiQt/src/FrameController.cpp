@@ -140,6 +140,7 @@ void FrameController::nextFrame() {
     emit sigFrameNumUpdated(idx + 1);
   }
 }
+
 void FrameController::prevFrame() {
   updatePlayingState(false);
   const auto idx = m_frameNumSpinBox->value();

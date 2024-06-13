@@ -40,7 +40,7 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
                                                    Qt::Orientation orientation,
                                                    int role) const {
   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
-    assert(sectino < HEADER_DATA.size());
+    assert(section < HEADER_DATA.size());
     return HEADER_DATA.at(section);
   }
   return QAbstractListModel::headerData(section, orientation, role);

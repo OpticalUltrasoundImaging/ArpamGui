@@ -35,9 +35,17 @@ void setGlobalStyle(QLayout *layout) {
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), textEdit(new QPlainTextEdit(this)),
-      m_coregDisplay(new CoregDisplay), worker(new DataProcWorker) {
+    : QMainWindow(parent),
 
+      m_fileMenu(menuBar()->addMenu(tr("&File"))),
+      m_viewMenu(menuBar()->addMenu(tr("&View"))),
+
+      worker(new DataProcWorker),
+
+      textEdit(new QPlainTextEdit(this)),
+      m_frameController(new FrameController), m_coregDisplay(new CoregDisplay)
+
+{
   // Enable QStatusBar at the bottom of the MainWindow
   statusBar();
 
@@ -64,10 +72,12 @@ MainWindow::MainWindow(QWidget *parent)
    * Setup GUI
    */
 
+  // Log dock widget
   {
     auto *dock = new QDockWidget("Log", this);
-    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
+    m_viewMenu->addAction(dock->toggleViewAction());
 
     // Error box
     // dockLayout->addWidget(textEdit);
@@ -77,15 +87,16 @@ MainWindow::MainWindow(QWidget *parent)
     textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
   }
 
-  // Frame controller
+  // Frame controller dock widget
   {
     auto *dock = new QDockWidget("Frame Controller", this);
-    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
 
-    m_frameController = new FrameController;
     // dockLayout->addWidget(m_frameController);
     dock->setWidget(m_frameController);
+    m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
+    m_viewMenu->addAction(dock->toggleViewAction());
 
     // Action for when a new binfile is selected
     connect(m_frameController, &FrameController::sigBinfileSelected,
@@ -129,8 +140,9 @@ MainWindow::MainWindow(QWidget *parent)
   // Recon parameters controller
   {
     auto *dock = new QDockWidget("Recon Parameters", this);
-    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
-    this->addDockWidget(Qt::TopDockWidgetArea, dock);
+    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    this->addDockWidget(Qt::LeftDockWidgetArea, dock);
+    m_viewMenu->addAction(dock->toggleViewAction());
 
     auto *reconParamsController = new ReconParamsController;
     // dockLayout->addWidget(reconParamsController);
@@ -158,8 +170,9 @@ MainWindow::MainWindow(QWidget *parent)
   // Exit button
   {
     auto *dock = new QDockWidget("Exit", this);
-    dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
+    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
+    m_viewMenu->addAction(dock->toggleViewAction());
 
     auto *w = new QWidget;
     auto *layout = new QVBoxLayout;
@@ -210,10 +223,6 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Set global style
   setGlobalStyle(m_coregDisplay->layout());
-
-  // Create menus
-  m_fileMenu = menuBar()->addMenu(tr("&File"));
-  m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
