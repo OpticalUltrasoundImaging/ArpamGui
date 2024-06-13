@@ -92,6 +92,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto *dock = new QDockWidget("Frame Controller", this);
     // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dock);
+    resizeDocks({dock}, {dock->sizeHint().height()}, Qt::Orientation::Vertical);
 
     // dockLayout->addWidget(m_frameController);
     dock->setWidget(m_frameController);
