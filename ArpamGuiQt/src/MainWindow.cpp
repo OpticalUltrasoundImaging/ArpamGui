@@ -152,6 +152,8 @@ MainWindow::MainWindow(QWidget *parent)
       // (QDockWidget::DockWidgetClosable));
       this->addDockWidget(Qt::LeftDockWidgetArea, dock);
       m_viewMenu->addAction(dock->toggleViewAction());
+      resizeDocks({dock}, {dock->sizeHint().width()},
+                  Qt::Orientation::Horizontal);
 
       auto *reconParamsController = new ReconParamsController;
       // dockLayout->addWidget(reconParamsController);
