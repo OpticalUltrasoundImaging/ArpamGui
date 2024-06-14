@@ -240,17 +240,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     case (CursorMode::MeasureLine): {
       event->accept();
 
-      if (m_currItem != nullptr) {
-        m_scene->removeItem(m_currItem);
-        delete m_currItem;
-        m_currItem = nullptr;
-      }
-
-      if (m_currLabelItem != nullptr) {
-        m_scene->removeItem(m_currLabelItem);
-        delete m_currLabelItem;
-        m_currLabelItem = nullptr;
-      }
+      removeCurrItem();
 
       const auto line = m_cursor.line();
       const auto color = Qt::white;
@@ -263,10 +253,12 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       // Make simple text label item
       {
         QFont font;
-        font.setPointSize(16);
+        font.setPointSizeF(16.0 / m_scaleFactor);
         m_currLabelItem = m_scene->addSimpleText("", font);
 
-        m_currLabelItem->setPen(QPen(Qt::white));
+        // QPen pen(Qt::white);
+        // pen.setWidth(0);
+        // m_currLabelItem->setPen(pen);
         m_currLabelItem->setBrush(QBrush(Qt::white));
       }
     } break;
@@ -274,17 +266,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     case CursorMode::LabelRect: {
       event->accept();
 
-      if (m_currItem != nullptr) {
-        m_scene->removeItem(m_currItem);
-        delete m_currItem;
-        m_currItem = nullptr;
-      }
-
-      if (m_currLabelItem != nullptr) {
-        m_scene->removeItem(m_currLabelItem);
-        delete m_currLabelItem;
-        m_currLabelItem = nullptr;
-      }
+      removeCurrItem();
 
       const auto rect = m_cursor.rect();
       {
@@ -296,17 +278,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     case CursorMode::LabelFan: {
       event->accept();
 
-      if (m_currItem != nullptr) {
-        m_scene->removeItem(m_currItem);
-        delete m_currItem;
-        m_currItem = nullptr;
-      }
-
-      if (m_currLabelItem != nullptr) {
-        m_scene->removeItem(m_currLabelItem);
-        delete m_currLabelItem;
-        m_currLabelItem = nullptr;
-      }
+      removeCurrItem();
 
       // Convert mouse pos to angle
       const auto angle = m_cursor.angle(m_Pixmap.rect());
@@ -383,7 +355,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
           [[likely]] {
 
         const auto angle = m_cursor.angle(m_Pixmap.rect());
-        emit error(QString("Fan angle: %1").arg(angle));
+        // emit error(QString("Fan angle: %1").arg(angle));
         item->setSpanAngle(angle - item->startAngle());
       }
       break;
@@ -498,9 +470,19 @@ void Canvas::panMoveEvent(QMouseEvent *event) {
 void Canvas::panEndEvent(QMouseEvent *event) { setCursor(Qt::OpenHandCursor); }
 
 void Canvas::updateTransform() {
+  // Update transform for the QGraphicsView
   QTransform transform;
   transform.scale(m_scaleFactor, m_scaleFactor);
   setTransform(transform);
+
+  // Update font factor for the annotation text labels
+  if (m_currLabelItem != nullptr) {
+    auto font = m_currLabelItem->font();
+    font.setPointSizeF(16.0 / m_scaleFactor);
+    m_currLabelItem->setFont(font);
+  }
+
+  // Update zoom factor displayed in the overlay
   m_overlay->setZoom(m_scaleFactor);
 }
 
@@ -604,3 +586,16 @@ void Canvas::removeAnnotationItem(int row) {
 }
 
 // NOLINTEND(*-casting, *-narrowing-conversions)
+void Canvas::removeCurrItem() {
+  if (m_currItem != nullptr) {
+    m_scene->removeItem(m_currItem);
+    delete m_currItem;
+    m_currItem = nullptr;
+  }
+
+  if (m_currLabelItem != nullptr) {
+    m_scene->removeItem(m_currLabelItem);
+    delete m_currLabelItem;
+    m_currLabelItem = nullptr;
+  }
+}

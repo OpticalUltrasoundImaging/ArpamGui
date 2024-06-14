@@ -142,6 +142,9 @@ private:
 
   void removeAnnotationItem(int row);
 
+  // Clear m_currLabelItem and m_currItem
+  void removeCurrItem();
+
   void drawTicks(QPainter *painter);
 
   // [mm] Get distance between 2 points in the original pixmap space.
