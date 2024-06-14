@@ -400,6 +400,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = false;
+    panEndEvent(event);
 
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = false;
