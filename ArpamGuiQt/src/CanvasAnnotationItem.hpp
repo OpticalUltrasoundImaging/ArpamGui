@@ -31,6 +31,7 @@ public:
     setSelected(true);
     setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
              QGraphicsItem::ItemIsMovable);
+    setAcceptHoverEvents(true);
   }
 
   auto getPen() {
@@ -74,9 +75,7 @@ class LineItem : public AnnotationGraphicsItemBase {
 public:
   LineItem(const QLineF &line, const QColor &color,
            QGraphicsItem *parent = nullptr)
-      : AnnotationGraphicsItemBase(color, parent), m_line(line) {
-    setAcceptHoverEvents(true);
-  }
+      : AnnotationGraphicsItemBase(color, parent), m_line(line) {}
 
   void setLine(const QLineF &line) {
     if (line != m_line) {
@@ -107,9 +106,7 @@ class RectItem : public AnnotationGraphicsItemBase {
 public:
   RectItem(const QRectF &rect, const QColor &color,
            QGraphicsItem *parent = nullptr)
-      : AnnotationGraphicsItemBase(color, parent), m_rect(rect) {
-    setAcceptHoverEvents(true);
-  }
+      : AnnotationGraphicsItemBase(color, parent), m_rect(rect) {}
 
   void setRect(const QRectF &rect) {
     if (rect != m_rect) {
@@ -130,4 +127,56 @@ public:
 
 private:
   QRectF m_rect;
+};
+
+class FanItem : public AnnotationGraphicsItemBase {
+public:
+  FanItem(const QRectF &rect, Arc arc, const QColor &color,
+          QGraphicsItem *parent = nullptr)
+      : AnnotationGraphicsItemBase(color, parent), m_rect(rect), m_arc(arc) {}
+
+  [[nodiscard]] QRectF boundingRect() const override {
+    // TODO
+    return m_rect;
+  }
+
+  [[nodiscard]] auto arc() const { return m_arc; }
+  [[nodiscard]] auto startAngle() const { return m_arc.startAngle; }
+  [[nodiscard]] auto spanAngle() const { return m_arc.spanAngle; }
+  void setSpanAngle(int angle) {
+    if (angle != m_arc.spanAngle) {
+      prepareGeometryChange();
+      m_arc.spanAngle = angle;
+    }
+  }
+
+  void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+             QWidget *widget) override {
+    Q_UNUSED(option)
+    Q_UNUSED(widget)
+    painter->setPen(getPen());
+
+    // Draw arc
+    painter->drawArc(m_rect, m_arc.startAngle, m_arc.spanAngle);
+
+    // Draw the lines connecting the ends of the arc to the center
+    const auto [startPoint, endPoint] =
+        geometry::calcPosFromArc(m_rect, m_arc.startAngle, m_arc.spanAngle);
+
+    painter->drawLine(m_rect.center(), startPoint);
+    painter->drawLine(m_rect.center(), endPoint);
+  }
+
+private:
+  // Pair of angles (each 0-360) that denote a fan shape center at the center of
+  // the square image. The fan is drawn clockwise
+
+  // Draws the arc defined by the given rectangle, startAngle and spanAngle.
+  // The startAngle and spanAngle must be specified in 1/16th of a degree, i.e.
+  // a full circle equals 5760 (16 * 360). Positive values for the angles mean
+  // counter-clockwise while negative values mean the clockwise direction. Zero
+  // degrees is at the 3 o'clock position.
+
+  QRectF m_rect;
+  Arc m_arc;
 };

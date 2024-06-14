@@ -14,6 +14,11 @@ Annotation::Annotation(const QRectF &rect, const QColor &color)
     : m_type(Rect), m_polygon({rect.topLeft(), rect.bottomRight()}),
       m_color(color) {}
 
+Annotation::Annotation(const Arc &arc, const QColor &color)
+    : m_type(Fan), m_polygon({{static_cast<double>(arc.startAngle),
+                               static_cast<double>(arc.spanAngle)}}),
+      m_color(color) {}
+
 auto Annotation::line() const -> QLineF {
   assert(m_polygon.size() == 2);
   return {m_polygon[0], m_polygon[1]};
@@ -23,6 +28,12 @@ auto Annotation::rect() const -> QRectF {
   assert(m_polygon.size() == 2);
   return {m_polygon[0], m_polygon[1]};
 };
+
+auto Annotation::arc() const -> Arc {
+  assert(m_polygon.size() == 0);
+  const auto pt = m_polygon[0];
+  return Arc{static_cast<int>(pt.x()), static_cast<int>(pt.y())};
+}
 
 /*******/
 

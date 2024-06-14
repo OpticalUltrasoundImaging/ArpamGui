@@ -71,6 +71,8 @@ private:
   QAction *actCursorUndo;
   // Action to set the cursor mode to line measure
   QAction *actCursorLine;
-  // Action to set the cursor mode to box zoom
+  // Action to set the cursor mode to label rect
   QAction *actCursorLabelRect;
+  // Action to set the cursor mode to label fan
+  QAction *actCursorLabelFan;
 };

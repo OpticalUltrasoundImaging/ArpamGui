@@ -44,6 +44,7 @@ public:
     Pan,
     MeasureLine,
     LabelRect,
+    LabelFan,
   };
   Q_ENUM(CursorMode);
 
@@ -136,78 +137,13 @@ private:
   // Annotation handlers
   // Add an existing annotation in the model at `row`
   // to the view
-  void addAnnotationItem(int row) {
-    const Annotation &annotation = m_annotations->getAnnotation(row);
-
-    QGraphicsItem *item = [&]() -> QGraphicsItem * {
-      switch (annotation.type()) {
-
-      case Annotation::Line: {
-        auto *item = new QGraphicsLineItem(QLineF(
-            annotation.rect().topLeft(), annotation.rect().bottomRight()));
-        item->setPen(QPen(annotation.color()));
-        return item;
-      }
-
-      case Annotation::Rect: {
-        auto *item = new QGraphicsRectItem(annotation.rect());
-        item->setPen(QPen(annotation.color()));
-        return item;
-      }
-
-      case Annotation::Polygon: {
-        auto *item = new QGraphicsPolygonItem(annotation.polygon());
-        item->setPen(QPen(annotation.color()));
-        return item;
-      }
-      default:
-        throw std::runtime_error("Shouldn't get here");
-      }
-    }();
-
-    scene()->addItem(item);
-    m_annotationItems.append(item);
-  }
+  void addAnnotationItem(int row);
 
   // Update an existing annotation in the model at `row`
   // to the view
-  void updateAnnotationItem(int row) {
-    QGraphicsItem *item = m_annotationItems[row];
-    const Annotation &annotation = m_annotations->getAnnotation(row);
+  void updateAnnotationItem(int row);
 
-    switch (annotation.type()) {
-    case Annotation::Line:
-      if (auto *lineItem = dynamic_cast<QGraphicsLineItem *>(item);
-          lineItem != nullptr) {
-        lineItem->setLine(QLineF(annotation.rect().topLeft(),
-                                 annotation.rect().bottomRight()));
-        lineItem->setPen(QPen(annotation.color()));
-      }
-      break;
-
-    case Annotation::Rect:
-      if (auto *rectItem = dynamic_cast<QGraphicsRectItem *>(item);
-          rectItem != nullptr) {
-        rectItem->setRect(annotation.rect());
-        rectItem->setPen(QPen(annotation.color()));
-      }
-      break;
-
-    case Annotation::Polygon:
-      if (auto *polygonItem = dynamic_cast<QGraphicsPolygonItem *>(item);
-          polygonItem != nullptr) {
-        polygonItem->setPolygon(annotation.polygon());
-        polygonItem->setPen(QPen(annotation.color()));
-      }
-      break;
-    }
-  }
-
-  void removeAnnotationItem(int row) {
-    QGraphicsItem *item = m_annotationItems.takeAt(row);
-    scene()->removeItem(item);
-    delete item;
-  }
+  void removeAnnotationItem(int row);
 
   void drawTicks(QPainter *painter);
 

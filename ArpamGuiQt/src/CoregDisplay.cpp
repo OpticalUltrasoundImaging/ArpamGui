@@ -25,7 +25,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       actCursorPan(new QAction(QIcon(), "Pan")),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
-      actCursorLabelRect(new QAction(QIcon(), "Rect"))
+      actCursorLabelRect(new QAction(QIcon(), "Rect")),
+      actCursorLabelFan(new QAction(QIcon(), "Fan"))
 
 {
   // Connect annotation model
@@ -54,7 +55,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       AP{actCursorDefault, CursorMode::Default},
       AP{actCursorPan, CursorMode::Pan},
       AP{actCursorLine, CursorMode::MeasureLine},
-      AP{actCursorLabelRect, CursorMode::LabelRect}};
+      AP{actCursorLabelRect, CursorMode::LabelRect},
+      AP{actCursorLabelFan, CursorMode::LabelFan}};
 
   // Init state and connect exclusive checking of actions
   for (const auto &[act1, enum1] : CursorModeActions) {
@@ -87,6 +89,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   toolbar->addAction(actCursorPan);
   toolbar->addAction(actCursorLine);
   toolbar->addAction(actCursorLabelRect);
+  toolbar->addAction(actCursorLabelFan);
 
   // Image Canvas
   auto *hlayout = new QHBoxLayout;

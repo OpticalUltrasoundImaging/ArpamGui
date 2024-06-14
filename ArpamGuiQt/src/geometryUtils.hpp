@@ -3,21 +3,76 @@
 #include <QLine>
 #include <QPoint>
 #include <QRectF>
+#include <cmath>
+#include <tuple>
 
 namespace geometry {
 
 // Clip point to minPoint and maxPoint
-QPointF clipPoint(const QPointF &point, const QPointF &minPoint,
-                  const QPointF &maxPoint);
+[[nodiscard]] QPointF clipPoint(const QPointF &point, const QPointF &minPoint,
+                                const QPointF &maxPoint);
 
-QPoint clipPoint(const QPoint &point, const QPoint &minPoint,
-                 const QPoint &maxPoint);
+[[nodiscard]] QPoint clipPoint(const QPoint &point, const QPoint &minPoint,
+                               const QPoint &maxPoint);
 
-qreal calcMagnitude(const QPointF &pt);
+[[nodiscard]] qreal calcMagnitude(const QPointF &pt);
 
-QPointF calcNormalVec(const QLineF &line);
+[[nodiscard]] QPointF calcNormalVec(const QLineF &line);
 
-QRectF translateBounded(const QRectF &rect, const QPointF &delta,
-                        const QRectF &bound);
+[[nodiscard]] QRectF translateBounded(const QRectF &rect, const QPointF &delta,
+                                      const QRectF &bound);
+
+// Arc
+[[nodiscard]] inline auto rad2deg(double rad) { return rad * 180.0 / M_PI; }
+[[nodiscard]] inline auto deg2rad(double deg) { return deg / 180.0 * M_PI; }
+
+// Calculate the angle (in 1/16 of a degree) of a point with respect to a rect
+[[nodiscard]] inline int calcAngleFromPos(const QRectF &rect, QPointF pos) {
+  const auto center = rect.center();
+  // The angle computed by atan2 uses signs to determine the quadrant.
+  // y axis is flipped
+  auto angle = rad2deg(atan2(center.y() - pos.y(), pos.x() - center.x()));
+  if (angle < 0) {
+    angle = 360.0 + angle;
+  }
+
+  // Unit in 1/16 of a degree
+  const auto angle16 = static_cast<int>(std::round(angle * 16.0));
+  return angle16;
+}
+
+// Calculate the position on the circle's circumference given a bounding rect
+// and an angle (in 1/16 of a degree)
+[[nodiscard]] inline QPointF calcPosFromAngle(const QRectF &rect, int angle) {
+  const auto center = rect.center();
+  const auto cx = center.x();
+  const auto cy = center.y();
+  const auto w = rect.width();
+  const auto h = rect.height();
+
+  const double startRadians = deg2rad(angle / 16.0);
+
+  QPointF point(cx + w / 2 * cos(startRadians), cy - h / 2 * sin(startRadians));
+  return point;
+}
+
+[[nodiscard]] inline std::tuple<QPointF, QPointF>
+calcPosFromArc(const QRectF &rect, int startAngle, int spanAngle) {
+  // Draw the lines connecting the ends of the arc to the center
+  const auto center = rect.center();
+  const auto cx = center.x();
+  const auto cy = center.y();
+  const auto w = rect.width();
+  const auto h = rect.height();
+
+  // Calculate the end points of the arc
+  const double startRadians = deg2rad(startAngle / 16.0);
+  const double endRadians = deg2rad((startAngle + spanAngle) / 16.0);
+
+  QPointF startPoint(cx + w / 2 * cos(startRadians),
+                     cy - h / 2 * sin(startRadians));
+  QPointF endPoint(cx + w / 2 * cos(endRadians), cy - h / 2 * sin(endRadians));
+  return {startPoint, endPoint};
+}
 
 } // namespace geometry

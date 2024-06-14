@@ -228,6 +228,7 @@ void Canvas::undo() {
 void Canvas::mousePressEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
   m_cursor.startPos = m_PixmapItem->mapFromScene(mapToScene(event->pos()));
+  m_cursor.pos = m_cursor.startPos;
 
   if (event->button() == Qt::LeftButton) {
     m_cursor.leftButtonDown = true;
@@ -254,7 +255,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         m_currLabelItem = nullptr;
       }
 
-      const auto line = m_cursor.getLine();
+      const auto line = m_cursor.line();
       const auto color = Qt::white;
 
       {
@@ -290,16 +291,38 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         m_currLabelItem = nullptr;
       }
 
-      const auto rect = m_cursor.getRect();
+      const auto rect = m_cursor.rect();
       {
         m_currItem = new RectItem(rect, Qt::white);
         m_scene->addItem(m_currItem);
       }
 
-      delete m_currLabelItem;
-      m_currLabelItem = nullptr;
+    } break;
+    case CursorMode::LabelFan: {
+      event->accept();
+
+      if (m_currItem != nullptr) {
+        m_scene->removeItem(m_currItem);
+        delete m_currItem;
+        m_currItem = nullptr;
+      }
+
+      if (m_currLabelItem != nullptr) {
+        m_scene->removeItem(m_currLabelItem);
+        delete m_currLabelItem;
+        m_currLabelItem = nullptr;
+      }
+
+      // Convert mouse pos to angle
+      const auto angle = m_cursor.angle(m_Pixmap.rect());
+      {
+        m_currItem = new FanItem(m_Pixmap.rect(), {angle, 0}, Qt::white);
+        m_scene->addItem(m_currItem);
+      }
+
     } break;
     }
+
   } else if (event->button() == Qt::MiddleButton) {
     // Middle button pan
     m_cursor.middleButtonDown = true;
@@ -319,8 +342,8 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
   m_cursor.pos = m_PixmapItem->mapFromScene(mapToScene(event->pos()));
 
   // [px] Compute distance to center
-  const QPointF center(m_Pixmap.width() / 2.0, m_Pixmap.height() / 2.0);
-  auto distanceToCenter_mm = computeDistance_mm(center, m_cursor.pos);
+  const auto center = m_Pixmap.rect().center();
+  const auto distanceToCenter_mm = computeDistance_mm(center, m_cursor.pos);
   emit mouseMoved(m_cursor.pos.toPoint(), distanceToCenter_mm);
 
   if (m_cursor.leftButtonDown) {
@@ -340,7 +363,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       if (auto *item = dynamic_cast<LineItem *>(m_currItem); item != nullptr)
           [[likely]] {
 
-        const auto line = m_cursor.getLine();
+        const auto line = m_cursor.line();
         const auto dist = computeDistance_mm(line.p1(), line.p2());
         item->setLine(line);
 
@@ -356,7 +379,17 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       event->accept();
       if (auto *item = dynamic_cast<RectItem *>(m_currItem); item != nullptr)
           [[likely]] {
-        item->setRect(m_cursor.getRect());
+        item->setRect(m_cursor.rect());
+      }
+      break;
+    case CursorMode::LabelFan:
+      event->accept();
+      if (auto *item = dynamic_cast<FanItem *>(m_currItem); item != nullptr)
+          [[likely]] {
+
+        const auto angle = m_cursor.angle(m_Pixmap.rect());
+        emit error(QString("Fan angle: %1").arg(angle));
+        item->setSpanAngle(angle - item->startAngle());
       }
       break;
     }
@@ -386,16 +419,24 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
     case CursorMode::MeasureLine: {
       // Save
-      Annotation anno(m_cursor.getLine(), m_currItem->color());
+      Annotation anno(m_cursor.line(), m_currItem->color());
       m_annotations->addAnnotation(anno);
 
     } break;
     case CursorMode::LabelRect: {
       // Save
-      Annotation anno(m_cursor.getRect(), m_currItem->color());
+      Annotation anno(m_cursor.rect(), m_currItem->color());
       m_annotations->addAnnotation(anno);
 
     } break;
+    case CursorMode::LabelFan:
+
+      if (auto *item = dynamic_cast<FanItem *>(m_currItem); item != nullptr)
+          [[likely]] {
+        Annotation anno(item->arc(), item->color());
+        m_annotations->addAnnotation(anno);
+      }
+      break;
     }
 
   } else if (event->button() == Qt::MiddleButton) {
@@ -487,6 +528,84 @@ void Canvas::setCursorMode(CursorMode mode) {
   default:
     setCursor(Qt::CrossCursor);
   }
+}
+
+void Canvas::addAnnotationItem(int row) {
+  const Annotation &annotation = m_annotations->getAnnotation(row);
+
+  QGraphicsItem *item = [&]() -> QGraphicsItem * {
+    switch (annotation.type()) {
+
+    case Annotation::Line: {
+      auto *item = new QGraphicsLineItem(
+          QLineF(annotation.rect().topLeft(), annotation.rect().bottomRight()));
+      item->setPen(QPen(annotation.color()));
+      return item;
+    }
+
+    case Annotation::Rect: {
+      auto *item = new QGraphicsRectItem(annotation.rect());
+      item->setPen(QPen(annotation.color()));
+      return item;
+    }
+
+    case Annotation::Fan: {
+      // TODO
+      break;
+    }
+    case Annotation::Polygon: {
+      auto *item = new QGraphicsPolygonItem(annotation.polygon());
+      item->setPen(QPen(annotation.color()));
+      return item;
+    }
+    }
+  }();
+
+  scene()->addItem(item);
+  m_annotationItems.append(item);
+}
+
+void Canvas::updateAnnotationItem(int row) {
+  QGraphicsItem *item = m_annotationItems[row];
+  const Annotation &annotation = m_annotations->getAnnotation(row);
+
+  switch (annotation.type()) {
+  case Annotation::Line:
+    if (auto *lineItem = dynamic_cast<QGraphicsLineItem *>(item);
+        lineItem != nullptr) {
+      lineItem->setLine(
+          QLineF(annotation.rect().topLeft(), annotation.rect().bottomRight()));
+      lineItem->setPen(QPen(annotation.color()));
+    }
+    break;
+
+  case Annotation::Rect:
+    if (auto *rectItem = dynamic_cast<QGraphicsRectItem *>(item);
+        rectItem != nullptr) {
+      rectItem->setRect(annotation.rect());
+      rectItem->setPen(QPen(annotation.color()));
+    }
+    break;
+
+  case Annotation::Fan:
+    // TODO
+    // if (auto *fanItem = dynamic_cast<)
+
+    break;
+  case Annotation::Polygon:
+    if (auto *polygonItem = dynamic_cast<QGraphicsPolygonItem *>(item);
+        polygonItem != nullptr) {
+      polygonItem->setPolygon(annotation.polygon());
+      polygonItem->setPen(QPen(annotation.color()));
+    }
+    break;
+  }
+}
+
+void Canvas::removeAnnotationItem(int row) {
+  QGraphicsItem *item = m_annotationItems.takeAt(row);
+  scene()->removeItem(item);
+  delete item;
 }
 
 // NOLINTEND(*-casting, *-narrowing-conversions)
