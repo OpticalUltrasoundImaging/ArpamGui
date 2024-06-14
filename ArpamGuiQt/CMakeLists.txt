@@ -18,6 +18,8 @@ set(app_icon_macos "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ArpamGui.icns")
 set_source_files_properties(${app_icon_macos} PROPERTIES 
     MACOSX_PACKAGE_LOCATION "Resources")
 
+set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ArpamGui.rc")
+
 ### Source files
 qt_add_executable(${EXE_NAME}
     src/main.cpp
@@ -47,6 +49,7 @@ qt_add_executable(${EXE_NAME}
     src/geometryUtils.cpp
     src/geometryUtils.hpp
     ${app_icon_macos}
+    ${app_icon_resource_windows}
 )
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"
