@@ -6,12 +6,9 @@
 #include <QStyleHints>
 #include <QtWidgets>
 #include <ctime>
-#include <format>
-#include <fstream>
-
 #include <fftconv.hpp>
 #include <fftw3.h>
-#include <mutex>
+#include <fstream>
 #include <uspam/fft.hpp>
 
 // void addDatetime(std::ostream &os) {

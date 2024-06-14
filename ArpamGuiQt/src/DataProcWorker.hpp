@@ -75,7 +75,6 @@ signals:
 private:
   void processCurrentFrame();
 
-private:
   int m_frameIdx{0};
   std::atomic<bool> m_ready{false};
   std::atomic<bool> m_isPlaying{false};

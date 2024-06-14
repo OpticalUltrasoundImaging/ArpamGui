@@ -1,7 +1,7 @@
 #include "CanvasOverlay.hpp"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <qnamespace.h>
+#include <Qt>
 
 CanvasOverlay::CanvasOverlay(QWidget *parent)
     : QWidget(parent), m_sequence(new QLabel), m_modality(new QLabel),

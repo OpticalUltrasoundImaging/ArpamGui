@@ -6,7 +6,6 @@
 #include <opencv2/opencv.hpp>
 #include <rapidjson/rapidjson.h>
 #include <sstream>
-#include <string>
 
 struct ARPAM_GUI_ABOUT {
   QString operator()() {

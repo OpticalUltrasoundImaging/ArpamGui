@@ -7,8 +7,8 @@
 #include <QRectF>
 #include <QString>
 #include <QVariant>
+#include <Qt>
 #include <array>
-#include <qnamespace.h>
 #include <utility>
 
 struct Arc {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CanvasAnnotationItem.hpp"
 #include "CanvasAnnotationModel.hpp"
 
 #include <QTableView>

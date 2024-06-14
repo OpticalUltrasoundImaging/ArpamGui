@@ -15,10 +15,8 @@ Subclasses of QGraphicsItem for annotation visualization
 #include <QRectF>
 #include <QTransform>
 #include <QVariant>
-#include <array>
 #include <qnamespace.h>
 #include <utility>
-#include <vector>
 
 class AnnotationGraphicsItemBase : public QGraphicsItem {
 public:

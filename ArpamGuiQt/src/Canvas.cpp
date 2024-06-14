@@ -12,12 +12,9 @@
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
-#include <array>
-#include <cmath>
 #include <qgraphicsview.h>
 #include <qlogging.h>
 #include <qnamespace.h>
-#include <tuple>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)

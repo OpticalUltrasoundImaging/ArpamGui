@@ -33,7 +33,6 @@ private:
   void updateGuiFromParams();
   inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
 
-private:
   QLineEdit *filtFreqPA;
   QLineEdit *filtGainPA;
 

@@ -1,7 +1,7 @@
 #include "CanvasAnnotationModel.hpp"
+#include <QAbstractItemModel>
+#include <Qt>
 #include <cassert>
-#include <qabstractitemmodel.h>
-#include <qnamespace.h>
 
 Annotation::Annotation(Type type, const QList<QPointF> &points,
                        const QColor &color)

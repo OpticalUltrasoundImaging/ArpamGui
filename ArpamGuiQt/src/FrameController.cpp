@@ -4,13 +4,12 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QSlider>
 #include <QSpinBox>
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <cassert>
-#include <qmessagebox.h>
-#include <qplaintextedit.h>
 
 FrameController::FrameController(QWidget *parent)
     : QWidget(parent), m_btnPlayPause(new QPushButton("Play", this)),

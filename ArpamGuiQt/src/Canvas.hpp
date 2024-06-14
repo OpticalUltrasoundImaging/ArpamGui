@@ -5,7 +5,6 @@
 #include "CanvasCursorState.hpp"
 #include "CanvasOverlay.hpp"
 #include "CanvasTicks.hpp"
-#include "geometryUtils.hpp"
 #include <QAbstractListModel>
 #include <QEvent>
 #include <QGraphicsItem>
@@ -25,8 +24,6 @@
 #include <QWidget>
 #include <QtWidgets>
 #include <opencv2/opencv.hpp>
-#include <stdexcept>
-#include <vector>
 
 // Canvas displays and image in a QGraphicsView
 // and supports drawing annotations.

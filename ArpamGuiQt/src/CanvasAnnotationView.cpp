@@ -1,7 +1,6 @@
 #include "CanvasAnnotationView.hpp"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <qboxlayout.h>
 
 AnnotationView::AnnotationView(QWidget *parent)
     : QWidget(parent), m_tableView(new QTableView) {

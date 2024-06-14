@@ -1,6 +1,5 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
-#include "CanvasAnnotationModel.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include "FrameController.hpp"
@@ -21,7 +20,6 @@
 #include <QtDebug>
 #include <QtLogging>
 #include <filesystem>
-#include <format>
 #include <opencv2/opencv.hpp>
 #include <qnamespace.h>
 #include <uspam/defer.h>
@@ -102,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Action for when a new binfile is selected
     connect(m_frameController, &FrameController::sigBinfileSelected,
-            [=](const QString &filepath) {
+            [this](const QString &filepath) {
               const auto pathUtf8 = filepath.toUtf8();
               std::filesystem::path path(pathUtf8.constData());
 
@@ -117,7 +115,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_frameController, &FrameController::sigFrameNumUpdated, worker,
             &DataProcWorker::playOne);
 
-    connect(m_frameController, &FrameController::sigPlay, this, [=] {
+    connect(m_frameController, &FrameController::sigPlay, this, [this] {
       QMetaObject::invokeMethod(worker, &DataProcWorker::play);
       m_coregDisplay->resetZoomOnNextImshow();
     });
@@ -125,18 +123,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_frameController, &FrameController::sigPause, this,
             [&] { worker->pause(); });
 
-    connect(worker, &DataProcWorker::maxFramesChanged, this, [=](int maxIdx) {
+    connect(worker, &DataProcWorker::maxFramesChanged, this, [this](int maxIdx) {
       m_frameController->updateMaxFrameNum(maxIdx);
       m_coregDisplay->setMaxIdx(maxIdx);
     });
 
-    connect(worker, &DataProcWorker::frameIdxChanged, this, [=](int idx) {
+    connect(worker, &DataProcWorker::frameIdxChanged, this, [this](int idx) {
       m_frameController->updateFrameNum(idx);
       m_coregDisplay->setIdx(idx);
     });
 
     connect(worker, &DataProcWorker::finishedPlaying, this,
-            [=] { m_frameController->updatePlayingState(false); });
+            [this] { m_frameController->updatePlayingState(false); });
   }
 
   // Tabify ReconParamsController dock and Annotations dock on the left

@@ -3,11 +3,11 @@
 #include "CanvasAnnotationView.hpp"
 
 #include <QAction>
+#include <QBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QTableView>
 #include <array>
-#include <qboxlayout.h>
-#include <qtableview.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -40,7 +40,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   connect(m_canvasRight, &Canvas::error, this, &CoregDisplay::message);
 
   // Connection actions
-  connect(actResetZoom, &QAction::triggered, [=] {
+  connect(actResetZoom, &QAction::triggered, [this] {
     m_canvasLeft->scaleToSize();
     m_canvasRight->scaleToSize();
   });
@@ -61,7 +61,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   // Init state and connect exclusive checking of actions
   for (const auto &[act1, enum1] : CursorModeActions) {
     act1->setCheckable(true);
-    connect(act1, &QAction::triggered, [=] {
+    connect(act1, &QAction::triggered, [this, enum1, CursorModeActions, act1] {
       setCursorMode(enum1);
 
       for (const auto &[act2, enum2] : CursorModeActions) {

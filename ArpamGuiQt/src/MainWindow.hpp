@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoregDisplay.hpp"
+#include "DataProcWorker.hpp"
+#include "FrameController.hpp"
 #include <QAction>
 #include <QActionGroup>
 #include <QContextMenuEvent>
@@ -14,11 +17,6 @@
 #include <QStackedWidget>
 #include <QThread>
 #include <QVBoxLayout>
-
-#include "Canvas.hpp"
-#include "CoregDisplay.hpp"
-#include "DataProcWorker.hpp"
-#include "FrameController.hpp"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
