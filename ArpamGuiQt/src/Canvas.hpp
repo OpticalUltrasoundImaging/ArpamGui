@@ -65,17 +65,22 @@ public:
   void scaleToSize();
 
 public slots: // NOLINT
+
+  /* Show image */
   void imshow(const cv::Mat &cv_img, double pix2m);
   void imshow(const QImage &img, double pix2m);
   void imshow(const QPixmap &pixmap, double pix2m);
 
   void setCursorMode(CursorMode mode);
 
+  // Callback for when model data changed
   void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
                      const QVector<int> &roles);
 
+  // Callback for when model inserts rows
   void onRowsInserted(const QModelIndex &parent, int first, int last);
 
+  // Callback for when model removes rows
   void onRowsRemoved(const QModelIndex &parent, int first, int last);
 
   // Roll back the last cursor action
@@ -113,28 +118,28 @@ protected:
   void resizeEvent(QResizeEvent *event) override;
 
 private:
-  // Called whenever m_scaleFactor changes
+  // Must be called when m_scaleFactor changes
   void updateTransform();
 
   // Pinch zoom handlers
   bool gestureEvent(QGestureEvent *event);
   void pinchTriggered(QPinchGesture *gesture);
 
-  // Panning
+  // Panning handlers
   void panStartEvent(QMouseEvent *event);
   void panMoveEvent(QMouseEvent *event);
   void panEndEvent(QMouseEvent *event);
 
-  // Annotation handlers
+  // Annotation graphics handlers
   // Add an existing annotation in the model at `row`
   // to the view
-  void addAnnotationItem(int row);
+  void addGraphicsItemFromModel(int row);
 
   // Update an existing annotation in the model at `row`
   // to the view
-  void updateAnnotationItem(int row);
+  void updateGraphicsItemFromModel(int row);
 
-  void removeAnnotationItem(int row);
+  void removeGraphicsItem(int row);
 
   // Clear m_currLabelItem and m_currItem
   void removeCurrItem();

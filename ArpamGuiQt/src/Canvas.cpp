@@ -525,19 +525,19 @@ void Canvas::setCursorMode(CursorMode mode) {
   }
 }
 
-void Canvas::addAnnotationItem(int row) {
+void Canvas::addGraphicsItemFromModel(int row) {
   auto *item = annotation::makeGraphicsItem(m_annotations->getAnnotation(row));
   scene()->addItem(item);
   m_annotationItems.append(item);
 }
 
-void Canvas::updateAnnotationItem(int row) {
+void Canvas::updateGraphicsItemFromModel(int row) {
   auto *item = m_annotationItems[row];
   const auto &annotation = m_annotations->getAnnotation(row);
   item->updateAnno(annotation);
 }
 
-void Canvas::removeAnnotationItem(int row) {
+void Canvas::removeGraphicsItem(int row) {
   auto *item = m_annotationItems.takeAt(row);
   scene()->removeItem(item);
   delete item;
@@ -561,23 +561,22 @@ void Canvas::removeCurrItem() {
 void Canvas::onDataChanged(const QModelIndex &topLeft,
                            const QModelIndex &bottomRight,
                            const QVector<int> &roles) {
-  emit error("onDataChanged called once");
   for (int row = topLeft.row(); row <= bottomRight.row(); ++row) {
-    updateAnnotationItem(row);
+    updateGraphicsItemFromModel(row);
   }
 }
 
 void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
   for (int row = first; row <= last; ++row) {
-    addAnnotationItem(row);
+    addGraphicsItemFromModel(row);
   }
 }
 
 void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
   for (int row = first; row <= last; ++row) {
-    removeAnnotationItem(row);
+    removeGraphicsItem(row);
   }
 }
 
