@@ -1,7 +1,8 @@
 #pragma once
 
-#include "CanvasAnnotationItem.hpp"
-#include "CanvasAnnotationModel.hpp"
+#include "Annotation/AnnotationModel.hpp"
+#include "Annotation/GraphicsItemBase.hpp"
+#include "Annotation/GraphicsItems.hpp"
 #include "CanvasCursorState.hpp"
 #include "CanvasOverlay.hpp"
 #include "CanvasTicks.hpp"
@@ -36,6 +37,9 @@ class Canvas : public QGraphicsView {
   Q_PROPERTY(CursorMode cursorMode READ cursorMode WRITE setCursorMode)
 
 public:
+  using AnnotationModel = annotation::AnnotationModel;
+  using Annotation = annotation::Annotation;
+
   enum class CursorMode {
     Default = 0, // Let QGraphicsView handle the mouse event
     Pan,
@@ -68,30 +72,19 @@ public slots: // NOLINT
   void setCursorMode(CursorMode mode);
 
   void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
-                     const QVector<int> &roles) {
-    for (int row = topLeft.row(); row <= bottomRight.row(); ++row) {
-      updateAnnotationItem(row);
-    }
-  }
+                     const QVector<int> &roles);
 
-  void onRowsInserted(const QModelIndex &parent, int first, int last) {
-    Q_UNUSED(parent);
-    for (int row = first; row <= last; ++row) {
-      addAnnotationItem(row);
-    }
-  }
+  void onRowsInserted(const QModelIndex &parent, int first, int last);
 
-  void onRowsRemoved(const QModelIndex &parent, int first, int last) {
-    Q_UNUSED(parent);
-    for (int row = first; row <= last; ++row) {
-      removeAnnotationItem(row);
-    }
-  }
+  void onRowsRemoved(const QModelIndex &parent, int first, int last);
 
   // Roll back the last cursor action
   void undo();
 
   void resetZoomOnNextImshow() { m_resetZoomOnNextImshow = true; }
+
+  // Add the newest annotation in the data model as a graphics item
+  void onNewAnnotationAddedInModel();
 
 signals:
   void error(QString err);
@@ -100,9 +93,10 @@ signals:
   // domain
   void mouseMoved(QPoint pos, double depth_mm);
 
-  void annoLineDrawn();
-  void annoBoxDrawn();
-  void annoFanDrawn();
+  // Emitted when a new annotation is drawn with the cursor.
+  // This should signal other canvases (with shared annotation model)
+  // to update its graphics items with the newest item.
+  void newAnnotationAdded();
 
 protected:
   // Override event specifically to handle gesture events
@@ -179,9 +173,9 @@ private:
   CursorMode m_cursorMode{CursorMode::LabelRect};
 
   // The graphics item currently being drawn by the cursor
-  AnnotationGraphicsItemBase *m_currItem{nullptr};
+  annotation::GraphicsItemBase *m_currItem{nullptr};
   QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
   AnnotationModel *m_annotations{};
-  QList<QGraphicsItem *> m_annotationItems;
+  QList<annotation::GraphicsItemBase *> m_annotationItems;
 };

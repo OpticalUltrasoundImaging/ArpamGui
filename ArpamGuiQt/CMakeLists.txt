@@ -27,12 +27,14 @@ qt_add_executable(${EXE_NAME}
     src/MainWindow.cpp
     src/Canvas.hpp
     src/Canvas.cpp
-    src/CanvasAnnotationItem.hpp
-    src/CanvasAnnotationItem.cpp
-    src/CanvasAnnotationModel.hpp
-    src/CanvasAnnotationModel.cpp
-    src/CanvasAnnotationView.hpp
-    src/CanvasAnnotationView.cpp
+    src/Annotation/GraphicsItemBase.cpp
+    src/Annotation/GraphicsItemBase.hpp
+    src/Annotation/GraphicsItems.cpp
+    src/Annotation/GraphicsItems.hpp
+    src/Annotation/AnnotationModel.hpp
+    src/Annotation/AnnotationModel.cpp
+    src/Annotation/AnnotationView.hpp
+    src/Annotation/AnnotationView.cpp
     src/CanvasCursorState.hpp
     src/CanvasTicks.hpp
     src/CanvasTicks.cpp
@@ -79,6 +81,8 @@ set_target_properties(${EXE_NAME} PROPERTIES
 )
 
 if (WIN32)
+    add_compile_definitions(_USE_MATH_DEFINES)
+
     # On Windows, call windeployqt create a deployable folder
     # https://doc.qt.io/qt-6/windows-deployment.html
     set_target_properties(${EXE_NAME} PROPERTIES

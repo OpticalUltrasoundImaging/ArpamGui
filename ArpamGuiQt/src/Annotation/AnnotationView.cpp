@@ -1,6 +1,8 @@
-#include "CanvasAnnotationView.hpp"
+#include "Annotation/AnnotationView.hpp"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+
+namespace annotation {
 
 AnnotationView::AnnotationView(QWidget *parent)
     : QWidget(parent), m_tableView(new QTableView) {
@@ -16,3 +18,5 @@ AnnotationView::AnnotationView(QWidget *parent)
 
   { vlayout->addWidget(m_tableView); }
 }
+
+} // namespace annotation

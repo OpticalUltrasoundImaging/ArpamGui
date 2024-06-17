@@ -1,6 +1,7 @@
 #pragma once
 #include <QAbstractListModel>
 #include <QColor>
+#include <QColorDialog>
 #include <QLineF>
 #include <QList>
 #include <QPolygonF>
@@ -9,7 +10,10 @@
 #include <QVariant>
 #include <Qt>
 #include <array>
+#include <functional>
 #include <utility>
+
+namespace annotation {
 
 struct Arc {
   // Pair of angles (each 0-360) that denote a fan shape center at the center of
@@ -36,17 +40,38 @@ public:
   Annotation(const QRectF &rect, const QColor &color);
   Annotation(const Arc &arc, const QColor &color);
 
+  /* Copy constructor */
+  Annotation(const Annotation &other) = default;
+  /* Copy assignment */
+  Annotation &operator=(const Annotation &other) = default;
+  /* Move constructor */
+  Annotation(Annotation &&) = default;
+  /* Move assignment */
+  Annotation &operator=(Annotation &&) = default;
+
+  ~Annotation() = default;
+
   [[nodiscard]] auto type() const { return m_type; }
   void setType(Type type) { m_type = type; }
 
   // For Line, the 2 points are {p1, p2}
-  [[nodiscard]] auto line() const -> QLineF;
+  [[nodiscard]] auto line() const -> QLineF {
+    assert(m_polygon.size() == 2);
+    return {m_polygon[0], m_polygon[1]};
+  };
 
   // For Rect, the 2 points are {top_left, bottom_right}
-  [[nodiscard]] auto rect() const -> QRectF;
+  [[nodiscard]] auto rect() const -> QRectF {
+    assert(m_polygon.size() == 2);
+    return {m_polygon[0], m_polygon[1]};
+  };
 
   // For arc, the 1 points stores the startAngle (x) and spanAngle (y)
-  [[nodiscard]] auto arc() const -> Arc;
+  [[nodiscard]] auto arc() const -> Arc {
+    assert(m_polygon.size() == 1);
+    const auto pt = m_polygon[0];
+    return Arc{static_cast<int>(pt.x()), static_cast<int>(pt.y())};
+  }
 
   [[nodiscard]] auto polygon() const -> QPolygonF { return m_polygon; };
   void setPolygon(const QPolygonF &polygon) { m_polygon = polygon; }
@@ -77,17 +102,46 @@ private:
   QString m_name;
 };
 
+namespace annoGetSet {
+
+[[nodiscard]] inline auto getType(const Annotation &annotation) {
+  return Annotation::typeToString(annotation.type());
+}
+
+[[nodiscard]] inline auto getName(const Annotation &annotation) {
+  return annotation.name();
+};
+
+[[nodiscard]] inline auto getColor(const Annotation &annotation) {
+  return annotation.color();
+};
+
+[[nodiscard]] inline auto setName(Annotation &annotation,
+                                  const QVariant &value) {
+  annotation.setName(value.toString());
+};
+
+} // namespace annoGetSet
 class AnnotationModel : public QAbstractListModel {
   Q_OBJECT
 public:
-  enum AnnotationRoles {
-    TypeRole = Qt::UserRole + 1,
-    PolygonRole,
-    ColorRole,
-    NameRole
+  enum AnnotationRoles { TypeRole = Qt::UserRole + 1, NameRole, ColorRole };
+
+  // Column metadata
+  struct ColumnMetaData {
+    QString header;
+    bool editable;
+    std::function<QVariant(const Annotation &annotation)> getter;
+    std::function<void(Annotation &annotation, const QVariant &value)> setter;
   };
-  const inline static std::array<QString, 4> HEADER_DATA{"Color", "Type",
-                                                         "Name", "Points"};
+  inline static const std::array HEADER_DATA{
+      ColumnMetaData{"Type", false, annoGetSet::getType},
+      ColumnMetaData{"Name", true, annoGetSet::getName, annoGetSet::setName},
+      ColumnMetaData{
+          "Color",
+          false,
+          annoGetSet::getColor,
+      }};
 
   [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
   [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
@@ -103,9 +157,15 @@ public:
 
   [[nodiscard]] Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-  void addAnnotation(const Annotation &annotation);
+  bool removeRows(int row, int count, const QModelIndex &parent) override;
 
+  void addAnnotation(const Annotation &annotation);
   void removeAnnotation(int row);
+
+  [[nodiscard]] auto &front() { return m_annotations.front(); }
+  [[nodiscard]] const auto &front() const { return m_annotations.front(); }
+  [[nodiscard]] auto &back() { return m_annotations.back(); }
+  [[nodiscard]] const auto &back() const { return m_annotations.back(); }
 
   [[nodiscard]] Annotation const &getAnnotation(int row) const {
     return m_annotations[row];
@@ -116,3 +176,8 @@ public:
 private:
   QList<Annotation> m_annotations;
 };
+
+#undef ANNO_GETTER
+#undef ANNO_SETTER
+
+} // namespace annotation

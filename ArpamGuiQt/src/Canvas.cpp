@@ -1,5 +1,6 @@
 #include "Canvas.hpp"
-#include "CanvasAnnotationItem.hpp"
+#include "Annotation/GraphicsItemBase.hpp"
+#include "Annotation/GraphicsItems.hpp"
 #include "geometryUtils.hpp"
 #include <QGestureEvent>
 #include <QGraphicsView>
@@ -246,7 +247,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       const auto color = Qt::white;
 
       {
-        m_currItem = new LineItem(line, color);
+        m_currItem = new annotation::LineItem(line, color);
         m_scene->addItem(m_currItem);
       }
 
@@ -270,7 +271,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 
       const auto rect = m_cursor.rect();
       {
-        m_currItem = new RectItem(rect, Qt::white);
+        m_currItem = new annotation::RectItem(rect, Qt::white);
         m_scene->addItem(m_currItem);
       }
 
@@ -283,7 +284,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       // Convert mouse pos to angle
       const auto angle = m_cursor.angle(m_Pixmap.rect());
       {
-        m_currItem = new FanItem(m_Pixmap.rect(), {angle, 0}, Qt::white);
+        m_currItem =
+            new annotation::FanItem(m_Pixmap.rect(), {angle, 0}, Qt::white);
         m_scene->addItem(m_currItem);
       }
 
@@ -327,8 +329,8 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
     case CursorMode::MeasureLine:
       event->accept();
 
-      if (auto *item = dynamic_cast<LineItem *>(m_currItem); item != nullptr)
-          [[likely]] {
+      if (auto *item = dynamic_cast<annotation::LineItem *>(m_currItem);
+          item != nullptr) [[likely]] {
 
         const auto line = m_cursor.line();
         const auto dist = computeDistance_mm(line.p1(), line.p2());
@@ -344,15 +346,15 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
     case CursorMode::LabelRect:
       event->accept();
-      if (auto *item = dynamic_cast<RectItem *>(m_currItem); item != nullptr)
-          [[likely]] {
+      if (auto *item = dynamic_cast<annotation::RectItem *>(m_currItem);
+          item != nullptr) [[likely]] {
         item->setRect(m_cursor.rect());
       }
       break;
     case CursorMode::LabelFan:
       event->accept();
-      if (auto *item = dynamic_cast<FanItem *>(m_currItem); item != nullptr)
-          [[likely]] {
+      if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
+          item != nullptr) [[likely]] {
 
         const auto angle = m_cursor.angle(m_Pixmap.rect());
         // emit error(QString("Fan angle: %1").arg(angle));
@@ -385,23 +387,38 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       break;
 
     case CursorMode::MeasureLine: {
-      // Save
+      // Save annotation to the data model
       Annotation anno(m_cursor.line(), m_currItem->color());
       m_annotations->addAnnotation(anno);
 
+      // Add annotation graphics to the stored graphics items
+      m_annotationItems.append(m_currItem);
+      m_currItem = nullptr;
+
+      emit newAnnotationAdded();
+
     } break;
     case CursorMode::LabelRect: {
-      // Save
       Annotation anno(m_cursor.rect(), m_currItem->color());
       m_annotations->addAnnotation(anno);
+
+      m_annotationItems.append(m_currItem);
+      m_currItem = nullptr;
+
+      emit newAnnotationAdded();
 
     } break;
     case CursorMode::LabelFan:
 
-      if (auto *item = dynamic_cast<FanItem *>(m_currItem); item != nullptr)
-          [[likely]] {
+      if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
+          item != nullptr) [[likely]] {
         Annotation anno(item->arc(), item->color());
         m_annotations->addAnnotation(anno);
+
+        m_annotationItems.append(m_currItem);
+        m_currItem = nullptr;
+
+        emit newAnnotationAdded();
       }
       break;
     }
@@ -477,8 +494,9 @@ void Canvas::updateTransform() {
 
   // Update font factor for the annotation text labels
   if (m_currLabelItem != nullptr) {
+    constexpr auto BASE_FONT_SIZE = 16.0;
     auto font = m_currLabelItem->font();
-    font.setPointSizeF(16.0 / m_scaleFactor);
+    font.setPointSizeF(BASE_FONT_SIZE / m_scaleFactor);
     m_currLabelItem->setFont(font);
   }
 
@@ -508,79 +526,19 @@ void Canvas::setCursorMode(CursorMode mode) {
 }
 
 void Canvas::addAnnotationItem(int row) {
-  const Annotation &annotation = m_annotations->getAnnotation(row);
-
-  QGraphicsItem *item = [&]() -> QGraphicsItem * {
-    switch (annotation.type()) {
-
-    case Annotation::Line: {
-      auto *item = new QGraphicsLineItem(
-          QLineF(annotation.rect().topLeft(), annotation.rect().bottomRight()));
-      item->setPen(QPen(annotation.color()));
-      return item;
-    }
-
-    case Annotation::Rect: {
-      auto *item = new QGraphicsRectItem(annotation.rect());
-      item->setPen(QPen(annotation.color()));
-      return item;
-    }
-
-    case Annotation::Fan: {
-      // TODO
-      break;
-    }
-    case Annotation::Polygon: {
-      auto *item = new QGraphicsPolygonItem(annotation.polygon());
-      item->setPen(QPen(annotation.color()));
-      return item;
-    }
-    }
-  }();
-
+  auto *item = annotation::makeGraphicsItem(m_annotations->getAnnotation(row));
   scene()->addItem(item);
   m_annotationItems.append(item);
 }
 
 void Canvas::updateAnnotationItem(int row) {
-  QGraphicsItem *item = m_annotationItems[row];
-  const Annotation &annotation = m_annotations->getAnnotation(row);
-
-  switch (annotation.type()) {
-  case Annotation::Line:
-    if (auto *lineItem = dynamic_cast<QGraphicsLineItem *>(item);
-        lineItem != nullptr) {
-      lineItem->setLine(
-          QLineF(annotation.rect().topLeft(), annotation.rect().bottomRight()));
-      lineItem->setPen(QPen(annotation.color()));
-    }
-    break;
-
-  case Annotation::Rect:
-    if (auto *rectItem = dynamic_cast<QGraphicsRectItem *>(item);
-        rectItem != nullptr) {
-      rectItem->setRect(annotation.rect());
-      rectItem->setPen(QPen(annotation.color()));
-    }
-    break;
-
-  case Annotation::Fan:
-    // TODO
-    // if (auto *fanItem = dynamic_cast<)
-
-    break;
-  case Annotation::Polygon:
-    if (auto *polygonItem = dynamic_cast<QGraphicsPolygonItem *>(item);
-        polygonItem != nullptr) {
-      polygonItem->setPolygon(annotation.polygon());
-      polygonItem->setPen(QPen(annotation.color()));
-    }
-    break;
-  }
+  auto *item = m_annotationItems[row];
+  const auto &annotation = m_annotations->getAnnotation(row);
+  item->updateAnno(annotation);
 }
 
 void Canvas::removeAnnotationItem(int row) {
-  QGraphicsItem *item = m_annotationItems.takeAt(row);
+  auto *item = m_annotationItems.takeAt(row);
   scene()->removeItem(item);
   delete item;
 }
@@ -598,4 +556,40 @@ void Canvas::removeCurrItem() {
     delete m_currLabelItem;
     m_currLabelItem = nullptr;
   }
+}
+
+void Canvas::onDataChanged(const QModelIndex &topLeft,
+                           const QModelIndex &bottomRight,
+                           const QVector<int> &roles) {
+  emit error("onDataChanged called once");
+  for (int row = topLeft.row(); row <= bottomRight.row(); ++row) {
+    updateAnnotationItem(row);
+  }
+}
+
+void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
+  Q_UNUSED(parent);
+  for (int row = first; row <= last; ++row) {
+    addAnnotationItem(row);
+  }
+}
+
+void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
+  Q_UNUSED(parent);
+  for (int row = first; row <= last; ++row) {
+    removeAnnotationItem(row);
+  }
+}
+
+void Canvas::onNewAnnotationAddedInModel() {
+  assert(m_annotations->size() == m_annotationItems.size() + 1);
+
+  // Create a graphics item for this Anno
+  auto *item = annotation::makeGraphicsItem(m_annotations->back());
+
+  // Add to scene, which reparents the item
+  m_scene->addItem(item);
+
+  // Keep track of the item
+  m_annotationItems.append(item);
 }

@@ -1,6 +1,4 @@
 #include "CoregDisplay.hpp"
-#include "CanvasAnnotationModel.hpp"
-#include "CanvasAnnotationView.hpp"
 
 #include <QAction>
 #include <QBoxLayout>
@@ -16,9 +14,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 
       m_canvasLeft(new Canvas(this)), m_canvasRight(new Canvas(this)),
 
-      m_model(new AnnotationModel),
-
-      m_annoView(new AnnotationView),
+      m_model(new annotation::AnnotationModel),
+      m_annoView(new annotation::AnnotationView),
 
       actResetZoom(new QAction(QIcon(), "Reset zoom")),
       actCursorDefault(new QAction(QIcon(), "Default")),
@@ -40,7 +37,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   connect(m_canvasRight, &Canvas::error, this, &CoregDisplay::message);
 
   // Connection actions
-  connect(actResetZoom, &QAction::triggered, [this] {
+  connect(actResetZoom, &QAction::triggered, this, [this] {
     m_canvasLeft->scaleToSize();
     m_canvasRight->scaleToSize();
   });

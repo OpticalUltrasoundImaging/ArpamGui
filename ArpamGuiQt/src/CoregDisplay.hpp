@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Annotation/AnnotationModel.hpp"
+#include "Annotation/AnnotationView.hpp"
 #include "Canvas.hpp"
-#include "CanvasAnnotationModel.hpp"
-#include "CanvasAnnotationView.hpp"
 #include <QLabel>
 #include <QTableView>
 #include <QWidget>
@@ -10,6 +10,10 @@
 class CoregDisplay : public QWidget {
   Q_OBJECT
 public:
+  using AnnotationView = annotation::AnnotationView;
+  using AnnotationModel = annotation::AnnotationModel;
+  using Annotation = annotation::Annotation;
+
   explicit CoregDisplay(QWidget *parent = nullptr);
 
   auto annotationView() { return m_annoView; }
@@ -58,6 +62,7 @@ private:
 
   AnnotationModel *m_model;
 
+  // AnnotationView *m_annoView;
   AnnotationView *m_annoView;
 
   // Reset image zoom

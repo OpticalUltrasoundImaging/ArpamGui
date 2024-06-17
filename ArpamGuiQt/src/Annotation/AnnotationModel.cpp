@@ -1,7 +1,9 @@
-#include "CanvasAnnotationModel.hpp"
+#include "Annotation/AnnotationModel.hpp"
 #include <QAbstractItemModel>
 #include <Qt>
 #include <cassert>
+
+namespace annotation {
 
 Annotation::Annotation(Type type, const QList<QPointF> &points,
                        const QColor &color)
@@ -18,22 +20,6 @@ Annotation::Annotation(const Arc &arc, const QColor &color)
     : m_type(Fan), m_polygon({{static_cast<double>(arc.startAngle),
                                static_cast<double>(arc.spanAngle)}}),
       m_color(color) {}
-
-auto Annotation::line() const -> QLineF {
-  assert(m_polygon.size() == 2);
-  return {m_polygon[0], m_polygon[1]};
-};
-
-auto Annotation::rect() const -> QRectF {
-  assert(m_polygon.size() == 2);
-  return {m_polygon[0], m_polygon[1]};
-};
-
-auto Annotation::arc() const -> Arc {
-  assert(m_polygon.size() == 0);
-  const auto pt = m_polygon[0];
-  return Arc{static_cast<int>(pt.x()), static_cast<int>(pt.y())};
-}
 
 /*******/
 
@@ -52,7 +38,7 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
                                                    int role) const {
   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
     assert(section < HEADER_DATA.size());
-    return HEADER_DATA.at(section);
+    return HEADER_DATA.at(section).header;
   }
   return QAbstractListModel::headerData(section, orientation, role);
 }
@@ -67,30 +53,15 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
 
   switch (role) {
   case Qt::DisplayRole:
-    if (index.column() == 0) {
-      return annotation.color();
-    }
-
-    if (index.column() == 1) {
-      return Annotation::typeToString(annotation.type());
-    }
-
-    if (index.column() == 2) {
-      return annotation.name();
-    }
-
-    if (index.column() == 3) {
-      return annotation.polygon();
-    }
+    assert(index.column() < HEADER_DATA.size());
+    return HEADER_DATA.at(index.column()).getter(annotation);
 
   case TypeRole:
     return annotation.type();
-  case PolygonRole:
-    return annotation.polygon();
-  case ColorRole:
-    return annotation.color();
   case NameRole:
     return annotation.name();
+  case ColorRole:
+    return annotation.color();
   default:
     return {};
   }
@@ -103,31 +74,33 @@ bool AnnotationModel::setData(const QModelIndex &index, const QVariant &value,
   }
 
   auto &annotation = m_annotations[index.row()];
-  switch (role) {
-  case TypeRole:
-    annotation.setType(static_cast<Annotation::Type>(value.toInt()));
-    break;
-  case PolygonRole:
-    annotation.setPolygon(value.value<QPolygon>());
-    break;
-  case ColorRole:
-    annotation.setColor(value.value<QColor>());
-    break;
-  case NameRole:
-    annotation.setName(value.toString());
-  default:
-    return false;
+  if (role == Qt::EditRole) {
+    HEADER_DATA.at(index.column()).setter(annotation, value);
+    emit dataChanged(index, index, {});
+    return true;
   }
 
-  emit dataChanged(index, index, {role});
-  return true;
+  return false;
 }
 
 Qt::ItemFlags AnnotationModel::flags(const QModelIndex &index) const {
   if (!index.isValid()) {
     return Qt::NoItemFlags;
   }
-  return QAbstractListModel::flags(index);
+  auto flags = QAbstractListModel::flags(index);
+  if (HEADER_DATA.at(index.column()).editable) {
+    flags |= Qt::ItemIsEditable;
+  }
+
+  return flags;
+}
+
+bool AnnotationModel::removeRows(int row, int count,
+                                 const QModelIndex &parent) {
+  beginRemoveRows(parent, row, row + count);
+  m_annotations.remove(row, count);
+  endRemoveRows();
+  return true;
 }
 
 void AnnotationModel::addAnnotation(const Annotation &annotation) {
@@ -141,3 +114,5 @@ void AnnotationModel::removeAnnotation(int row) {
   m_annotations.removeAt(row);
   endRemoveRows();
 }
+
+} // namespace annotation
