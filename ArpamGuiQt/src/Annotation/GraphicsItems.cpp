@@ -5,15 +5,18 @@ namespace annotation {
 
 void LineItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
-  setLine(anno.line());
+  const auto line = anno.line();
+  setLine(line);
   setColor(anno.color());
-  setName(anno.name());
+  setText(anno.name());
 }
 
 void LineItem::setLine(const QLineF &line) {
   if (line != m_line) {
     prepareGeometryChange();
     m_line = line;
+
+    textItem()->setPos(line.center() + QPointF{10, 10});
   }
 }
 
@@ -26,11 +29,10 @@ void LineItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
   Q_UNUSED(option)
   Q_UNUSED(widget)
 
-  painter->setPen(getPen());
-
+  painter->setPen(pen());
   painter->drawLine(m_line);
 
-  painter->drawText(this->boundingRect(), name());
+  textItem()->setBrush(color());
 }
 
 QPainterPath LineItem::shape() const {
@@ -44,13 +46,17 @@ void RectItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
   setRect(anno.rect());
   setColor(anno.color());
-  setName(anno.name());
+  setText(anno.name());
+
+  textItem()->setBrush(color());
 }
 
 void RectItem::setRect(const QRectF &rect) {
   if (rect != m_rect) {
     prepareGeometryChange();
     m_rect = rect;
+
+    textItem()->setPos(rect.topLeft());
   }
 }
 
@@ -58,10 +64,10 @@ void RectItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                      QWidget *widget) {
   Q_UNUSED(option)
   Q_UNUSED(widget)
-  painter->setPen(getPen());
+  painter->setPen(pen());
   painter->drawRect(m_rect);
 
-  painter->drawText(this->boundingRect(), name());
+  textItem()->setBrush(color());
 }
 
 void FanItem::updateAnno(const Annotation &anno) {
@@ -69,7 +75,7 @@ void FanItem::updateAnno(const Annotation &anno) {
   setArc(anno.arc());
   setRect(anno.rect());
   setColor(anno.color());
-  setName(anno.name());
+  setText(anno.name());
 }
 
 QPainterPath FanItem::getFanPainterPath() const {
@@ -89,17 +95,20 @@ QPainterPath FanItem::shape() const { return getFanPainterPath(); }
 void FanItem::setArc(Arc arc) {
   prepareGeometryChange();
   m_arc = arc;
+  needToUpdateTextPosition = true;
 }
 
 void FanItem::setRect(QRectF rect) {
   prepareGeometryChange();
   m_rect = rect;
+  needToUpdateTextPosition = true;
 }
 
 void FanItem::setStartAngle(int angle) {
   if (angle != m_arc.startAngle) {
     prepareGeometryChange();
     m_arc.startAngle = angle;
+    needToUpdateTextPosition = true;
   }
 }
 
@@ -107,6 +116,7 @@ void FanItem::setSpanAngle(int angle) {
   if (angle != m_arc.spanAngle) {
     prepareGeometryChange();
     m_arc.spanAngle = angle;
+    needToUpdateTextPosition = true;
   }
 }
 
@@ -114,21 +124,28 @@ void FanItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                     QWidget *widget) {
   Q_UNUSED(option)
   Q_UNUSED(widget)
-  painter->setPen(getPen());
-
-  auto path = getFanPainterPath();
-
-  painter->drawPath(path);
 
   const auto startPoint = geometry::calcPosFromAngle(m_rect, m_arc.startAngle);
-  painter->drawText(startPoint, name());
+
+  if (needToUpdateTextPosition) {
+    needToUpdateTextPosition = false;
+
+    textItem()->setPos(startPoint);
+  }
+
+  painter->setPen(pen());
+
+  auto path = getFanPainterPath();
+  painter->drawPath(path);
+
+  textItem()->setBrush(color());
 }
 
 void PolygonItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
   setPolygon(anno.polygon());
   setColor(anno.color());
-  setName(anno.name());
+  setText(anno.name());
 }
 
 QRectF FanItem::boundingRect() const { return m_rect; }
@@ -136,6 +153,7 @@ QRectF FanItem::boundingRect() const { return m_rect; }
 void PolygonItem::setPolygon(const QPolygonF &polygon) {
   prepareGeometryChange();
   m_polygon = polygon;
+  textItem()->setPos(polygon.at(0));
 }
 
 void PolygonItem::paint(QPainter *painter,
@@ -143,11 +161,11 @@ void PolygonItem::paint(QPainter *painter,
                         QWidget *widget) {
   Q_UNUSED(option)
   Q_UNUSED(widget)
-  painter->setPen(getPen());
+  painter->setPen(pen());
 
   painter->drawPolygon(m_polygon);
 
-  painter->drawText(this->boundingRect(), name());
+  textItem()->setBrush(color());
 }
 
 namespace details {

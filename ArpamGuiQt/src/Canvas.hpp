@@ -166,7 +166,6 @@ private:
 
   // The graphics item currently being drawn by the cursor
   annotation::GraphicsItemBase *m_currItem{nullptr};
-  QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
   AnnotationModel *m_model{};
   QList<annotation::GraphicsItemBase *> m_graphicsItems;

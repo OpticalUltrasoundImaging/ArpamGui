@@ -200,58 +200,45 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     case (CursorMode::Default):
       QGraphicsView::mousePressEvent(event);
       break;
+
     case CursorMode::Pan:
       panStartEvent(event);
       break;
+
     case (CursorMode::MeasureLine): {
       event->accept();
-
-      removeCurrItem();
 
       const auto line = m_cursor.line();
       const auto color = Qt::white;
 
-      {
-        m_currItem = new annotation::LineItem(line, color);
-        m_scene->addItem(m_currItem);
-      }
+      m_currItem = new annotation::LineItem(Annotation(line, color, ""));
+      m_currItem->updateScaleFactor(m_scaleFactor);
+      m_scene->addItem(m_currItem);
 
-      // Make simple text label item
-      {
-        QFont font;
-        font.setPointSizeF(16.0 / m_scaleFactor);
-        m_currLabelItem = m_scene->addSimpleText("", font);
-
-        m_currLabelItem->setBrush(QBrush(Qt::white));
-      }
     } break;
 
     case CursorMode::LabelRect: {
       event->accept();
 
-      removeCurrItem();
-
       const auto rect = m_cursor.rect();
-      {
-        m_currItem = new annotation::RectItem(rect, Qt::white);
-        m_scene->addItem(m_currItem);
-      }
+
+      m_currItem = new annotation::RectItem(Annotation(rect, Qt::white));
+      m_currItem->updateScaleFactor(m_scaleFactor);
+      m_scene->addItem(m_currItem);
 
     } break;
     case CursorMode::LabelFan: {
       event->accept();
 
-      removeCurrItem();
-
       // Convert mouse pos to angle
       m_cursor.angleOffset = 0;
-      m_cursor.lastAngle = 180.0;
+      m_cursor.lastAngle = 180.0; // NOLINT(*-magic-number)
       const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
-      {
-        m_currItem =
-            new annotation::FanItem(m_Pixmap.rect(), {angle, 0}, Qt::white);
-        m_scene->addItem(m_currItem);
-      }
+
+      m_currItem = new annotation::FanItem(
+          Annotation(annotation::Arc{angle, 0}, m_Pixmap.rect(), Qt::white));
+      m_currItem->updateScaleFactor(m_scaleFactor);
+      m_scene->addItem(m_currItem);
 
     } break;
     }
@@ -299,11 +286,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         const auto line = m_cursor.line();
         const auto dist = computeDistance_mm(line.p1(), line.p2());
         item->setLine(line);
-
-        if (m_currLabelItem != nullptr) {
-          m_currLabelItem->setPos(line.center() + QPointF{10, 10});
-          m_currLabelItem->setText(QString("%1 mm").arg(dist, 5, 'f', 2));
-        }
+        item->setText(QString("%1 mm").arg(dist, 5, 'f', 2));
       }
 
       break;
@@ -365,20 +348,16 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       // Save annotation to the data model
       // Saving to the model automatically triggers the creation of the correct
       // graphics items, so we can delete the current working item.
-      Annotation anno(m_cursor.line(), m_currItem->color(), m_currItem->name());
+      Annotation anno(m_cursor.line(), m_currItem->color(), m_currItem->text());
       m_model->addAnnotation(anno);
 
       m_scene->removeItem(m_currItem);
       delete m_currItem;
       m_currItem = nullptr;
 
-      // Right now I'm keeping the m_currLabelItem as it's font scales better
-      // with Zoom. Might just move that label to the .name of the Annotation
-      // object and make that font scale with zoom too.
-
     } break;
     case CursorMode::LabelRect: {
-      Annotation anno(m_cursor.rect(), m_currItem->color(), m_currItem->name());
+      Annotation anno(m_cursor.rect(), m_currItem->color(), m_currItem->text());
       m_model->addAnnotation(anno);
 
       m_scene->removeItem(m_currItem);
@@ -390,7 +369,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
       if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
           item != nullptr) [[likely]] {
-        Annotation anno(item->arc(), item->rect(), item->color(), item->name());
+        Annotation anno(item->arc(), item->rect(), item->color(), item->text());
         m_model->addAnnotation(anno);
 
         m_scene->removeItem(m_currItem);
@@ -470,11 +449,8 @@ void Canvas::updateTransform() {
   setTransform(transform);
 
   // Update font factor for the annotation text labels
-  if (m_currLabelItem != nullptr) {
-    constexpr auto BASE_FONT_SIZE = 16.0;
-    auto font = m_currLabelItem->font();
-    font.setPointSizeF(BASE_FONT_SIZE / m_scaleFactor);
-    m_currLabelItem->setFont(font);
+  for (auto *item : m_graphicsItems) {
+    item->updateScaleFactor(m_scaleFactor);
   }
 
   // Update zoom factor displayed in the overlay
@@ -504,6 +480,7 @@ void Canvas::setCursorMode(CursorMode mode) {
 
 void Canvas::addGraphicsItemFromModel(int row) {
   auto *item = annotation::makeGraphicsItem(m_model->getAnnotation(row));
+  item->updateScaleFactor(m_scaleFactor);
   m_scene->addItem(item);
   m_graphicsItems.append(item);
 }
@@ -527,12 +504,6 @@ void Canvas::removeCurrItem() {
     delete m_currItem;
     m_currItem = nullptr;
   }
-
-  if (m_currLabelItem != nullptr) {
-    m_scene->removeItem(m_currLabelItem);
-    delete m_currLabelItem;
-    m_currLabelItem = nullptr;
-  }
 }
 
 void Canvas::onDataChanged(const QModelIndex &topLeft,
@@ -548,6 +519,11 @@ void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
   for (int row = last; row >= first; --row) {
     addGraphicsItemFromModel(row);
   }
+
+  const auto msg = QString("Canvas %1, after onRowsInserted has %2 items")
+                       .arg(m_overlay->modality())
+                       .arg(m_graphicsItems.size());
+  emit error(msg);
 }
 
 void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {

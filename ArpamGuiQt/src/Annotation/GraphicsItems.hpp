@@ -17,10 +17,6 @@ class LineItem : public GraphicsItemBase {
 public:
   LineItem() = default;
 
-  LineItem(const QLineF &line, const QColor &color,
-           QGraphicsItem *parent = nullptr)
-      : GraphicsItemBase(color, parent), m_line(line) {}
-
   explicit LineItem(const Annotation &anno) : GraphicsItemBase(anno) {
     updateAnno(anno);
   }
@@ -44,10 +40,6 @@ class RectItem : public GraphicsItemBase {
 public:
   RectItem() = default;
 
-  RectItem(const QRectF &rect, const QColor &color,
-           QGraphicsItem *parent = nullptr)
-      : GraphicsItemBase(color, parent), m_rect(rect) {}
-
   explicit RectItem(const Annotation &anno) : GraphicsItemBase(anno) {
     updateAnno(anno);
   }
@@ -68,10 +60,6 @@ private:
 class FanItem : public GraphicsItemBase {
 public:
   FanItem() = default;
-
-  FanItem(const QRectF &rect, Arc arc, const QColor &color,
-          QGraphicsItem *parent = nullptr)
-      : GraphicsItemBase(color, parent), m_rect(rect), m_arc(arc) {}
 
   explicit FanItem(const Annotation &anno) : GraphicsItemBase(anno) {
     updateAnno(anno);
@@ -112,6 +100,8 @@ private:
 
   QRectF m_rect{};
   Arc m_arc{};
+
+  bool needToUpdateTextPosition{true};
 };
 
 class PolygonItem : public GraphicsItemBase {
