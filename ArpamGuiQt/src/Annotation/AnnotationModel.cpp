@@ -101,7 +101,11 @@ Qt::ItemFlags AnnotationModel::flags(const QModelIndex &index) const {
 
 bool AnnotationModel::removeRows(int row, int count,
                                  const QModelIndex &parent) {
-  beginRemoveRows(parent, row, row + count);
+  if (row < 0 || count <= 0 || (row + count) > m_annotations.size()) {
+    return false;
+  }
+
+  beginRemoveRows(parent, row, row + count - 1);
   m_annotations.remove(row, count);
   endRemoveRows();
   return true;

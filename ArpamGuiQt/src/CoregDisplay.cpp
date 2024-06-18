@@ -26,10 +26,12 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       actCursorLabelFan(new QAction(QIcon(), "Fan"))
 
 {
-  // Connect annotation model
+  // Connect annotation model to canvas
   m_model->setParent(this);
   m_canvasLeft->setModel(m_model);
   m_canvasRight->setModel(m_model);
+
+  // Connect annotation model to the table view
   m_annoView->setModel(m_model);
 
   // Signals from canvas
