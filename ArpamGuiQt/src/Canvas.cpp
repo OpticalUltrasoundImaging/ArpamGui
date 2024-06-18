@@ -222,9 +222,6 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
         font.setPointSizeF(16.0 / m_scaleFactor);
         m_currLabelItem = m_scene->addSimpleText("", font);
 
-        // QPen pen(Qt::white);
-        // pen.setWidth(0);
-        // m_currLabelItem->setPen(pen);
         m_currLabelItem->setBrush(QBrush(Qt::white));
       }
     } break;
@@ -336,7 +333,6 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         }
         m_cursor.lastAngle = angle;
 
-        // emit error(QString("Fan angle: %1").arg(angle));
         item->setSpanAngle(angle + m_cursor.angleOffset - item->startAngle());
       }
       break;
@@ -379,12 +375,6 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       // Right now I'm keeping the m_currLabelItem as it's font scales better
       // with Zoom. Might just move that label to the .name of the Annotation
       // object and make that font scale with zoom too.
-
-      {
-        const auto msg = QString("m_annotationItems has %1 items.")
-                             .arg(m_graphicsItems.size());
-        emit error(msg);
-      }
 
     } break;
     case CursorMode::LabelRect: {
