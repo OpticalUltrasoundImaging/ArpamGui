@@ -96,10 +96,4 @@ void AnnotationModel::addAnnotation(const Annotation &annotation) {
   endInsertRows();
 }
 
-void AnnotationModel::removeAnnotation(int row) {
-  beginRemoveRows(QModelIndex(), row, row);
-  m_annotations.removeAt(row);
-  endRemoveRows();
-}
-
 } // namespace annotation

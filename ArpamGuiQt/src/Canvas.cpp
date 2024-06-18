@@ -64,6 +64,25 @@ void Canvas::setModel(AnnotationModel *model) {
 
   // // When existing data is moved
   // connect(model, &AnnotationModel::rowsMoved, this, &Canvas::onRowsMoved);
+
+  // Right click context menu popup
+  this->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(this, &QGraphicsView::customContextMenuRequested,
+          [this](const QPoint &pos) {
+            QMenu contextMenu;
+            QAction deleteAction("Delete", &contextMenu);
+            contextMenu.addAction(&deleteAction);
+
+            // Item under cursor
+            if (const auto rowIdx = m_graphicsItems.indexOf(itemAt(pos));
+                rowIdx >= 0) {
+
+              connect(&deleteAction, &QAction::triggered,
+                      [this, rowIdx] { m_model->removeRow(rowIdx); });
+
+              contextMenu.exec(viewport()->mapToGlobal(pos));
+            }
+          });
 }
 
 void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {

@@ -75,7 +75,9 @@ public:
   bool removeRows(int row, int count, const QModelIndex &parent) override;
 
   void addAnnotation(const Annotation &annotation);
-  void removeAnnotation(int row);
+
+  // It's equivalent to call removeRow(int)
+  // void removeAnnotation(int row);
 
   [[nodiscard]] auto &front() { return m_annotations.front(); }
   [[nodiscard]] const auto &front() const { return m_annotations.front(); }

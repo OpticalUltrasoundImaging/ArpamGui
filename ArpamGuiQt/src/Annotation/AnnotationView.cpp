@@ -37,13 +37,12 @@ void AnnotationView::setModel(AnnotationModel *model) {
             QAction deleteAction("Delete Row", &contextMenu);
             contextMenu.addAction(&deleteAction);
 
-            QModelIndex index = m_tableView->indexAt(pos);
-            if (index.isValid()) {
-              QObject::connect(
-                  &deleteAction, &QAction::triggered,
-                  [this, index]() { m_model->removeRow(index.row()); });
+            if (const auto index = m_tableView->indexAt(pos); index.isValid()) {
+              connect(&deleteAction, &QAction::triggered,
+                      [this, index]() { m_model->removeRow(index.row()); });
               contextMenu.exec(m_tableView->viewport()->mapToGlobal(pos));
             }
           });
 }
+
 } // namespace annotation
