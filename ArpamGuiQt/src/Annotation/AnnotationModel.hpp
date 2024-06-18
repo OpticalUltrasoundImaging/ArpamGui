@@ -36,6 +36,9 @@ namespace details {
   annotation.setName(value.toString());
 };
 
+/**
+ * Column metadata for the table view columns
+ */
 struct ColumnMetaData {
   QString header;
   bool editable;
