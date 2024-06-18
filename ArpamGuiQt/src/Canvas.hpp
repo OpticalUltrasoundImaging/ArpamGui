@@ -168,6 +168,6 @@ private:
   annotation::GraphicsItemBase *m_currItem{nullptr};
   QGraphicsSimpleTextItem *m_currLabelItem{nullptr};
 
-  AnnotationModel *m_annotations{};
-  QList<annotation::GraphicsItemBase *> m_annotationItems;
+  AnnotationModel *m_model{};
+  QList<annotation::GraphicsItemBase *> m_graphicsItems;
 };

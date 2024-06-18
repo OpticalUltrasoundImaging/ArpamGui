@@ -51,7 +51,7 @@ Canvas::Canvas(QWidget *parent)
 }
 
 void Canvas::setModel(AnnotationModel *model) {
-  this->m_annotations = model;
+  this->m_model = model;
 
   // When existing data changes
   connect(model, &AnnotationModel::dataChanged, this, &Canvas::onDataChanged);
@@ -147,82 +147,12 @@ void Canvas::paintEvent(QPaintEvent *event) {
 
   // QPainter painter(this);
 
-  // // Draw canvas name
-  // if (!m_name.isNull()) {
-  //   const int margin = 10;
-
-  //   QRect boundingRect = QRect(QPoint{}, m_pixmapScaled.size());
-  //   boundingRect.adjust(0, 0, -margin, -margin);
-
-  //   painter.setPen(Qt::white);
-  //   painter.drawText(boundingRect, Qt::AlignRight | Qt::AlignBottom, m_name);
-  // }
-
-  // // Draw existing annotations
-  // {
-  //   painter.setPen(Qt::white);
-
-  //   // Draw lines
-  //   {
-  //     painter.drawLines(m_anno.lines.scaled.data(),
-  //     m_anno.lines.scaled.size());
-
-  //     for (const auto &line : m_anno.lines.scaled) {
-  //       const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
-  //       const auto msg = QString("%1 mm").arg(distance);
-  //       const auto textPos = line.p2() + QPointF(5, 5);
-  //       painter.drawText(textPos, msg);
-  //     }
-
-  //     painter.drawLines(m_anno.lines.whiskers.data(),
-  //                       m_anno.lines.whiskers.size());
-  //   }
-
-  //   // Draw rects
-  //   {
-  //     painter.drawRects(m_anno.rects.scaled.data(),
-  //     m_anno.rects.scaled.size());
-  //   }
-  // }
-
-  // // Draw curr annotation
-  // switch (m_cursorMode) {
-  // case CursorMode::LineMeasure: {
-
-  //   if (m_cursor.leftButtonDown) {
-  //     painter.setPen(Qt::white);
-  //     const auto line = m_cursor.getLine();
-  //     painter.drawLine(line);
-
-  //     const auto distance = computeDistanceScaled_mm(line.p1(), line.p2());
-  //     const auto msg = QString("%1 mm").arg(distance);
-  //     const auto textPos = line.p2() + QPointF(5, 5);
-  //     painter.drawText(textPos, msg);
-
-  //     const auto whiskers = m_anno.lines.computeLineWhisker(line);
-  //     painter.drawLines(whiskers.data(), whiskers.size());
-  //   }
-  //   break;
-  // }
-
-  // case CursorMode::BoxZoom: {
-  //   if (m_cursor.leftButtonDown) {
-  //     painter.setPen(Qt::white);
-
-  //     const auto rect = m_cursor.getRect();
-  //     painter.drawRect(rect);
-  //   }
-
-  //   break;
-  // }
-  // }
-
   // Measure rendering time
-  {
-    // const auto renderTime_ms = timeit.get_ms();
-    // const auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
-    // emit error(msg);
-  }
+  // {
+  // const auto renderTime_ms = timeit.get_ms();
+  // const auto msg = QString("Rendering time %1 ms").arg(renderTime_ms);
+  // emit error(msg);
+  // }
 }
 
 void Canvas::undo() {
@@ -421,7 +351,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       // Saving to the model automatically triggers the creation of the correct
       // graphics items, so we can delete the current working item.
       Annotation anno(m_cursor.line(), m_currItem->color(), m_currItem->name());
-      m_annotations->addAnnotation(anno);
+      m_model->addAnnotation(anno);
 
       m_scene->removeItem(m_currItem);
       delete m_currItem;
@@ -433,14 +363,14 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
       {
         const auto msg = QString("m_annotationItems has %1 items.")
-                             .arg(m_annotationItems.size());
+                             .arg(m_graphicsItems.size());
         emit error(msg);
       }
 
     } break;
     case CursorMode::LabelRect: {
       Annotation anno(m_cursor.rect(), m_currItem->color(), m_currItem->name());
-      m_annotations->addAnnotation(anno);
+      m_model->addAnnotation(anno);
 
       m_scene->removeItem(m_currItem);
       delete m_currItem;
@@ -452,7 +382,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
           item != nullptr) [[likely]] {
         Annotation anno(item->arc(), item->rect(), item->color(), item->name());
-        m_annotations->addAnnotation(anno);
+        m_model->addAnnotation(anno);
 
         m_scene->removeItem(m_currItem);
         delete m_currItem;
@@ -564,20 +494,20 @@ void Canvas::setCursorMode(CursorMode mode) {
 }
 
 void Canvas::addGraphicsItemFromModel(int row) {
-  auto *item = annotation::makeGraphicsItem(m_annotations->getAnnotation(row));
-  scene()->addItem(item);
-  m_annotationItems.append(item);
+  auto *item = annotation::makeGraphicsItem(m_model->getAnnotation(row));
+  m_scene->addItem(item);
+  m_graphicsItems.append(item);
 }
 
 void Canvas::updateGraphicsItemFromModel(int row) {
-  auto *item = m_annotationItems[row];
-  const auto &annotation = m_annotations->getAnnotation(row);
+  auto *item = m_graphicsItems[row];
+  const auto &annotation = m_model->getAnnotation(row);
   item->updateAnno(annotation);
 }
 
 void Canvas::removeGraphicsItem(int row) {
-  auto *item = m_annotationItems.takeAt(row);
-  scene()->removeItem(item);
+  auto *item = m_graphicsItems.takeAt(row);
+  m_scene->removeItem(item);
   delete item;
 }
 
@@ -614,7 +544,7 @@ void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
 void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
   assert(first >= 0 && first <= last);
-  assert(last < m_annotationItems.size());
+  assert(last < m_graphicsItems.size());
   for (int row = last; row >= first; --row) {
     removeGraphicsItem(row);
   }
