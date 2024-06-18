@@ -131,6 +131,8 @@ void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
 
   // Add image pixmap to scene
   m_PixmapItem = m_scene->addPixmap(m_Pixmap);
+  // Use negative Z value to make sure pixmap is at the bottom
+  m_PixmapItem->setZValue(-1);
 
   if (m_resetZoomOnNextImshow) {
     scaleToSize();
