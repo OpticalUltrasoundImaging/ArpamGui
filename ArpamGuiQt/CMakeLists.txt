@@ -27,14 +27,16 @@ qt_add_executable(${EXE_NAME}
     src/MainWindow.cpp
     src/Canvas.hpp
     src/Canvas.cpp
-    src/Annotation/GraphicsItemBase.cpp
-    src/Annotation/GraphicsItemBase.hpp
-    src/Annotation/GraphicsItems.cpp
-    src/Annotation/GraphicsItems.hpp
+    src/Annotation/Annotation.hpp
+    src/Annotation/Annotation.cpp
     src/Annotation/AnnotationModel.hpp
     src/Annotation/AnnotationModel.cpp
     src/Annotation/AnnotationView.hpp
     src/Annotation/AnnotationView.cpp
+    src/Annotation/GraphicsItemBase.cpp
+    src/Annotation/GraphicsItemBase.hpp
+    src/Annotation/GraphicsItems.cpp
+    src/Annotation/GraphicsItems.hpp
     src/CanvasCursorState.hpp
     src/CanvasTicks.hpp
     src/CanvasTicks.cpp

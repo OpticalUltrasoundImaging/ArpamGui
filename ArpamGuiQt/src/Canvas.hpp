@@ -51,10 +51,7 @@ public:
 
   explicit Canvas(QWidget *parent = nullptr);
 
-  void setModel(AnnotationModel *model) {
-    this->m_annotations = model;
-    connect(model, &AnnotationModel::dataChanged, this, &Canvas::onDataChanged);
-  }
+  void setModel(AnnotationModel *model);
 
   auto overlay() { return m_overlay; }
 
@@ -73,23 +70,18 @@ public slots: // NOLINT
 
   void setCursorMode(CursorMode mode);
 
-  // Callback for when model data changed
   void onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
                      const QVector<int> &roles);
-
-  // Callback for when model inserts rows
   void onRowsInserted(const QModelIndex &parent, int first, int last);
-
-  // Callback for when model removes rows
   void onRowsRemoved(const QModelIndex &parent, int first, int last);
+  // void onRowsMoved(const QModelIndex &sourceParent, int sourceStart,
+  //                  int sourceEnd, const QModelIndex &destinationParent,
+  //                  int destinationRow); // Not implemented yet
 
   // Roll back the last cursor action
   void undo();
 
   void resetZoomOnNextImshow() { m_resetZoomOnNextImshow = true; }
-
-  // Add the newest annotation in the data model as a graphics item
-  void onNewAnnotationAddedInModel();
 
 signals:
   void error(QString err);
@@ -97,11 +89,6 @@ signals:
   // Signal emitted on mouseMoveEvent. Position is converted to the pixmap
   // domain
   void mouseMoved(QPoint pos, double depth_mm);
-
-  // Emitted when a new annotation is drawn with the cursor.
-  // This should signal other canvases (with shared annotation model)
-  // to update its graphics items with the newest item.
-  void newGraphicsItemDrawn();
 
 protected:
   // Override event specifically to handle gesture events

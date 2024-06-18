@@ -50,6 +50,22 @@ Canvas::Canvas(QWidget *parent)
   m_overlay->hide();
 }
 
+void Canvas::setModel(AnnotationModel *model) {
+  this->m_annotations = model;
+
+  // When existing data changes
+  connect(model, &AnnotationModel::dataChanged, this, &Canvas::onDataChanged);
+
+  // When existing data is removed
+  connect(model, &AnnotationModel::rowsRemoved, this, &Canvas::onRowsRemoved);
+
+  // When new data is inserted
+  connect(model, &AnnotationModel::rowsInserted, this, &Canvas::onRowsInserted);
+
+  // // When existing data is moved
+  // connect(model, &AnnotationModel::rowsMoved, this, &Canvas::onRowsMoved);
+}
+
 void Canvas::imshow(const cv::Mat &cv_img, double pix2m) {
   QImage qi(cv_img.data, cv_img.cols, cv_img.rows,
             static_cast<int>(cv_img.step), QImage::Format_BGR888);
@@ -402,24 +418,33 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
     case CursorMode::MeasureLine: {
       // Save annotation to the data model
+      // Saving to the model automatically triggers the creation of the correct
+      // graphics items, so we can delete the current working item.
       Annotation anno(m_cursor.line(), m_currItem->color(), m_currItem->name());
       m_annotations->addAnnotation(anno);
 
-      // Add annotation graphics to the stored graphics items
-      m_annotationItems.append(m_currItem);
+      m_scene->removeItem(m_currItem);
+      delete m_currItem;
       m_currItem = nullptr;
 
-      emit newGraphicsItemDrawn();
+      // Right now I'm keeping the m_currLabelItem as it's font scales better
+      // with Zoom. Might just move that label to the .name of the Annotation
+      // object and make that font scale with zoom too.
+
+      {
+        const auto msg = QString("m_annotationItems has %1 items.")
+                             .arg(m_annotationItems.size());
+        emit error(msg);
+      }
 
     } break;
     case CursorMode::LabelRect: {
       Annotation anno(m_cursor.rect(), m_currItem->color(), m_currItem->name());
       m_annotations->addAnnotation(anno);
 
-      m_annotationItems.append(m_currItem);
+      m_scene->removeItem(m_currItem);
+      delete m_currItem;
       m_currItem = nullptr;
-
-      emit newGraphicsItemDrawn();
 
     } break;
     case CursorMode::LabelFan:
@@ -429,10 +454,9 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         Annotation anno(item->arc(), item->rect(), item->color(), item->name());
         m_annotations->addAnnotation(anno);
 
-        m_annotationItems.append(m_currItem);
+        m_scene->removeItem(m_currItem);
+        delete m_currItem;
         m_currItem = nullptr;
-
-        emit newGraphicsItemDrawn();
       }
       break;
     }
@@ -582,27 +606,16 @@ void Canvas::onDataChanged(const QModelIndex &topLeft,
 
 void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
-  for (int row = first; row <= last; ++row) {
+  for (int row = last; row >= first; --row) {
     addGraphicsItemFromModel(row);
   }
 }
 
 void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
-  for (int row = first; row <= last; ++row) {
+  assert(first >= 0 && first <= last);
+  assert(last < m_annotationItems.size());
+  for (int row = last; row >= first; --row) {
     removeGraphicsItem(row);
   }
-}
-
-void Canvas::onNewAnnotationAddedInModel() {
-  assert(m_annotations->size() == (m_annotationItems.size() + 1));
-
-  // Create a graphics item for this Anno
-  auto *item = annotation::makeGraphicsItem(m_annotations->back());
-
-  // Add to scene, which reparents the item
-  m_scene->addItem(item);
-
-  // Keep track of the item
-  m_annotationItems.append(item);
 }
