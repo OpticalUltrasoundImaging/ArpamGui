@@ -1,19 +1,21 @@
 #include <cmath>
+#include <numbers>
 #include <stdexcept>
 
 #include "uspam/fft.hpp"
 #include "uspam/signal.hpp"
 
 namespace uspam::signal {
-inline constexpr double PI = 3.1415926535897932384626;
 
 void create_hamming_window(const std::span<double> window) {
   const auto numtaps = window.size();
+  const auto N = static_cast<double>(numtaps - 1);
+
+  // Hamming alpha = 0.54 or 25/46
+  constexpr double ALPHA = 0.54;
+
   for (int i = 0; i < numtaps; ++i) {
-    // NOLINTBEGIN(*-magic-numbers)
-    window[i] =
-        0.54 - 0.46 * std::cos(2 * PI * i / static_cast<double>(numtaps - 1));
-    // NOLINTEND(*-magic-numbers)
+    window[i] = ALPHA - (1 - ALPHA) * std::cos(2 * std::numbers::pi * i / N);
   }
 }
 
@@ -57,8 +59,8 @@ auto interp(const arma::vec &x, const arma::vec &xp, const arma::vec &fp) {
 }
 
 auto firwin2(int numtaps, const std::span<const double> freq,
-             const std::span<const double> gain, int nfreqs,
-             double fs) -> arma::vec {
+             const std::span<const double> gain, int nfreqs, double fs)
+    -> arma::vec {
   if (numtaps < 3 || numtaps % 2 == 0) {
     throw std::invalid_argument(
         "numtaps must be odd and greater or equal to 3.");
@@ -87,8 +89,9 @@ auto firwin2(int numtaps, const std::span<const double> freq,
 
   // Adjust phase of the coefficients so that the first `ntaps` of the
   // inverse FFT are the desired filter coefficients
-  arma::cx_vec shift = arma::exp(-static_cast<double>(numtaps - 1) / 2 *
-                                 std::complex<double>(0, 1) * PI * x / nyq);
+  arma::cx_vec shift =
+      arma::exp(-static_cast<double>(numtaps - 1) / 2 *
+                std::complex<double>(0, 1) * std::numbers::pi * x / nyq);
   fx %= shift;
 
   // Compute the inverse fft
@@ -181,11 +184,11 @@ void hilbert_abs_r2c(const std::span<const double> x,
   // Only positive frequencies in r2c transform. Switch freq by *-1j
   {
     const std::complex<double> fct{0, -1};
-    for (int i = 0; i < engine.complex.size(); ++i) {
-      std::complex<double> cx{engine.complex[i][0], engine.complex[i][1]};
+    for (auto &v : engine.complex) {
+      std::complex<double> cx{v[0], v[1]};
       cx *= fct;
-      engine.complex[i][0] = cx.real();
-      engine.complex[i][1] = cx.imag();
+      v[0] = cx.real();
+      v[1] = cx.imag();
     }
   }
   // NOLINTEND(*-pointer-arithmetic)
