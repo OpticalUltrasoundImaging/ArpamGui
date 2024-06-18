@@ -12,6 +12,10 @@ struct CanvasCursorState {
   QPointF pos; // current cursor position in pixmap coord
   QPointF startPos;
 
+  // For Fan drawing
+  double lastAngle{};
+  double angleOffset{};
+
   [[nodiscard]] auto line() const { return QLineF(startPos, pos); }
 
   [[nodiscard]] auto rect() const {

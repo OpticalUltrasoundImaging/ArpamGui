@@ -44,13 +44,18 @@ struct Arc {
 // https://doc.qt.io/qt-6/qpolygonf.html#details
 class Annotation {
 public:
-  enum Type { Line, Rect, Fan, Polygon };
+  enum Type { Line, Rect, Fan, Polygon, Size };
 
   /* Constructors */
-  Annotation(Type type, const QList<QPointF> &points, const QColor &color);
-  Annotation(const QLineF &line, const QColor &color);
-  Annotation(const QRectF &rect, const QColor &color);
-  Annotation(const Arc &arc, const QColor &color);
+  Annotation(Type type, const QList<QPointF> &points, const QColor &color,
+             QString name = {});
+  Annotation(const QLineF &line, const QColor &color, QString name = {});
+  Annotation(const QRectF &rect, const QColor &color, QString name = {});
+  /* For arc, the Polygon contains 3 points that store
+   * {rect.topLeft, rect.bottomRight, {startAngle, spanAngle}}
+   */
+  Annotation(const Arc &arc, const QRectF &rect, const QColor &color,
+             QString name = {});
 
   /* Copy constructor */
   Annotation(const Annotation &other) = default;
@@ -74,14 +79,14 @@ public:
 
   // For Rect, the 2 points are {top_left, bottom_right}
   [[nodiscard]] auto rect() const -> QRectF {
-    assert(m_polygon.size() == 2);
+    assert(m_polygon.size() >= 2);
     return {m_polygon[0], m_polygon[1]};
   };
 
-  // For arc, the 1 points stores the startAngle (x) and spanAngle (y)
+  // For arc, the 3rd point stores the startAngle (x) and spanAngle (y)
   [[nodiscard]] auto arc() const -> Arc {
-    assert(m_polygon.size() == 1);
-    const auto pt = m_polygon[0];
+    assert(m_polygon.size() == 3);
+    const auto pt = m_polygon[2];
     return Arc{pt.x(), pt.y()};
   }
 

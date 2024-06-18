@@ -282,6 +282,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       removeCurrItem();
 
       // Convert mouse pos to angle
+      m_cursor.angleOffset = 0;
+      m_cursor.lastAngle = 180.0;
       const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
       {
         m_currItem =
@@ -356,9 +358,21 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
           item != nullptr) [[likely]] {
 
-        const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
+        constexpr double FULL_CIRCLE = 360.0;
+        constexpr double UPPER_THRESH = 340.0;
+        constexpr double LOWER_THRESH = 20.0;
+
+        const double angle = m_cursor.angleDeg(m_Pixmap.rect());
+
+        if ((m_cursor.lastAngle > UPPER_THRESH && angle < LOWER_THRESH)) {
+          m_cursor.angleOffset += FULL_CIRCLE;
+        } else if (m_cursor.lastAngle < LOWER_THRESH && angle > UPPER_THRESH) {
+          m_cursor.angleOffset -= FULL_CIRCLE;
+        }
+        m_cursor.lastAngle = angle;
+
         // emit error(QString("Fan angle: %1").arg(angle));
-        item->setSpanAngle(angle - item->startAngle());
+        item->setSpanAngle(angle + m_cursor.angleOffset - item->startAngle());
       }
       break;
     }
@@ -388,7 +402,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
     case CursorMode::MeasureLine: {
       // Save annotation to the data model
-      Annotation anno(m_cursor.line(), m_currItem->color());
+      Annotation anno(m_cursor.line(), m_currItem->color(), m_currItem->name());
       m_annotations->addAnnotation(anno);
 
       // Add annotation graphics to the stored graphics items
@@ -399,7 +413,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
     } break;
     case CursorMode::LabelRect: {
-      Annotation anno(m_cursor.rect(), m_currItem->color());
+      Annotation anno(m_cursor.rect(), m_currItem->color(), m_currItem->name());
       m_annotations->addAnnotation(anno);
 
       m_annotationItems.append(m_currItem);
@@ -412,7 +426,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
       if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
           item != nullptr) [[likely]] {
-        Annotation anno(item->arc(), item->color());
+        Annotation anno(item->arc(), item->rect(), item->color(), item->name());
         m_annotations->addAnnotation(anno);
 
         m_annotationItems.append(m_currItem);

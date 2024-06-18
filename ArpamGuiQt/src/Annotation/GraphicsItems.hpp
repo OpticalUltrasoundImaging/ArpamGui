@@ -88,6 +88,9 @@ public:
   [[nodiscard]] auto arc() const { return m_arc; }
   void setArc(Arc arc);
 
+  [[nodiscard]] auto rect() const { return m_rect; }
+  void setRect(QRectF rect);
+
   [[nodiscard]] auto startAngle() const { return m_arc.startAngle; }
   void setStartAngle(int angle);
 
@@ -149,35 +152,14 @@ template <> struct AnnotationTypeTraits<Annotation::Type::Polygon> {
   using type = PolygonItem;
 };
 
+template <Annotation::Type T>
+GraphicsItemBase *makeItem(const Annotation &anno) {
+  return new typename AnnotationTypeTraits<T>::type(anno);
+}
+
 } // namespace details
 
 // Create an instance of the correct graphics item for the given annotation
-inline GraphicsItemBase *makeGraphicsItem(const Annotation &annotation) {
-  GraphicsItemBase *item{};
-
-  switch (annotation.type()) {
-  case Annotation::Line: {
-    using ItemType = details::AnnotationTypeTraits<Annotation::Line>::type;
-    item = new ItemType;
-
-  } break;
-  case Annotation::Rect: {
-    using ItemType = details::AnnotationTypeTraits<Annotation::Rect>::type;
-    item = new ItemType;
-
-  } break;
-  case Annotation::Fan: {
-    using ItemType = details::AnnotationTypeTraits<Annotation::Fan>::type;
-    item = new ItemType;
-
-  } break;
-  case Annotation::Polygon: {
-    using ItemType = details::AnnotationTypeTraits<Annotation::Polygon>::type;
-    item = new ItemType;
-  } break;
-  }
-
-  return item;
-}
+GraphicsItemBase *makeGraphicsItem(const Annotation &anno);
 
 } // namespace annotation

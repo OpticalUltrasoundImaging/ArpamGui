@@ -67,6 +67,7 @@ void RectItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 void FanItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
   setArc(anno.arc());
+  setRect(anno.rect());
   setColor(anno.color());
   setName(anno.name());
 }
@@ -88,6 +89,11 @@ QPainterPath FanItem::shape() const { return getFanPainterPath(); }
 void FanItem::setArc(Arc arc) {
   prepareGeometryChange();
   m_arc = arc;
+}
+
+void FanItem::setRect(QRectF rect) {
+  prepareGeometryChange();
+  m_rect = rect;
 }
 
 void FanItem::setStartAngle(int angle) {
@@ -142,6 +148,23 @@ void PolygonItem::paint(QPainter *painter,
   painter->drawPolygon(m_polygon);
 
   painter->drawText(this->boundingRect(), name());
+}
+
+namespace details {
+
+// Must keep order consistent with Annotation::Type
+const static std::array makeFuncs = {
+    makeItem<Annotation::Type::Line>, makeItem<Annotation::Type::Rect>,
+    makeItem<Annotation::Type::Fan>, makeItem<Annotation::Type::Polygon>};
+static_assert(makeFuncs.size() == Annotation::Type::Size);
+
+} // namespace details
+
+GraphicsItemBase *makeGraphicsItem(const Annotation &anno) {
+  const auto type = anno.type();
+  assert(type >= 0);
+  assert(type < Annotation::Type::Size);
+  return details::makeFuncs.at(type)(anno);
 }
 
 } // namespace annotation
