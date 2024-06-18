@@ -23,7 +23,7 @@ struct CanvasCursorState {
     return QRectF(x, y, w, h);
   }
 
-  [[nodiscard]] auto angle(const QRectF &rect) const {
+  [[nodiscard]] auto angleDeg(const QRectF &rect) const {
     return geometry::calcAngleFromPos(rect, pos);
   }
 };

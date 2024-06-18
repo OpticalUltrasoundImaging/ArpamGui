@@ -1,4 +1,5 @@
 #pragma once
+#include "geometryUtils.hpp"
 #include <QAbstractListModel>
 #include <QColor>
 #include <QColorDialog>
@@ -10,22 +11,33 @@
 #include <QVariant>
 #include <Qt>
 #include <array>
+#include <cmath>
 #include <functional>
 #include <utility>
 
 namespace annotation {
 
-struct Arc {
-  // Pair of angles (each 0-360) that denote a fan shape center at the center of
-  // the square image. The fan is drawn clockwise
+/**
+Pair of angles (each 0-360) that denote a fan shape center at the center of
+the square image.
 
-  // Draws the arc defined by the given rectangle, startAngle and spanAngle.
-  // The startAngle and spanAngle must be specified in 1/16th of a degree, i.e.
-  // a full circle equals 5760 (16 * 360). Positive values for the angles mean
-  // counter-clockwise while negative values mean the clockwise direction. Zero
-  // degrees is at the 3 o'clock position.
-  int startAngle;
-  int spanAngle;
+Draws the arc defined by the given rectangle, startAngle and spanAngle.
+The startAngle and spanAngle are in degrees
+Positive values for the angles mean counter-clockwise
+while negative values mean the clockwise direction.
+Zero degrees is at the 3 o'clock position.
+*/
+struct Arc {
+  double startAngle;
+  double spanAngle;
+
+  [[nodiscard]] inline auto startAngleRadians() const {
+    return geometry::deg2rad(startAngle);
+  }
+
+  [[nodiscard]] inline auto spanAngleRadians() const {
+    return geometry::deg2rad(spanAngle);
+  }
 };
 
 // Points are stored in a QPolygonF, which is just a QList<QPointF>
@@ -70,7 +82,7 @@ public:
   [[nodiscard]] auto arc() const -> Arc {
     assert(m_polygon.size() == 1);
     const auto pt = m_polygon[0];
-    return Arc{static_cast<int>(pt.x()), static_cast<int>(pt.y())};
+    return Arc{pt.x(), pt.y()};
   }
 
   [[nodiscard]] auto polygon() const -> QPolygonF { return m_polygon; };

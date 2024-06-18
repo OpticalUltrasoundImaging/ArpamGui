@@ -36,6 +36,12 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   connect(m_canvasLeft, &Canvas::error, this, &CoregDisplay::message);
   connect(m_canvasRight, &Canvas::error, this, &CoregDisplay::message);
 
+  // Signal/slots to sync graphics item annotations between canvases
+  connect(m_canvasLeft, &Canvas::newGraphicsItemDrawn, m_canvasRight,
+          &Canvas::onNewAnnotationAddedInModel);
+  connect(m_canvasRight, &Canvas::newGraphicsItemDrawn, m_canvasLeft,
+          &Canvas::onNewAnnotationAddedInModel);
+
   // Connection actions
   connect(actResetZoom, &QAction::triggered, this, [this] {
     m_canvasLeft->scaleToSize();

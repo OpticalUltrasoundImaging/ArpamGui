@@ -41,7 +41,7 @@ public:
   [[nodiscard]] auto color() const { return m_color; }
   void setColor(const QColor &color) { m_color = color; }
 
-  [[nodiscard]] auto name() const { return m_name; }
+  [[nodiscard]] auto name() const & { return m_name; }
   void setName(QString name) { m_name = std::move(name); }
 
 protected:

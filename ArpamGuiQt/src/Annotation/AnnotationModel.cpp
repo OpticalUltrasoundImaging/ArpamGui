@@ -17,8 +17,7 @@ Annotation::Annotation(const QRectF &rect, const QColor &color)
       m_color(color) {}
 
 Annotation::Annotation(const Arc &arc, const QColor &color)
-    : m_type(Fan), m_polygon({{static_cast<double>(arc.startAngle),
-                               static_cast<double>(arc.spanAngle)}}),
+    : m_type(Fan), m_polygon({{arc.startAngle, arc.spanAngle}}),
       m_color(color) {}
 
 /*******/

@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Annotation/GraphicsItemBase.hpp"
+#include <QGraphicsSimpleTextItem>
 #include <QLineF>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QPolygon>
 #include <QRectF>
@@ -23,31 +25,16 @@ public:
     updateAnno(anno);
   }
 
-  void updateAnno(const Annotation &anno) override {
-    setLine(anno.line());
-    setColor(anno.color());
-  }
+  void updateAnno(const Annotation &anno) override;
 
-  void setLine(const QLineF &line) {
-    if (line != m_line) {
-      prepareGeometryChange();
-      m_line = line;
-    }
-  }
+  void setLine(const QLineF &line);
 
-  [[nodiscard]] QRectF boundingRect() const override {
-    return QRectF(m_line.p1(), m_line.p2()).normalized();
-  }
+  [[nodiscard]] QRectF boundingRect() const override;
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-             QWidget *widget) override {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
+             QWidget *widget) override;
 
-    painter->setPen(getPen());
-
-    painter->drawLine(m_line);
-  }
+  [[nodiscard]] QPainterPath shape() const override;
 
 private:
   QLineF m_line{};
@@ -65,27 +52,14 @@ public:
     updateAnno(anno);
   }
 
-  void updateAnno(const Annotation &anno) override {
-    setRect(anno.rect());
-    setColor(anno.color());
-  }
+  void updateAnno(const Annotation &anno) override;
 
-  void setRect(const QRectF &rect) {
-    if (rect != m_rect) {
-      prepareGeometryChange();
-      m_rect = rect;
-    }
-  }
+  void setRect(const QRectF &rect);
 
   [[nodiscard]] QRectF boundingRect() const override { return m_rect; }
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-             QWidget *widget) override {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
-    painter->setPen(getPen());
-    painter->drawRect(m_rect);
-  }
+             QWidget *widget) override;
 
 private:
   QRectF m_rect{};
@@ -103,54 +77,25 @@ public:
     updateAnno(anno);
   }
 
-  void updateAnno(const Annotation &anno) override {
-    setArc(anno.arc());
-    setColor(anno.color());
-  }
+  [[nodiscard]] QPainterPath getFanPainterPath() const;
 
-  [[nodiscard]] QRectF boundingRect() const override {
-    // TODO
-    return m_rect;
-  }
+  [[nodiscard]] QPainterPath shape() const override;
+
+  void updateAnno(const Annotation &anno) override;
+
+  [[nodiscard]] QRectF boundingRect() const override;
 
   [[nodiscard]] auto arc() const { return m_arc; }
-  void setArc(Arc arc) {
-    prepareGeometryChange();
-    m_arc = arc;
-  }
+  void setArc(Arc arc);
 
   [[nodiscard]] auto startAngle() const { return m_arc.startAngle; }
-  void setStartAngle(int angle) {
-    if (angle != m_arc.startAngle) {
-      prepareGeometryChange();
-      m_arc.startAngle = angle;
-    }
-  }
+  void setStartAngle(int angle);
 
   [[nodiscard]] auto spanAngle() const { return m_arc.spanAngle; }
-  void setSpanAngle(int angle) {
-    if (angle != m_arc.spanAngle) {
-      prepareGeometryChange();
-      m_arc.spanAngle = angle;
-    }
-  }
+  void setSpanAngle(int angle);
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-             QWidget *widget) override {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
-    painter->setPen(getPen());
-
-    // Draw arc
-    painter->drawArc(m_rect, m_arc.startAngle, m_arc.spanAngle);
-
-    // Draw the lines connecting the ends of the arc to the center
-    const auto [startPoint, endPoint] =
-        geometry::calcPosFromArc(m_rect, m_arc.startAngle, m_arc.spanAngle);
-
-    painter->drawLine(m_rect.center(), startPoint);
-    painter->drawLine(m_rect.center(), endPoint);
-  }
+             QWidget *widget) override;
 
 private:
   // Pair of angles (each 0-360) that denote a fan shape center at the center of
@@ -173,27 +118,16 @@ public:
     updateAnno(anno);
   }
 
-  void updateAnno(const Annotation &anno) override {
-    setPolygon(anno.polygon());
-  }
+  void updateAnno(const Annotation &anno) override;
 
-  void setPolygon(const QPolygonF &polygon) {
-    prepareGeometryChange();
-    m_polygon = polygon;
-  }
+  void setPolygon(const QPolygonF &polygon);
 
   [[nodiscard]] QRectF boundingRect() const override {
     return m_polygon.boundingRect();
   }
 
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
-             QWidget *widget) override {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
-    painter->setPen(getPen());
-
-    painter->drawPolygon(m_polygon);
-  }
+             QWidget *widget) override;
 
 private:
   QPolygonF m_polygon;

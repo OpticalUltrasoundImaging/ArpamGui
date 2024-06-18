@@ -282,7 +282,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       removeCurrItem();
 
       // Convert mouse pos to angle
-      const auto angle = m_cursor.angle(m_Pixmap.rect());
+      const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
       {
         m_currItem =
             new annotation::FanItem(m_Pixmap.rect(), {angle, 0}, Qt::white);
@@ -356,7 +356,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
           item != nullptr) [[likely]] {
 
-        const auto angle = m_cursor.angle(m_Pixmap.rect());
+        const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
         // emit error(QString("Fan angle: %1").arg(angle));
         item->setSpanAngle(angle - item->startAngle());
       }
@@ -395,7 +395,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       m_annotationItems.append(m_currItem);
       m_currItem = nullptr;
 
-      emit newAnnotationAdded();
+      emit newGraphicsItemDrawn();
 
     } break;
     case CursorMode::LabelRect: {
@@ -405,7 +405,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       m_annotationItems.append(m_currItem);
       m_currItem = nullptr;
 
-      emit newAnnotationAdded();
+      emit newGraphicsItemDrawn();
 
     } break;
     case CursorMode::LabelFan:
@@ -418,7 +418,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         m_annotationItems.append(m_currItem);
         m_currItem = nullptr;
 
-        emit newAnnotationAdded();
+        emit newGraphicsItemDrawn();
       }
       break;
     }
@@ -581,7 +581,7 @@ void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
 }
 
 void Canvas::onNewAnnotationAddedInModel() {
-  assert(m_annotations->size() == m_annotationItems.size() + 1);
+  assert(m_annotations->size() == (m_annotationItems.size() + 1));
 
   // Create a graphics item for this Anno
   auto *item = annotation::makeGraphicsItem(m_annotations->back());

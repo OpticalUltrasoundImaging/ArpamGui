@@ -101,7 +101,7 @@ signals:
   // Emitted when a new annotation is drawn with the cursor.
   // This should signal other canvases (with shared annotation model)
   // to update its graphics items with the newest item.
-  void newAnnotationAdded();
+  void newGraphicsItemDrawn();
 
 protected:
   // Override event specifically to handle gesture events
