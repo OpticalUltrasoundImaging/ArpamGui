@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <rapidjson/document.h>
 #include <span>
 #include <string>
 
@@ -16,7 +17,8 @@
 namespace uspam::io {
 namespace fs = std::filesystem;
 
-const int RF_ALINE_SIZE = 8192;
+constexpr int NUM_ALINES_DETAULT = 1000;
+constexpr int RF_ALINE_SIZE = 8192;
 
 // Swap the endianness of a value inplace
 template <typename T> void swap_endian_inplace(T *val) {
@@ -58,20 +60,23 @@ struct IOParams {
 public:
   // System parameters from early 2024
   static inline IOParams system2024v1() {
-    // return IOParams{2650, 87, 5300, 350, 215, 1};
+    // NOLINTNEXTLINE(*-magic-numbers)
     return IOParams{2650, 87, 5300, -100, -100, 1};
   }
 
   // Serialize to JSON
-  std::string serialize() const;
+  [[nodiscard]] rapidjson::Document serializeToDoc() const;
+  [[nodiscard]] std::string serializeToString() const;
   bool serializeToFile(const fs::path &path) const;
 
   // Deserialize from JSON
+  bool deserialize(const rapidjson::Document &doc);
   bool deserialize(const std::string &jsonString);
   bool deserializeFromFile(const fs::path &path);
 
   template <typename T>
-  PAUSpair<T> allocateSplitPair(int alines_per_bscan = 1000) const {
+  PAUSpair<T>
+  allocateSplitPair(int alines_per_bscan = NUM_ALINES_DETAULT) const {
     arma::Mat<T> rfPA(this->rf_size_PA, alines_per_bscan, arma::fill::none);
     arma::Mat<T> rfUS(this->rf_size_US, alines_per_bscan, arma::fill::none);
     return {rfPA, rfUS};
@@ -86,8 +91,6 @@ public:
     assert(split.PA.size() == this->rf_size_PA * rf.n_cols);
     assert(split.US.size() == (USend - USstart) * rf.n_cols);
 
-    // split.PA = rf.rows(0, this->rf_size_PA - 1);
-    // split.US = rf.rows(USstart, USend - 1);
     for (int j = 0; j < rf.n_cols; ++j) {
       // PA
       for (int i = 0; i < this->rf_size_PA; ++i) {
@@ -177,7 +180,8 @@ public:
   //              int alines_per_bscan = 1000) const -> arma::Mat<T>;
   template <typename T>
   auto load_rf(const fs::path &filename, arma::Mat<T> &storage, int i,
-               int nscans = 1, int alines_per_bscan = 1000) const -> bool {
+               int nscans = 1, int alines_per_bscan = NUM_ALINES_DETAULT) const
+      -> bool {
     // Only support nscans=1 for now
     assert(nscans >= 1);
 
@@ -187,14 +191,17 @@ public:
       return {};
     }
 
+    constexpr auto byte_width = static_cast<int>(sizeof(T));
     const auto scan_size =
-        RF_ALINE_SIZE * alines_per_bscan * nscans * sizeof(T);
+        RF_ALINE_SIZE * alines_per_bscan * nscans * byte_width;
     const auto start_pos = this->byte_offset + scan_size * i;
 
     file.seekg(start_pos, std::ios::beg);
 
     // Read file
-    const auto matrix_size = RF_ALINE_SIZE * alines_per_bscan * sizeof(T);
+    const auto matrix_size = RF_ALINE_SIZE * alines_per_bscan * byte_width;
+
+    // NOLINTNEXTLINE(*-reinterpret-cast)
     if (!file.read(reinterpret_cast<char *>(storage.memptr()), matrix_size)) {
       std::cerr << "Failed to read file\n";
       return false;
@@ -203,8 +210,9 @@ public:
   }
 
   template <typename T>
-  int get_num_scans(const fs::path &filename,
-                    int alines_per_bscan = 1000) const {
+  [[nodiscard]] int
+  get_num_scans(const fs::path &filename,
+                int alines_per_bscan = NUM_ALINES_DETAULT) const {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
       std::cerr << "Failed to open file\n";
@@ -212,8 +220,9 @@ public:
     }
     file.seekg(0, std::ios::end);
     const std::streamsize fsize = file.tellg();
-    int numScans = (fsize - this->byte_offset) /
-                   (RF_ALINE_SIZE * alines_per_bscan * sizeof(T));
+    constexpr auto byte_width = static_cast<int>(sizeof(T));
+    const int numScans = (static_cast<int>(fsize) - this->byte_offset) /
+                         (RF_ALINE_SIZE * alines_per_bscan * byte_width);
     return numScans;
   }
 };
@@ -230,17 +239,18 @@ private:
 public:
   BinfileLoader() = default;
   BinfileLoader(const IOParams &ioparams, const fs::path filename,
-                int alinesPerBscan = 1000) {
+                int alinesPerBscan = NUM_ALINES_DETAULT) {
     open(filename);
     setParams(ioparams, alinesPerBscan);
   }
 
-  void setParams(const IOParams &ioparams, int alinesPerBscan = 1000) {
+  void setParams(const IOParams &ioparams,
+                 int alinesPerBscan = NUM_ALINES_DETAULT) {
     this->byteOffset = ioparams.byte_offset;
     this->alinesPerBscan = alinesPerBscan;
   }
 
-  void open(const fs::path filename) {
+  void open(const fs::path &filename) {
     // Open file and seek to end
     file = std::ifstream(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -262,15 +272,17 @@ public:
   }
 
   auto size() const {
-    if (!isOpen()) [[unlikely]]
+    if (!isOpen()) [[unlikely]] {
       return 0;
+    }
 
     return numScans;
   }
 
   void setCurrIdx(int idx) {
-    if (!isOpen()) [[unlikely]]
+    if (!isOpen()) [[unlikely]] {
       return;
+    }
 
     std::lock_guard lock(mtx);
     assert(idx >= 0 && idx < numScans);
@@ -278,8 +290,9 @@ public:
   }
 
   bool hasMoreScans() {
-    if (!isOpen()) [[unlikely]]
+    if (!isOpen()) [[unlikely]] {
       return false;
+    }
 
     std::lock_guard lock(mtx);
     return currScanIdx < numScans;
@@ -288,8 +301,9 @@ public:
   auto setCurrIndex(int idx) { currScanIdx = idx; }
 
   bool get(arma::Mat<TypeInBin> &rf) {
-    if (!isOpen()) [[unlikely]]
+    if (!isOpen()) [[unlikely]] {
       return false;
+    }
 
     std::lock_guard lock(mtx);
     assert(currScanIdx < numScans);
@@ -303,6 +317,7 @@ public:
     file.seekg(start_pos, std::ios::beg);
 
     // Read file
+    // NOLINTNEXTLINE(*-reinterpret-cast)
     return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
   }
 
@@ -312,8 +327,9 @@ public:
   }
 
   auto getNext(arma::Mat<TypeInBin> &rfStorage) {
-    if (!isOpen()) [[unlikely]]
+    if (!isOpen()) [[unlikely]] {
       return false;
+    }
 
     get(rfStorage);
     std::lock_guard lock(mtx);
@@ -375,7 +391,8 @@ auto load_bin(const fs::path &filename,
 @param data A span consisting of the data to be written. The span provides a
 view into a sequence of objects of type `T`.
 */
-template <typename T> void to_bin(fs::path filename, std::span<const T> data) {
+template <typename T>
+void to_bin(const fs::path &filename, std::span<const T> data) {
   std::ofstream file(filename, std::ios::binary);
   if (!file.is_open()) {
     std::cerr << "Failed to open file\n";

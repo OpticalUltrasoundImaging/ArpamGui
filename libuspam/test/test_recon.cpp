@@ -46,7 +46,7 @@ namespace fs = std::filesystem;
 TEST(ReconParams2Serialize, ToString) {
   const auto params_true = uspam::recon::ReconParams2::system2024v1();
   {
-    const auto jsonString = params_true.serialize();
+    const auto jsonString = params_true.serializeToString();
 
     uspam::recon::ReconParams2 params{};
 

@@ -1,20 +1,19 @@
 #pragma once
 
+#include "fftconv.hpp"
+#include "uspam/imutil.hpp"
+#include "uspam/io.hpp"
+#include "uspam/signal.hpp"
 #include <algorithm>
 #include <armadillo>
 #include <cassert>
 #include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <opencv2/opencv.hpp>
+#include <rapidjson/document.h>
 #include <string>
 #include <vector>
-
-#include "fftconv.hpp"
-#include "uspam/imutil.hpp"
-#include "uspam/io.hpp"
-#include "uspam/signal.hpp"
-
-#include <opencv2/opencv.hpp>
 
 namespace fs = std::filesystem;
 
@@ -26,18 +25,20 @@ void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env);
 
 template <typename T>
 auto logCompress(T val, T noiseFloor, T desiredDynamicRangeDB) {
+  // NOLINTNEXTLINE(*-magic-numbers)
   T compressedVal = 20.0 * std::log10(val / noiseFloor);
   compressedVal = std::max(compressedVal, T(0));
   compressedVal = std::min(compressedVal, desiredDynamicRangeDB);
   return compressedVal / desiredDynamicRangeDB;
 }
 
+// NOLINTBEGIN(*-magic-numbers)
 template <FloatOrDouble Tin, typename Tout> Tin logCompressFct();
 template <> inline consteval double logCompressFct<double, double>() {
   return 1.0;
 }
 template <> inline consteval float logCompressFct<float, float>() {
-  return 1.0f;
+  return 1.0F;
 }
 template <> inline consteval double logCompressFct<double, uint8_t>() {
   return 255.0;
@@ -45,6 +46,7 @@ template <> inline consteval double logCompressFct<double, uint8_t>() {
 template <> inline consteval float logCompressFct<float, uint8_t>() {
   return 255.0;
 }
+// NOLINTEND(*-magic-numbers)
 
 // Log compress to range of 0 - 1
 template <FloatOrDouble T, typename Tout>
@@ -62,10 +64,11 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
             logCompress(val, noiseFloor, desiredDynamicRangeDB) *
             logCompressFct<T, Tout>();
 
-        if constexpr (std::is_same_v<T, Tout>)
+        if constexpr (std::is_same_v<T, Tout>) {
           xLog(i, j) = compressedVal;
-        else
+        } else {
           xLog(i, j) = static_cast<Tout>(compressedVal);
+        }
       }
     }
     //}(cv::Range(0, x.n_cols));
@@ -144,6 +147,7 @@ struct ReconParams2 {
   int alineRotationOffset;
 
   static inline ReconParams2 system2024v1() {
+    // NOLINTBEGIN(*-magic-numbers)
     return ReconParams2{{0, 0.03, 0.035, 0.2, 0.22, 1},
                         {0, 0, 1, 1, 0, 0},
                         {0, 0.1, 0.3, 1},
@@ -153,13 +157,16 @@ struct ReconParams2 {
                         35,
                         48,
                         26};
+    // NOLINTEND(*-magic-numbers)
   }
 
   // Serialize to JSON
-  std::string serialize() const;
+  [[nodiscard]] rapidjson::Document serializeToDoc() const;
+  [[nodiscard]] std::string serializeToString() const;
   bool serializeToFile(const fs::path &path) const;
 
   // Deserialize from JSON
+  bool deserialize(const rapidjson::Document &doc);
   bool deserialize(const std::string &jsonString);
   bool deserializeFromFile(const fs::path &path);
 
@@ -167,19 +174,19 @@ struct ReconParams2 {
   void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<uint8_t> &rfLog,
                     bool flip = false) const;
 
-  [[nodiscard]] auto
-  reconOneScan(io::PAUSpair<double> &rf,
-               bool flip = false) const -> io::PAUSpair<uint8_t>;
+  [[nodiscard]] auto reconOneScan(io::PAUSpair<double> &rf,
+                                  bool flip = false) const
+      -> io::PAUSpair<uint8_t>;
 
   void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
                     bool flip = false) const;
 
-  inline ReconParams getPA() const {
+  [[nodiscard]] inline ReconParams getPA() const {
     return ReconParams{filterFreqPA, filterGainPA, noiseFloorPA,
                        desiredDynamicRangePA, alineRotationOffset};
   }
 
-  inline ReconParams getUS() const {
+  [[nodiscard]] inline ReconParams getUS() const {
     return ReconParams{filterFreqUS, filterGainUS, noiseFloorUS,
                        desiredDynamicRangeUS, alineRotationOffset};
   }

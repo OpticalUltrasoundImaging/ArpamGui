@@ -4,7 +4,9 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-std::string uspam::io::IOParams::serialize() const {
+namespace uspam::io {
+
+rapidjson::Document IOParams::serializeToDoc() const {
   rapidjson::Document doc;
   doc.SetObject();
   rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
@@ -17,21 +19,17 @@ std::string uspam::io::IOParams::serialize() const {
   doc.AddMember("offsetPA", this->offsetPA, allocator);
 
   doc.AddMember("byteOffset", this->byte_offset, allocator);
+  return doc;
+}
 
+std::string IOParams::serializeToString() const {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-  doc.Accept(writer);
-
+  serializeToDoc().Accept(writer);
   return buffer.GetString();
 }
 
-bool uspam::io::IOParams::deserialize(const std::string &jsonString) {
-
-  rapidjson::Document doc;
-  if (doc.Parse(jsonString.c_str()).HasParseError()) {
-    return false;
-  }
-
+bool IOParams::deserialize(const rapidjson::Document &doc) {
   this->rf_size_PA = doc["rfSizePA"].GetInt();
   this->rf_size_spacer = doc["rfSizeSpacer"].GetInt();
   this->rf_size_US = doc["rfSizeUS"].GetInt();
@@ -40,21 +38,28 @@ bool uspam::io::IOParams::deserialize(const std::string &jsonString) {
   this->offsetUS = doc["offsetUS"].GetInt();
 
   this->byte_offset = doc["byteOffset"].GetInt();
-
   return true;
 }
 
-bool uspam::io::IOParams::serializeToFile(const fs::path &path) const {
+bool IOParams::deserialize(const std::string &jsonString) {
+  rapidjson::Document doc;
+  if (doc.Parse(jsonString.c_str()).HasParseError()) {
+    return false;
+  }
+  return deserialize(doc);
+}
+
+bool IOParams::serializeToFile(const fs::path &path) const {
   std::ofstream ofs(path);
   if (!ofs.is_open()) {
     std::cerr << "Failed to open " << path << " for writing.\n";
     return false;
   }
-  ofs << this->serialize();
+  ofs << this->serializeToString();
   return true;
 }
 
-bool uspam::io::IOParams::deserializeFromFile(const fs::path &path) {
+bool IOParams::deserializeFromFile(const fs::path &path) {
   std::ifstream ifs(path);
   if (!ifs.is_open()) {
     std::cerr << "Failed to open " << path << " for reading.\n";
@@ -66,3 +71,5 @@ bool uspam::io::IOParams::deserializeFromFile(const fs::path &path) {
 
   return deserialize(jsonString);
 }
+
+} // namespace uspam::io

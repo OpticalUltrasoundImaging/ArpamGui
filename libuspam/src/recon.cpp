@@ -7,6 +7,7 @@
 #include <rapidjson/writer.h>
 
 namespace {
+
 void serializeVector(rapidjson::Document::AllocatorType &allocator,
                      rapidjson::Value &jsonValue,
                      const std::vector<double> &vec) {
@@ -22,6 +23,7 @@ void deserializeVector(const rapidjson::Value &jsonValue,
     vec.push_back(v.GetDouble());
   }
 }
+
 } // namespace
 
 namespace uspam::recon {
@@ -39,13 +41,12 @@ void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env) {
   // });
 }
 
-// Serialize to JSON
-std::string ReconParams2::serialize() const {
-  const auto &params = *this;
+rapidjson::Document ReconParams2::serializeToDoc() const {
   rapidjson::Document doc;
   doc.SetObject();
   rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
 
+  const auto &params = *this;
   rapidjson::Value filterFreqPA(rapidjson::kArrayType);
   serializeVector(allocator, filterFreqPA, params.filterFreqPA);
   doc.AddMember("filterFreqPA", filterFreqPA, allocator);
@@ -70,21 +71,18 @@ std::string ReconParams2::serialize() const {
                 allocator);
   doc.AddMember("alineRotationOffset", params.alineRotationOffset, allocator);
 
+  return doc;
+}
+
+std::string ReconParams2::serializeToString() const {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-  doc.Accept(writer);
-
+  serializeToDoc().Accept(writer);
   return buffer.GetString();
 }
 
-// Deserialize from JSON
-bool ReconParams2::deserialize(const std::string &jsonString) {
+bool ReconParams2::deserialize(const rapidjson::Document &doc) {
   auto &params = *this;
-  rapidjson::Document doc;
-  if (doc.Parse(jsonString.c_str()).HasParseError()) {
-    return false;
-  }
-
   deserializeVector(doc["filterFreqPA"], params.filterFreqPA);
   deserializeVector(doc["filterGainPA"], params.filterGainPA);
   deserializeVector(doc["filterFreqUS"], params.filterFreqUS);
@@ -95,8 +93,15 @@ bool ReconParams2::deserialize(const std::string &jsonString) {
   params.desiredDynamicRangePA = doc["desiredDynamicRangePA"].GetInt();
   params.desiredDynamicRangeUS = doc["desiredDynamicRangeUS"].GetInt();
   params.alineRotationOffset = doc["alineRotationOffset"].GetInt();
-
   return true;
+}
+
+bool ReconParams2::deserialize(const std::string &jsonString) {
+  rapidjson::Document doc;
+  if (doc.Parse(jsonString.c_str()).HasParseError()) {
+    return false;
+  }
+  return deserialize(doc);
 }
 
 bool ReconParams2::serializeToFile(const fs::path &path) const {
@@ -106,7 +111,7 @@ bool ReconParams2::serializeToFile(const fs::path &path) const {
     return false;
   }
 
-  ofs << this->serialize();
+  ofs << this->serializeToString();
   return true;
 }
 
@@ -152,8 +157,8 @@ void ReconParams2::reconOneScan(io::PAUSpair<double> &rf,
                       this->desiredDynamicRangeUS);
 }
 
-auto ReconParams2::reconOneScan(io::PAUSpair<double> &rf,
-                                bool flip) const -> io::PAUSpair<uint8_t> {
+auto ReconParams2::reconOneScan(io::PAUSpair<double> &rf, bool flip) const
+    -> io::PAUSpair<uint8_t> {
   auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rf);
   reconOneScan(rf, rfLog, flip);
   return rfLog;
