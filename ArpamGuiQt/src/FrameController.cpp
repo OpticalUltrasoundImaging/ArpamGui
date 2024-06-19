@@ -164,6 +164,7 @@ void FrameController::acceptNewBinfile(const QString &filename) {
   // Load if exists
   if (fs::exists(m_annoPath)) {
     m_doc.loadFromFile(m_annoPath);
+    loadFrameAnnotationsFromDocToModel(frameNum());
   } else {
     m_doc.init();
     m_doc.saveToFile(m_annoPath);
@@ -176,19 +177,20 @@ int FrameController::frameNum() const {
   return val;
 }
 
-void FrameController::setFrameNum(int frameNum) {
-  auto *model = m_coregDisplay->model();
+void FrameController::setFrameNum(int frame) {
+  const auto oldFrame = frameNum();
   // Save old frames's labels
-  m_doc.setAnnotationForFrame(m_frameNumSpinBox->value(), model->annotations());
+  saveFrameAnnotationsFromModelToDoc(oldFrame);
 
   // Load labels for new frame
-  model->setAnnotations(m_doc.getAnnotationForFrame(frameNum));
+  loadFrameAnnotationsFromDocToModel(frame);
 
+  // Save doc to file
   m_doc.saveToFile(m_annoPath);
 
   // Update GUI
-  m_frameNumSpinBox->setValue(frameNum);
-  m_frameSlider->setValue(frameNum);
+  m_frameNumSpinBox->setValue(frame);
+  m_frameSlider->setValue(frame);
 }
 
 int FrameController::maxFrameNum() const {
@@ -245,4 +247,13 @@ void FrameController::prevFrame() {
     setFrameNum(idx - 1);
     emit sigFrameNumUpdated(idx - 1);
   }
+}
+
+void FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
+  auto *model = m_coregDisplay->model();
+  m_doc.setAnnotationForFrame(frame, model->annotations());
+}
+void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {
+  auto *model = m_coregDisplay->model();
+  model->setAnnotations(m_doc.getAnnotationForFrame(frame));
 }

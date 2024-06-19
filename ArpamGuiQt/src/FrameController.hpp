@@ -47,6 +47,9 @@ public:
   auto get_actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
 
 private:
+  void saveFrameAnnotationsFromModelToDoc(int frame);
+  void loadFrameAnnotationsFromDocToModel(int frame);
+
   DataProcWorker *m_worker;
   CoregDisplay *m_coregDisplay;
 
