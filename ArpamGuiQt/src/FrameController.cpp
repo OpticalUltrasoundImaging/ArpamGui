@@ -138,11 +138,6 @@ FrameController::FrameController(DataProcWorker *worker,
     connect(worker, &DataProcWorker::finishedPlaying, this,
             [this] { this->updatePlayingState(false); });
   }
-
-  {
-    // Implement logic to save annotations to file.
-    // For every frame number, there should be a new model
-  }
 }
 
 void FrameController::openFileSelectDialog() {

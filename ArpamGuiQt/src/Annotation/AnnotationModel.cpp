@@ -128,14 +128,4 @@ void AnnotationModel::deserializeFromJson(const rapidjson::Value &value) {
   }
 }
 
-void AnnotationModel::saveToFile(const std::filesystem::path &path) const {
-  rapidjson::Document doc;
-  doc.SetObject();
-  rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
-
-  doc.AddMember("frame", serializeToJson(allocator), allocator);
-
-  uspam::json::toFile(path, doc);
-}
-
 } // namespace annotation

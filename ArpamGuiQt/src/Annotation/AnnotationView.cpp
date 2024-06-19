@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QMessageBox>
 #include <QModelIndex>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -70,8 +71,11 @@ AnnotationView::AnnotationView(QWidget *parent)
   {
     auto *btn = new QPushButton("Save");
     vlayout->addWidget(btn);
-    connect(btn, &QPushButton::clicked,
-            [this] { m_model->saveToFile("frame.json"); });
+    connect(btn, &QPushButton::clicked, [this] {
+      QMessageBox::information(
+          this, "Message",
+          "Annotations are automatically saved when switching between frames.");
+    });
   }
 }
 

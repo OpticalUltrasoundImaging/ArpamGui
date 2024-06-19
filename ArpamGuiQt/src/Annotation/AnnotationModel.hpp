@@ -106,10 +106,7 @@ public:
 
   [[nodiscard]] rapidjson::Value
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
-
   void deserializeFromJson(const rapidjson::Value &value);
-
-  void saveToFile(const std::filesystem::path &path) const;
 
 private:
   QList<Annotation> m_annotations;
