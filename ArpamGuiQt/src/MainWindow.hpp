@@ -27,7 +27,7 @@ public slots:
   // Log error message to a text box on screen
   void logError(QString message);
 
-  void switchMode();
+  void toggleFullScreen();
 
 protected:
   // Support dropping file
