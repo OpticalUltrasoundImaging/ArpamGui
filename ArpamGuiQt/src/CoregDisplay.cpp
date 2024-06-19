@@ -61,17 +61,19 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   for (const auto &[action, cursorMode] : CursorModeActions) {
     action->setCheckable(true);
 
-    connect(action, &QAction::triggered, [&] {
-      // Uncheck all actions
-      for (const auto &[actOther, _] : CursorModeActions) {
-        actOther->setChecked(false);
-      }
+    connect(action, &QAction::triggered,
+            // Capture everything by copy
+            [this, action, cursorMode, CursorModeActions] {
+              setCursorMode(cursorMode);
 
-      // Check the current action
-      action->setChecked(true);
+              // Uncheck all actions
+              for (const auto &[actOther, _] : CursorModeActions) {
+                actOther->setChecked(false);
+              }
 
-      setCursorMode(cursorMode);
-    });
+              // Check the current action
+              action->setChecked(true);
+            });
   }
 
   defer { actCursorDefault->trigger(); };

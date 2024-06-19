@@ -258,16 +258,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
     m_frameController->togglePlayPause();
     break;
 
+    /* Hotkeys to trigger cursor modes */
   case Qt::Key_D:
     m_coregDisplay->actionDefault()->trigger();
+    break;
   case Qt::Key_P:
     m_coregDisplay->actionPan()->trigger();
+    break;
   case Qt::Key_L:
     m_coregDisplay->actionLine()->trigger();
+    break;
   case Qt::Key_R:
     m_coregDisplay->actionLabelRect()->trigger();
+    break;
   case Qt::Key_F:
     m_coregDisplay->actionLabelFan()->trigger();
+    break;
 
   default:
     QMainWindow::keyPressEvent(event);
