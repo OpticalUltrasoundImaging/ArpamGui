@@ -6,8 +6,7 @@
 #include <QModelIndex>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <qnamespace.h>
-#include <qpushbutton.h>
+#include <Qt>
 #include <ranges>
 
 namespace annotation {
@@ -38,15 +37,19 @@ void AnnotationTableView::keyPressEvent(QKeyEvent *event) {
   switch (event->key()) {
   case Qt::Key_Delete:
   case Qt::Key_Backspace:
-    for (const auto &idx :
-         selectionModel()->selectedRows() | std::views::reverse) {
-      model()->removeRow(idx.row());
-    }
+    deleteSelectedRows();
     break;
   default:
     QTableView::keyPressEvent(event);
   }
 }
+
+void AnnotationTableView::deleteSelectedRows() {
+  for (const auto &idx :
+       selectionModel()->selectedRows() | std::views::reverse) {
+    model()->removeRow(idx.row());
+  }
+};
 
 } // namespace details
 

@@ -12,6 +12,8 @@ class AnnotationTableView : public QTableView {
 public:
   explicit AnnotationTableView(QWidget *parent = nullptr);
   void keyPressEvent(QKeyEvent *event) override;
+
+  void deleteSelectedRows();
 };
 
 } // namespace details
