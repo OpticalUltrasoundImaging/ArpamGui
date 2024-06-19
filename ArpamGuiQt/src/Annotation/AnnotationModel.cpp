@@ -2,6 +2,8 @@
 #include <QAbstractItemModel>
 #include <Qt>
 #include <cassert>
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
 #include <utility>
 
 namespace annotation {
@@ -94,6 +96,36 @@ void AnnotationModel::addAnnotation(const Annotation &annotation) {
   beginInsertRows(QModelIndex(), m_annotations.size(), m_annotations.size());
   m_annotations.append(annotation);
   endInsertRows();
+}
+
+void AnnotationModel::clear() {
+  beginResetModel();
+  m_annotations.clear();
+  endResetModel();
+}
+
+rapidjson::Value AnnotationModel::serializeToJson(
+    rapidjson::Document::AllocatorType &allocator) const {
+  // rapidjson::Document doc;
+  // doc.SetObject();
+  // rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
+  rapidjson::Value val(rapidjson::kObjectType);
+
+  for (const auto &anno : m_annotations) {
+    val.AddMember("annotations", anno.serializeToJson(allocator), allocator);
+  }
+
+  return val;
+}
+
+void AnnotationModel::deserializeFromJson(const rapidjson::Value &value) {
+  clear();
+
+  for (const auto &annoVal : value["annotations"].GetArray()) {
+    Annotation anno;
+    anno.deserializeFromJson(annoVal);
+    addAnnotation(anno);
+  }
 }
 
 } // namespace annotation

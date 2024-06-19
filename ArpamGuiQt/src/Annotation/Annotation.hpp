@@ -6,6 +6,7 @@
 #include <QRectF>
 #include <QString>
 #include <array>
+#include <rapidjson/document.h>
 
 namespace annotation {
 
@@ -41,6 +42,7 @@ public:
       QString("Line"), QString("Rect"), QString("Fan"), QString("Polygon")};
 
   /* Constructors */
+  Annotation() = default;
   Annotation(Type type, const QList<QPointF> &points, const QColor &color,
              QString name = {});
   Annotation(const QLineF &line, const QColor &color, QString name = {});
@@ -94,6 +96,10 @@ public:
   void setName(QString name) { m_name = std::move(name); }
 
   static QString typeToString(Type type) { return TypeToString.at(type); }
+
+  [[nodiscard]] rapidjson::Value
+  serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
+  void deserializeFromJson(const rapidjson::Value &value);
 
 private:
   Type m_type;

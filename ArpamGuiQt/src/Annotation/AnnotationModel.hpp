@@ -13,6 +13,7 @@
 #include <array>
 #include <cmath>
 #include <functional>
+#include <rapidjson/document.h>
 #include <utility>
 
 namespace annotation {
@@ -92,6 +93,13 @@ public:
   }
 
   [[nodiscard]] auto size() { return m_annotations.size(); }
+
+  void clear();
+
+  [[nodiscard]] rapidjson::Value
+  serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
+
+  void deserializeFromJson(const rapidjson::Value &value);
 
 private:
   QList<Annotation> m_annotations;
