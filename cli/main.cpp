@@ -1,3 +1,4 @@
+#include "uspam/recon.hpp"
 #include <CLI/CLI.hpp>
 #include <armadillo>
 #include <chrono>
@@ -109,7 +110,7 @@ void cliRecon(const fs::path fname, int starti = 0, int nscans = 0,
 
     {
       uspam::TimeIt<true> timeit("reconOneScan");
-      params.reconOneScan(rfPair, rfLog, flip);
+      recon::reconOneScan(params, rfPair, rfLog, flip);
     }
 
     // rfLog.US.save("USlog.bin", arma::raw_binary);

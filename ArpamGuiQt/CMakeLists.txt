@@ -50,12 +50,14 @@ qt_add_executable(${EXE_NAME}
     src/ReconParamsController.cpp
     src/FrameController.hpp
     src/FrameController.cpp
+    ${app_icon_macos}
+    ${app_icon_resource_windows}
+)
+target_sources(${EXE_NAME} PRIVATE
     src/geometryUtils.cpp
     src/geometryUtils.hpp
     src/jsonUtils.cpp
     src/jsonUtils.hpp
-    ${app_icon_macos}
-    ${app_icon_resource_windows}
 )
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"

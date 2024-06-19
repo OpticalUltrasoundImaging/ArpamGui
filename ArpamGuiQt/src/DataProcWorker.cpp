@@ -164,7 +164,8 @@ namespace {
 void procOne(const uspam::recon::ReconParams &params, arma::Mat<double> &rf,
              arma::Mat<uint8_t> &rfLog, bool flip, cv::Mat &radial_img,
              QImage &radial_qimg) {
-  params.reconOneScan(rf, rfLog, flip);
+
+  uspam::recon::reconOneScan(params, rf, rfLog, flip);
   radial_img = uspam::imutil::makeRadial(rfLog);
   radial_qimg = cvMatToQImage(radial_img);
 }
@@ -233,15 +234,6 @@ void DataProcWorker::processCurrentFrame() {
   }();
 
   // Recon
-  // rfPair.PA.each_col() -= background.PA.col(0);
-  // paramsPA.reconOneScan(rfPair.PA, rfLog.PA, flip);
-  // const cv::Mat PAradial = uspam::imutil::makeRadial(rfLog.PA);
-  // const QImage PAradial_img = cvMatToQImage(PAradial);
-
-  // rfPair.US.each_col() -= background.US.col(0);
-  // paramsUS.reconOneScan(rfPair.US, rfLog.US, flip);
-  // const cv::Mat USradial = uspam::imutil::makeRadial(rfLog.US);
-  // const QImage USradial_img = cvMatToQImage(USradial);
   QImage USradial_img;
   QImage PAradial_img;
   cv::Mat USradial;

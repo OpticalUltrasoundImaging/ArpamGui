@@ -6,6 +6,7 @@
 
 #include "uspam/io.hpp"
 #include "uspam/recon.hpp"
+#include "uspam/reconParams.hpp"
 
 namespace fs = std::filesystem;
 
@@ -46,7 +47,7 @@ namespace fs = std::filesystem;
 TEST(ReconParams2Serialize, ToString) {
   const auto params_true = uspam::recon::ReconParams2::system2024v1();
   {
-    const auto jsonString = params_true.serializeToString();
+    const auto doc = params_true.serializeToDoc();
 
     uspam::recon::ReconParams2 params{};
 
@@ -60,7 +61,7 @@ TEST(ReconParams2Serialize, ToString) {
     ASSERT_NE(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
     ASSERT_NE(params_true.alineRotationOffset, params.alineRotationOffset);
 
-    params.deserialize(jsonString);
+    params.deserialize(doc);
     ASSERT_EQ(params_true.filterFreqPA, params.filterFreqPA);
     ASSERT_EQ(params_true.filterFreqUS, params.filterFreqUS);
     ASSERT_EQ(params_true.filterGainPA, params.filterGainPA);

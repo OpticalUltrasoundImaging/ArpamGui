@@ -1,5 +1,6 @@
 #include "Annotation/AnnotationModel.hpp"
 #include "jsonUtils.hpp"
+#include "uspam/json.hpp"
 #include <QAbstractItemModel>
 #include <Qt>
 #include <cassert>
@@ -135,7 +136,7 @@ void AnnotationModel::saveToFile(const std::filesystem::path &path) const {
 
   doc.AddMember("frame", serializeToJson(allocator), allocator);
 
-  jsonUtils::toFile(path, doc);
+  uspam::json::toFile(path, doc);
 }
 
 } // namespace annotation

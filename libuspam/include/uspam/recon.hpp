@@ -3,6 +3,7 @@
 #include "fftconv.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/io.hpp"
+#include "uspam/reconParams.hpp"
 #include "uspam/signal.hpp"
 #include <algorithm>
 #include <armadillo>
@@ -96,100 +97,15 @@ auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
   return dynamicRangeDB;
 }
 
-// FIR Filter
+// FIR filter + Envelope detection + log compression
+void reconOneScan(const ReconParams2 &params, io::PAUSpair<double> &rf,
+                  io::PAUSpair<uint8_t> &rfLog, bool flip = false);
 
-template <FloatOrDouble T> struct FIRFilterParams {
-  int numtaps;
-  arma::Col<T> freq;
-  arma::Col<T> gain;
+[[nodiscard]] auto reconOneScan(const ReconParams2 &params,
+                                io::PAUSpair<double> &rf, bool flip = false)
+    -> io::PAUSpair<uint8_t>;
 
-  [[nodiscard]] auto validate() const -> bool {
-    if (numtaps < 3) {
-      std::cerr << "numtaps must be positive and greater than 3\n";
-      return false;
-    }
-    if (freq.size() != gain.size()) {
-      std::cerr << "freq and gain must have the same size.\n";
-      return false;
-    }
-    if (freq[0] != 0) {
-      std::cerr << "freq[0] must be 0\n";
-      return false;
-    }
-
-    return true;
-  }
-};
-
-struct ReconParams {
-  std::vector<double> filterFreq;
-  std::vector<double> filterGain;
-  int noiseFloor;
-  int desiredDynamicRange;
-  int rotateOffset;
-
-  void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
-                    bool flip) const;
-};
-
-struct ReconParams2 {
-  std::vector<double> filterFreqPA;
-  std::vector<double> filterGainPA;
-  std::vector<double> filterFreqUS;
-  std::vector<double> filterGainUS;
-
-  int noiseFloorPA;
-  int noiseFloorUS;
-
-  int desiredDynamicRangePA;
-  int desiredDynamicRangeUS;
-
-  int alineRotationOffset;
-
-  static inline ReconParams2 system2024v1() {
-    // NOLINTBEGIN(*-magic-numbers)
-    return ReconParams2{{0, 0.03, 0.035, 0.2, 0.22, 1},
-                        {0, 0, 1, 1, 0, 0},
-                        {0, 0.1, 0.3, 1},
-                        {0, 1, 1, 0},
-                        300,
-                        200,
-                        35,
-                        48,
-                        26};
-    // NOLINTEND(*-magic-numbers)
-  }
-
-  // Serialize to JSON
-  [[nodiscard]] rapidjson::Document serializeToDoc() const;
-  [[nodiscard]] std::string serializeToString() const;
-  bool serializeToFile(const fs::path &path) const;
-
-  // Deserialize from JSON
-  bool deserialize(const rapidjson::Document &doc);
-  bool deserialize(const std::string &jsonString);
-  bool deserializeFromFile(const fs::path &path);
-
-  // FIR filter + Envelope detection + log compression
-  void reconOneScan(io::PAUSpair<double> &rf, io::PAUSpair<uint8_t> &rfLog,
-                    bool flip = false) const;
-
-  [[nodiscard]] auto reconOneScan(io::PAUSpair<double> &rf,
-                                  bool flip = false) const
-      -> io::PAUSpair<uint8_t>;
-
-  void reconOneScan(arma::Mat<double> &rf, arma::Mat<uint8_t> &rfLog,
-                    bool flip = false) const;
-
-  [[nodiscard]] inline ReconParams getPA() const {
-    return ReconParams{filterFreqPA, filterGainPA, noiseFloorPA,
-                       desiredDynamicRangePA, alineRotationOffset};
-  }
-
-  [[nodiscard]] inline ReconParams getUS() const {
-    return ReconParams{filterFreqUS, filterGainUS, noiseFloorUS,
-                       desiredDynamicRangeUS, alineRotationOffset};
-  }
-};
+void reconOneScan(const ReconParams &params, arma::Mat<double> &rf,
+                  arma::Mat<uint8_t> &rfLog, bool flip = false);
 
 } // namespace uspam::recon
