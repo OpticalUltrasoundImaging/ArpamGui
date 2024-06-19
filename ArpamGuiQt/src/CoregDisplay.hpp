@@ -17,6 +17,7 @@ public:
   explicit CoregDisplay(QWidget *parent = nullptr);
 
   auto annotationView() { return m_annoView; }
+  auto model() { return m_model; }
 
 signals:
   void message(const QString &msg);

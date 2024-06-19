@@ -1,28 +1,32 @@
+#pragma once
+
 #include <QList>
 #include <QPoint>
 #include <QPointF>
 #include <QString>
-#include <__iterator/concepts.h>
 #include <concepts>
+#include <cstdio>
+#include <filesystem>
 #include <rapidjson/document.h>
 #include <string>
 #include <type_traits>
 
 namespace jsonUtils {
+// NOLINTNEXTLINE(*-using-namespace)
+using namespace rapidjson;
+namespace fs = std::filesystem;
 
 /* Serialization helpers */
 
-[[nodiscard]] inline auto
-serializeString(const std::string &str,
-                rapidjson::Document::AllocatorType &allocator) {
-  rapidjson::Value value;
+[[nodiscard]] inline auto serializeString(const std::string &str,
+                                          Document::AllocatorType &allocator) {
+  Value value;
   value.SetString(str.c_str(), allocator);
   return value;
 }
 
-[[nodiscard]] inline auto
-serializeString(const QString &str,
-                rapidjson::Document::AllocatorType &allocator) {
+[[nodiscard]] inline auto serializeString(const QString &str,
+                                          Document::AllocatorType &allocator) {
   return serializeString(str.toStdString(), allocator);
 }
 
@@ -50,12 +54,11 @@ concept SequentialContainerOfPoints =
     SequentialContainer<T> && Point<typename T::value_type>;
 
 template <SequentialContainerOfPoints Container>
-[[nodiscard]] auto
-serializeListOfPoints(const Container &points,
-                      rapidjson::Document::AllocatorType &allocator) {
-  rapidjson::Value jsonArray(rapidjson::kArrayType);
+[[nodiscard]] auto serializeListOfPoints(const Container &points,
+                                         Document::AllocatorType &allocator) {
+  Value jsonArray(kArrayType);
   for (const auto &point : points) {
-    rapidjson::Value p(rapidjson::kArrayType);
+    Value p(kArrayType);
     p.PushBack(point.x(), allocator);
     p.PushBack(point.y(), allocator);
     jsonArray.PushBack(p, allocator);
@@ -64,5 +67,10 @@ serializeListOfPoints(const Container &points,
 }
 
 /* Deserialization helpers */
+
+/* File IO */
+
+void fromFile(const fs::path &path, Document &doc);
+void toFile(const fs::path &path, const Document &doc);
 
 } // namespace jsonUtils

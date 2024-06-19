@@ -52,6 +52,8 @@ qt_add_executable(${EXE_NAME}
     src/FrameController.cpp
     src/geometryUtils.cpp
     src/geometryUtils.hpp
+    src/jsonUtils.cpp
+    src/jsonUtils.hpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )

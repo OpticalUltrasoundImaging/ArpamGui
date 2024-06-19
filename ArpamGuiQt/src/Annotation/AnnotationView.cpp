@@ -3,7 +3,9 @@
 #include <QHBoxLayout>
 #include <QMenu>
 #include <QModelIndex>
+#include <QPushButton>
 #include <QVBoxLayout>
+#include <qpushbutton.h>
 
 namespace annotation {
 
@@ -19,7 +21,15 @@ AnnotationView::AnnotationView(QWidget *parent)
     vlayout->addLayout(hlayout);
   }
 
-  { vlayout->addWidget(m_tableView); }
+  vlayout->addWidget(m_tableView);
+
+  {
+    auto *btn = new QPushButton("Save");
+    vlayout->addWidget(btn);
+    connect(btn, &QPushButton::clicked, [this] {
+      m_model->saveToFile("frame.json");
+    });
+  }
 }
 
 void AnnotationView::setModel(AnnotationModel *model) {

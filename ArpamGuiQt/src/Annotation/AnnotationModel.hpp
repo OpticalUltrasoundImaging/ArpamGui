@@ -12,6 +12,7 @@
 #include <Qt>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <functional>
 #include <rapidjson/document.h>
 #include <utility>
@@ -100,6 +101,8 @@ public:
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
 
   void deserializeFromJson(const rapidjson::Value &value);
+
+  void saveToFile(const std::filesystem::path &path) const;
 
 private:
   QList<Annotation> m_annotations;

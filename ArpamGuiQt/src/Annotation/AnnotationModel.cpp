@@ -1,7 +1,10 @@
 #include "Annotation/AnnotationModel.hpp"
+#include "jsonUtils.hpp"
 #include <QAbstractItemModel>
 #include <Qt>
 #include <cassert>
+#include <filesystem>
+#include <fstream>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <utility>
@@ -106,9 +109,6 @@ void AnnotationModel::clear() {
 
 rapidjson::Value AnnotationModel::serializeToJson(
     rapidjson::Document::AllocatorType &allocator) const {
-  // rapidjson::Document doc;
-  // doc.SetObject();
-  // rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
   rapidjson::Value val(rapidjson::kObjectType);
 
   for (const auto &anno : m_annotations) {
@@ -126,6 +126,16 @@ void AnnotationModel::deserializeFromJson(const rapidjson::Value &value) {
     anno.deserializeFromJson(annoVal);
     addAnnotation(anno);
   }
+}
+
+void AnnotationModel::saveToFile(const std::filesystem::path &path) const {
+  rapidjson::Document doc;
+  doc.SetObject();
+  rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
+
+  doc.AddMember("frame", serializeToJson(allocator), allocator);
+
+  jsonUtils::toFile(path, doc);
 }
 
 } // namespace annotation
