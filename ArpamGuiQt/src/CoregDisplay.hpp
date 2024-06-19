@@ -19,6 +19,12 @@ public:
   auto annotationView() { return m_annoView; }
   auto model() { return m_model; }
 
+  [[nodiscard]] auto actionDefault() const { return actCursorDefault; }
+  [[nodiscard]] auto actionPan() const { return actCursorPan; }
+  [[nodiscard]] auto actionLine() const { return actCursorLine; }
+  [[nodiscard]] auto actionLabelRect() const { return actCursorLabelRect; }
+  [[nodiscard]] auto actionLabelFan() const { return actCursorLabelFan; }
+
 signals:
   void message(const QString &msg);
   void mouseMoved(QPoint pos, double depth_mm);

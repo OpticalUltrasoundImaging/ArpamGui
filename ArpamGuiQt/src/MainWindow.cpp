@@ -247,6 +247,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
   const auto KeyPlayPause = Qt::Key_Space;
 
   switch (event->key()) {
+
   case KeyNextFrame:
     m_frameController->nextFrame();
     break;
@@ -256,6 +257,18 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
   case KeyPlayPause:
     m_frameController->togglePlayPause();
     break;
+
+  case Qt::Key_D:
+    m_coregDisplay->actionDefault()->trigger();
+  case Qt::Key_P:
+    m_coregDisplay->actionPan()->trigger();
+  case Qt::Key_L:
+    m_coregDisplay->actionLine()->trigger();
+  case Qt::Key_R:
+    m_coregDisplay->actionLabelRect()->trigger();
+  case Qt::Key_F:
+    m_coregDisplay->actionLabelFan()->trigger();
+
   default:
     QMainWindow::keyPressEvent(event);
   }

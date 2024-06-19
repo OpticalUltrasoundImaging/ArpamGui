@@ -58,15 +58,19 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       AP{actCursorLabelFan, CursorMode::LabelFan}};
 
   // Init state and connect exclusive checking of actions
-  for (const auto &[act1, enum1] : CursorModeActions) {
-    act1->setCheckable(true);
-    connect(act1, &QAction::triggered, [this, enum1, CursorModeActions, act1] {
-      setCursorMode(enum1);
+  for (const auto &[action, cursorMode] : CursorModeActions) {
+    action->setCheckable(true);
 
-      for (const auto &[act2, enum2] : CursorModeActions) {
-        act2->setChecked(false);
+    connect(action, &QAction::triggered, [&] {
+      // Uncheck all actions
+      for (const auto &[actOther, _] : CursorModeActions) {
+        actOther->setChecked(false);
       }
-      act1->setChecked(true);
+
+      // Check the current action
+      action->setChecked(true);
+
+      setCursorMode(cursorMode);
     });
   }
 
