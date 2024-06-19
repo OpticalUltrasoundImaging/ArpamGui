@@ -2,11 +2,13 @@
 
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
+#include <Annotation/AnnotationJsonFile.hpp>
 #include <QAction>
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QString>
+#include <rapidjson/document.h>
 
 class FrameController : public QWidget {
   Q_OBJECT
@@ -54,4 +56,11 @@ private:
   QSpinBox *m_frameNumSpinBox;
   QSlider *m_frameSlider;
   bool m_isPlaying{false};
+
+  // Annotation JSON document
+  annotation::AnnotationJsonFile m_doc;
+
+  // Binfile path
+  fs::path m_binPath;
+  fs::path m_annoPath;
 };

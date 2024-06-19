@@ -6,6 +6,7 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <qabstractitemmodel.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <utility>
@@ -103,9 +104,9 @@ void AnnotationModel::addAnnotation(const Annotation &annotation) {
 }
 
 void AnnotationModel::clear() {
-  beginResetModel();
+  beginRemoveRows(QModelIndex(), 0, m_annotations.size() - 1);
   m_annotations.clear();
-  endResetModel();
+  endRemoveRows();
 }
 
 rapidjson::Value AnnotationModel::serializeToJson(
@@ -123,9 +124,7 @@ void AnnotationModel::deserializeFromJson(const rapidjson::Value &value) {
   clear();
 
   for (const auto &annoVal : value["annotations"].GetArray()) {
-    Annotation anno;
-    anno.deserializeFromJson(annoVal);
-    addAnnotation(anno);
+    addAnnotation(Annotation::deserializeFromJson(annoVal));
   }
 }
 

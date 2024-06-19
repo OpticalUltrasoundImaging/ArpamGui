@@ -18,6 +18,7 @@ bool fromFile(const fs::path &path, Document &doc) {
   std::array<char, 65536> buf;
   FileReadStream is(fp, buf.data(), buf.size());
 
+  doc.SetObject();
   doc.ParseStream(is);
 
   fclose(fp);

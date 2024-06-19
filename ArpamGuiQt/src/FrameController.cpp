@@ -1,5 +1,7 @@
 #include "FrameController.hpp"
 #include "CoregDisplay.hpp"
+#include "datetime.hpp"
+#include "strConvUtils.hpp"
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -10,7 +12,12 @@
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <cassert>
-#include <strConvUtils.hpp>
+#include <chrono>
+#include <filesystem>
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
+#include <string>
+#include <uspam/json.hpp>
 
 FrameController::FrameController(DataProcWorker *worker,
                                  CoregDisplay *coregDisplay, QWidget *parent)
@@ -131,6 +138,11 @@ FrameController::FrameController(DataProcWorker *worker,
     connect(worker, &DataProcWorker::finishedPlaying, this,
             [this] { this->updatePlayingState(false); });
   }
+
+  {
+    // Implement logic to save annotations to file.
+    // For every frame number, there should be a new model
+  }
 }
 
 void FrameController::openFileSelectDialog() {
@@ -141,10 +153,25 @@ void FrameController::openFileSelectDialog() {
 }
 
 void FrameController::acceptNewBinfile(const QString &filename) {
+  // Update GUI
   updatePlayingState(false);
 
+  // Emit signal
   if (!filename.isEmpty()) {
     emit sigBinfileSelected(filename);
+  }
+
+  // Try to load the annotation file
+  m_binPath = qString2Path(filename);
+  m_annoPath = m_binPath.parent_path() /
+               (m_binPath.stem().string() + "_annotations.json");
+
+  // Load if exists
+  if (fs::exists(m_annoPath)) {
+    m_doc.loadFromFile(m_annoPath);
+  } else {
+    m_doc.init();
+    m_doc.saveToFile(m_annoPath);
   }
 }
 
@@ -155,6 +182,16 @@ int FrameController::frameNum() const {
 }
 
 void FrameController::setFrameNum(int frameNum) {
+  auto *model = m_coregDisplay->model();
+  // Save old frames's labels
+  m_doc.setAnnotationForFrame(m_frameNumSpinBox->value(), model->annotations());
+
+  // Load labels for new frame
+  model->setAnnotations(m_doc.getAnnotationForFrame(frameNum));
+
+  m_doc.saveToFile(m_annoPath);
+
+  // Update GUI
   m_frameNumSpinBox->setValue(frameNum);
   m_frameSlider->setValue(frameNum);
 }

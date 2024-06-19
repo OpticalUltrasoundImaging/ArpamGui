@@ -31,6 +31,8 @@ qt_add_executable(${EXE_NAME}
     src/Annotation/Annotation.cpp
     src/Annotation/AnnotationModel.hpp
     src/Annotation/AnnotationModel.cpp
+    src/Annotation/AnnotationJsonFile.hpp
+    src/Annotation/AnnotationJsonFile.cpp
     src/Annotation/AnnotationView.hpp
     src/Annotation/AnnotationView.cpp
     src/Annotation/GraphicsItemBase.cpp

@@ -62,4 +62,27 @@ rapidjson::Value Annotation::serializeToJson(
   return obj;
 }
 
+Annotation Annotation::deserializeFromJson(const rapidjson::Value &value) {
+  Annotation anno;
+
+  if (const auto it = value.FindMember("type"); it != value.MemberEnd()) {
+    anno.m_type = typeFromString(it->value.GetString());
+  }
+
+  if (const auto it = value.FindMember("points"); it != value.MemberEnd()) {
+    anno.m_polygon = deserializeListOfPoints(it->value);
+  }
+
+  if (const auto it = value.FindMember("color"); it != value.MemberEnd()) {
+    anno.m_color = QColor::fromString(it->value.GetString());
+  }
+
+  if (const auto it = value.FindMember("name"); it != value.MemberEnd()) {
+    const auto s = QString::fromLocal8Bit(it->value.GetString());
+    anno.m_name = s;
+  }
+
+  return anno;
+}
+
 } // namespace annotation

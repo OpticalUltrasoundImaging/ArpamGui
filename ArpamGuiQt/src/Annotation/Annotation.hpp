@@ -5,6 +5,7 @@
 #include <QPolygonF>
 #include <QRectF>
 #include <QString>
+#include <algorithm>
 #include <array>
 #include <rapidjson/document.h>
 
@@ -96,10 +97,19 @@ public:
   void setName(QString name) { m_name = std::move(name); }
 
   static QString typeToString(Type type) { return TypeToString.at(type); }
+  static Type typeFromString(const QString &type) {
+    const auto *const it =
+        std::find(TypeToString.cbegin(), TypeToString.cend(), type);
+    if (it != TypeToString.cend()) {
+      return static_cast<Type>(it - TypeToString.cbegin());
+    }
+    return static_cast<Type>(0);
+  }
 
   [[nodiscard]] rapidjson::Value
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
-  void deserializeFromJson(const rapidjson::Value &value);
+  [[nodiscard]] static Annotation
+  deserializeFromJson(const rapidjson::Value &value);
 
 private:
   Type m_type;
