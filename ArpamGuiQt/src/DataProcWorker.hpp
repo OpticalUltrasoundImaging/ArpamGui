@@ -39,8 +39,8 @@ public slots:
   // Replay the current frame (without advancing the index)
   void replayOne();
 
-  // If .play() called, pause. This needs to be called in the caller thread
-  // Abort the current work (only works when ready=false. Updates ready=true)
+  // (thread safe) If .play() called, pause. This needs to be called in the
+  // caller thread Abort the current work
   void pause();
 
   // Updates the ReconParams and IOParams used for processing

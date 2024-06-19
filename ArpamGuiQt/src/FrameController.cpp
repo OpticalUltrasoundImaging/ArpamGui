@@ -1,5 +1,5 @@
 #include "FrameController.hpp"
-
+#include "CoregDisplay.hpp"
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -10,9 +10,12 @@
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <cassert>
+#include <strConvUtils.hpp>
 
-FrameController::FrameController(QWidget *parent)
-    : QWidget(parent), m_btnPlayPause(new QPushButton("Play", this)),
+FrameController::FrameController(DataProcWorker *worker,
+                                 CoregDisplay *coregDisplay, QWidget *parent)
+    : QWidget(parent), m_worker(worker), m_coregDisplay(coregDisplay),
+      m_btnPlayPause(new QPushButton("Play", this)),
       m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
 
   // Actions
@@ -77,6 +80,57 @@ FrameController::FrameController(QWidget *parent)
     connect(m_frameSlider, &QSlider::sliderReleased, this,
             [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
   }
+
+  // Connections
+  // Frame controller signals
+  {
+
+    // Action for when a new binfile is selected
+    connect(this, &FrameController::sigBinfileSelected,
+            [this](const QString &filepath) {
+              const auto pathUtf8 = filepath.toUtf8();
+              std::filesystem::path path(pathUtf8.constData());
+
+              // Worker: load file
+              QMetaObject::invokeMethod(m_worker, &DataProcWorker::setBinfile,
+                                        path);
+
+              // Update canvas dipslay
+              m_coregDisplay->setSequenceName(path2QString(path.stem()));
+            });
+
+    // When frameController's changes it's frame number (through the drag bar
+    // or play), tell the worker to process the right image
+    connect(this, &FrameController::sigFrameNumUpdated, worker,
+            &DataProcWorker::playOne);
+
+    // Signal to start playing
+    connect(this, &FrameController::sigPlay, this, [this] {
+      // Invoke worker::play in the worker thread
+      QMetaObject::invokeMethod(m_worker, &DataProcWorker::play);
+      m_coregDisplay->resetZoomOnNextImshow();
+    });
+
+    // Signal to pause playing
+    connect(this, &FrameController::sigPause, this, [&] {
+      // worker::pause is thread safe
+      m_worker->pause();
+    });
+
+    connect(m_worker, &DataProcWorker::maxFramesChanged, this,
+            [this](int maxIdx) {
+              this->setMaxFrameNum(maxIdx);
+              m_coregDisplay->setMaxIdx(maxIdx);
+            });
+
+    connect(m_worker, &DataProcWorker::frameIdxChanged, this, [this](int idx) {
+      this->setFrameNum(idx);
+      m_coregDisplay->setIdx(idx);
+    });
+
+    connect(worker, &DataProcWorker::finishedPlaying, this,
+            [this] { this->updatePlayingState(false); });
+  }
 }
 
 void FrameController::openFileSelectDialog() {
@@ -94,12 +148,24 @@ void FrameController::acceptNewBinfile(const QString &filename) {
   }
 }
 
-void FrameController::updateFrameNum(int frameNum) {
+int FrameController::frameNum() const {
+  const auto val = m_frameNumSpinBox->value();
+  assert(val == m_frameSlider->value());
+  return val;
+}
+
+void FrameController::setFrameNum(int frameNum) {
   m_frameNumSpinBox->setValue(frameNum);
   m_frameSlider->setValue(frameNum);
 }
 
-void FrameController::updateMaxFrameNum(int maxFrameNum) {
+int FrameController::maxFrameNum() const {
+  const auto val = m_frameNumSpinBox->maximum();
+  assert(val == m_frameSlider->maximum());
+  return val;
+}
+
+void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   m_frameSlider->setMinimum(0);
   m_frameSlider->setMaximum(maxFrameNum - 1);
@@ -135,7 +201,7 @@ void FrameController::nextFrame() {
   const auto idx = m_frameNumSpinBox->value();
   const auto maxIdx = m_frameNumSpinBox->maximum();
   if (idx < maxIdx) {
-    updateFrameNum(idx + 1);
+    setFrameNum(idx + 1);
     emit sigFrameNumUpdated(idx + 1);
   }
 }
@@ -144,7 +210,7 @@ void FrameController::prevFrame() {
   updatePlayingState(false);
   const auto idx = m_frameNumSpinBox->value();
   if (idx > 0) {
-    updateFrameNum(idx - 1);
+    setFrameNum(idx - 1);
     emit sigFrameNumUpdated(idx - 1);
   }
 }

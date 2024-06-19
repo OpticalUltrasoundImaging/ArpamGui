@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CoregDisplay.hpp"
+#include "DataProcWorker.hpp"
 #include <QAction>
 #include <QPushButton>
 #include <QSlider>
@@ -9,7 +11,10 @@
 class FrameController : public QWidget {
   Q_OBJECT
 public:
-  explicit FrameController(QWidget *parent = nullptr);
+  // FrameController does not own the worker or the coregDisplay (both are owned
+  // by MainWindow). It merely keeps a reference to it for control
+  explicit FrameController(DataProcWorker *worker, CoregDisplay *coregDisplay,
+                           QWidget *parent = nullptr);
 
 public slots:
   // Open file select dialog
@@ -18,12 +23,13 @@ public slots:
   // Accept a binfile
   void acceptNewBinfile(const QString &filename);
 
-  void updateFrameNum(int frameNum);
+  [[nodiscard]] int frameNum() const;
+  void setFrameNum(int frameNum);
 
-  void updateMaxFrameNum(int maxFrameNum);
+  [[nodiscard]] int maxFrameNum() const;
+  void setMaxFrameNum(int maxFrameNum);
 
   void updatePlayingState(bool playing);
-
   void togglePlayPause();
 
   void nextFrame();
@@ -39,8 +45,10 @@ public:
   auto get_actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
 
 private:
-  QPushButton *m_btnPlayPause;
+  DataProcWorker *m_worker;
+  CoregDisplay *m_coregDisplay;
 
+  QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;
 
   QSpinBox *m_frameNumSpinBox;
