@@ -6,6 +6,16 @@
 
 namespace annotation {
 
+namespace details {
+
+class AnnotationTableView : public QTableView {
+public:
+  explicit AnnotationTableView(QWidget *parent = nullptr);
+  void keyPressEvent(QKeyEvent *event) override;
+};
+
+} // namespace details
+
 // Table view for inspecting and editing labels
 class AnnotationView : public QWidget {
 public:
@@ -15,7 +25,7 @@ public:
 private:
   AnnotationModel *m_model{};
 
-  QTableView *m_tableView;
+  details::AnnotationTableView *m_tableView;
 };
 
 } // namespace annotation
