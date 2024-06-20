@@ -66,10 +66,7 @@ bool ReconParams2::deserialize(const rapidjson::Document &doc) {
 
 bool ReconParams2::deserializeFromFile(const fs::path &path) {
   rapidjson::Document doc;
-  if (json::fromFile(path, doc)) {
-    return deserialize(doc);
-  }
-  return false;
+  return json::fromFile(path, doc) && deserialize(doc);
 }
 
 } // namespace uspam::recon

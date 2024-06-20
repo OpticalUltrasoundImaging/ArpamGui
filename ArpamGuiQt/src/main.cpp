@@ -81,5 +81,5 @@ auto main(int argc, char **argv) -> int {
   mainWindow.setWindowTitle("ArpamGui");
   mainWindow.showMaximized();
 
-  return app.exec();
+  return QApplication::exec();
 }

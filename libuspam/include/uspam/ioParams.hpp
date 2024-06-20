@@ -52,12 +52,10 @@ public:
 
   // Serialize to JSON
   [[nodiscard]] rapidjson::Document serializeToDoc() const;
-  [[nodiscard]] std::string serializeToString() const;
   bool serializeToFile(const fs::path &path) const;
 
   // Deserialize from JSON
   bool deserialize(const rapidjson::Document &doc);
-  bool deserialize(const std::string &jsonString);
   bool deserializeFromFile(const fs::path &path);
 
   template <typename T>

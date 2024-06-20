@@ -17,6 +17,7 @@ add_library(${LIB_NAME} STATIC
     src/reconparams.cpp
     src/imutil.cpp
     src/io.cpp
+    src/ioParams.cpp
     src/json.cpp
 )
 target_include_directories(${LIB_NAME} PUBLIC 

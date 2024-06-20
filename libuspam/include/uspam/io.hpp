@@ -65,13 +65,7 @@ public:
     return RF_ALINE_SIZE * alinesPerBscan * sizeof(TypeInBin);
   }
 
-  auto size() const {
-    if (!isOpen()) [[unlikely]] {
-      return 0;
-    }
-
-    return numScans;
-  }
+  auto size() const { return isOpen() ? numScans : 0; }
 
   void setCurrIdx(int idx) {
     if (!isOpen()) [[unlikely]] {
@@ -83,7 +77,7 @@ public:
     currScanIdx = idx;
   }
 
-  bool hasMoreScans() {
+  bool hasMoreScans() const {
     if (!isOpen()) [[unlikely]] {
       return false;
     }
