@@ -2,10 +2,7 @@
 #include <filesystem>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <sstream>
 
-#include "uspam/io.hpp"
-#include "uspam/recon.hpp"
 #include "uspam/reconParams.hpp"
 
 namespace fs = std::filesystem;
@@ -51,26 +48,35 @@ TEST(ReconParams2Serialize, ToString) {
 
     uspam::recon::ReconParams2 params{};
 
-    ASSERT_NE(params_true.filterFreqPA, params.filterFreqPA);
-    ASSERT_NE(params_true.filterFreqUS, params.filterFreqUS);
-    ASSERT_NE(params_true.filterGainPA, params.filterGainPA);
-    ASSERT_NE(params_true.filterGainUS, params.filterGainUS);
-    ASSERT_NE(params_true.noiseFloorPA, params.noiseFloorPA);
-    ASSERT_NE(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
-    ASSERT_NE(params_true.noiseFloorUS, params.noiseFloorUS);
-    ASSERT_NE(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
-    ASSERT_NE(params_true.alineRotationOffset, params.alineRotationOffset);
+    ASSERT_NE(params_true.PA.filterFreq, params.PA.filterFreq);
+    ASSERT_NE(params_true.PA.filterGain, params.PA.filterGain);
+    ASSERT_NE(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_NE(params_true.PA.desiredDynamicRange,
+              params.PA.desiredDynamicRange);
+    ASSERT_NE(params_true.PA.rotateOffset, params.PA.rotateOffset);
+
+    ASSERT_NE(params_true.US.filterFreq, params.US.filterFreq);
+    ASSERT_NE(params_true.US.filterGain, params.US.filterGain);
+    ASSERT_NE(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_NE(params_true.US.desiredDynamicRange,
+              params.US.desiredDynamicRange);
+    ASSERT_NE(params_true.US.rotateOffset, params.US.rotateOffset);
 
     params.deserialize(doc);
-    ASSERT_EQ(params_true.filterFreqPA, params.filterFreqPA);
-    ASSERT_EQ(params_true.filterFreqUS, params.filterFreqUS);
-    ASSERT_EQ(params_true.filterGainPA, params.filterGainPA);
-    ASSERT_EQ(params_true.filterGainUS, params.filterGainUS);
-    ASSERT_EQ(params_true.noiseFloorPA, params.noiseFloorPA);
-    ASSERT_EQ(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
-    ASSERT_EQ(params_true.noiseFloorUS, params.noiseFloorUS);
-    ASSERT_EQ(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
-    ASSERT_EQ(params_true.alineRotationOffset, params.alineRotationOffset);
+
+    ASSERT_EQ(params_true.PA.filterFreq, params.PA.filterFreq);
+    ASSERT_EQ(params_true.PA.filterGain, params.PA.filterGain);
+    ASSERT_EQ(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_EQ(params_true.PA.desiredDynamicRange,
+              params.PA.desiredDynamicRange);
+    ASSERT_EQ(params_true.PA.rotateOffset, params.PA.rotateOffset);
+
+    ASSERT_EQ(params_true.US.filterFreq, params.US.filterFreq);
+    ASSERT_EQ(params_true.US.filterGain, params.US.filterGain);
+    ASSERT_EQ(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_EQ(params_true.US.desiredDynamicRange,
+              params.US.desiredDynamicRange);
+    ASSERT_EQ(params_true.US.rotateOffset, params.US.rotateOffset);
   }
 }
 
@@ -82,26 +88,35 @@ TEST(ReconParams2Serialize, ToFile) {
 
     uspam::recon::ReconParams2 params{};
 
-    ASSERT_NE(params_true.filterFreqPA, params.filterFreqPA);
-    ASSERT_NE(params_true.filterFreqUS, params.filterFreqUS);
-    ASSERT_NE(params_true.filterGainPA, params.filterGainPA);
-    ASSERT_NE(params_true.filterGainUS, params.filterGainUS);
-    ASSERT_NE(params_true.noiseFloorPA, params.noiseFloorPA);
-    ASSERT_NE(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
-    ASSERT_NE(params_true.noiseFloorUS, params.noiseFloorUS);
-    ASSERT_NE(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
-    ASSERT_NE(params_true.alineRotationOffset, params.alineRotationOffset);
+    ASSERT_NE(params_true.PA.filterFreq, params.PA.filterFreq);
+    ASSERT_NE(params_true.PA.filterGain, params.PA.filterGain);
+    ASSERT_NE(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_NE(params_true.PA.desiredDynamicRange,
+              params.PA.desiredDynamicRange);
+    ASSERT_NE(params_true.PA.rotateOffset, params.PA.rotateOffset);
+
+    ASSERT_NE(params_true.US.filterFreq, params.US.filterFreq);
+    ASSERT_NE(params_true.US.filterGain, params.US.filterGain);
+    ASSERT_NE(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_NE(params_true.US.desiredDynamicRange,
+              params.US.desiredDynamicRange);
+    ASSERT_NE(params_true.US.rotateOffset, params.US.rotateOffset);
 
     ASSERT_TRUE(params.deserializeFromFile(jsonFile));
-    ASSERT_EQ(params_true.filterFreqPA, params.filterFreqPA);
-    ASSERT_EQ(params_true.filterFreqUS, params.filterFreqUS);
-    ASSERT_EQ(params_true.filterGainPA, params.filterGainPA);
-    ASSERT_EQ(params_true.filterGainUS, params.filterGainUS);
-    ASSERT_EQ(params_true.noiseFloorPA, params.noiseFloorPA);
-    ASSERT_EQ(params_true.desiredDynamicRangePA, params.desiredDynamicRangePA);
-    ASSERT_EQ(params_true.noiseFloorUS, params.noiseFloorUS);
-    ASSERT_EQ(params_true.desiredDynamicRangeUS, params.desiredDynamicRangeUS);
-    ASSERT_EQ(params_true.alineRotationOffset, params.alineRotationOffset);
+
+    ASSERT_EQ(params_true.PA.filterFreq, params.PA.filterFreq);
+    ASSERT_EQ(params_true.PA.filterGain, params.PA.filterGain);
+    ASSERT_EQ(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_EQ(params_true.PA.desiredDynamicRange,
+              params.PA.desiredDynamicRange);
+    ASSERT_EQ(params_true.PA.rotateOffset, params.PA.rotateOffset);
+
+    ASSERT_EQ(params_true.US.filterFreq, params.US.filterFreq);
+    ASSERT_EQ(params_true.US.filterGain, params.US.filterGain);
+    ASSERT_EQ(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_EQ(params_true.US.desiredDynamicRange,
+              params.US.desiredDynamicRange);
+    ASSERT_EQ(params_true.US.rotateOffset, params.US.rotateOffset);
   }
   fs::remove(jsonFile);
 }

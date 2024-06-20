@@ -1,33 +1,56 @@
 #include "uspam/reconParams.hpp"
 #include "uspam/json.hpp"
 #include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
 
 namespace uspam::recon {
 
-rapidjson::Document ReconParams2::serializeToDoc() const {
+rapidjson::Value
+ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
   using json::serializeArray;
 
+  rapidjson::Value obj(rapidjson::kObjectType);
+  obj.AddMember("filterFreq", serializeArray(filterFreq, allocator), allocator);
+  obj.AddMember("filterGain", serializeArray(filterGain, allocator), allocator);
+
+  obj.AddMember("noiseFloor", noiseFloor, allocator);
+  obj.AddMember("desiredDynamicRange", desiredDynamicRange, allocator);
+  obj.AddMember("rotateOffset", rotateOffset, allocator);
+
+  return obj;
+}
+
+ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
+  using json::deserializeArray;
+
+  ReconParams params;
+
+  if (const auto it = obj.FindMember("filterFreq"); it != obj.MemberEnd()) {
+    assert(it->value.IsArray());
+    deserializeArray(it->value, params.filterFreq);
+  }
+  if (const auto it = obj.FindMember("filterGain"); it != obj.MemberEnd()) {
+    assert(it->value.IsArray());
+    deserializeArray(it->value, params.filterGain);
+  }
+
+  if (const auto it = obj.FindMember("noiseFloor"); it != obj.MemberEnd()) {
+    params.noiseFloor = it->value.GetInt();
+  }
+
+  params.noiseFloor = obj["noiseFloor"].GetInt();
+  params.desiredDynamicRange = obj["desiredDynamicRange"].GetInt();
+  params.rotateOffset = obj["rotateOffset"].GetInt();
+  return params;
+}
+
+rapidjson::Document ReconParams2::serializeToDoc() const {
   rapidjson::Document doc;
   doc.SetObject();
   rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
 
-  doc.AddMember("filterFreqPA", serializeArray(filterFreqPA, allocator),
-                allocator);
-
-  doc.AddMember("filterGainPA", serializeArray(filterGainPA, allocator),
-                allocator);
-
-  doc.AddMember("filterFreqUS", serializeArray(filterFreqUS, allocator),
-                allocator);
-
-  doc.AddMember("filterGainUS", serializeArray(filterGainUS, allocator),
-                allocator);
-
-  doc.AddMember("noiseFloorPA", noiseFloorPA, allocator);
-  doc.AddMember("noiseFloorUS", noiseFloorUS, allocator);
-  doc.AddMember("desiredDynamicRangePA", desiredDynamicRangePA, allocator);
-  doc.AddMember("desiredDynamicRangeUS", desiredDynamicRangeUS, allocator);
-  doc.AddMember("alineRotationOffset", alineRotationOffset, allocator);
+  doc.AddMember("PA", PA.serialize(allocator), allocator);
+  doc.AddMember("US", US.serialize(allocator), allocator);
 
   return doc;
 }
@@ -37,30 +60,16 @@ bool ReconParams2::serializeToFile(const fs::path &path) const {
 }
 
 bool ReconParams2::deserialize(const rapidjson::Document &doc) {
-  using json::deserializeArray;
+  auto &params = *this;
 
-  if (doc.HasMember("filterFreqPA")) {
-    assert(doc["filterFreqPA"].IsArray());
-    deserializeArray(doc["filterFreqPA"], filterFreqPA);
-  }
-  if (doc.HasMember("filterGainPA")) {
-    assert(doc["filterGainPA"].IsArray());
-    deserializeArray(doc["filterGainPA"], filterGainPA);
-  }
-  if (doc.HasMember("filterFreqUS")) {
-    assert(doc["filterFreqUS"].IsArray());
-    deserializeArray(doc["filterFreqUS"], filterFreqUS);
-  }
-  if (doc.HasMember("filterGainUS")) {
-    assert(doc["filterGainUS"].IsArray());
-    deserializeArray(doc["filterGainUS"], filterGainUS);
+  if (const auto it = doc.FindMember("PA"); it != doc.MemberEnd()) {
+    params.PA = ReconParams::deserialize(it->value);
   }
 
-  noiseFloorPA = doc["noiseFloorPA"].GetInt();
-  noiseFloorUS = doc["noiseFloorUS"].GetInt();
-  desiredDynamicRangePA = doc["desiredDynamicRangePA"].GetInt();
-  desiredDynamicRangeUS = doc["desiredDynamicRangeUS"].GetInt();
-  alineRotationOffset = doc["alineRotationOffset"].GetInt();
+  if (const auto it = doc.FindMember("US"); it != doc.MemberEnd()) {
+    params.US = ReconParams::deserialize(it->value);
+  }
+
   return true;
 }
 

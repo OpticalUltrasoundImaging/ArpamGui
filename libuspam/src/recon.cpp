@@ -31,26 +31,26 @@ void reconOneScan(const ReconParams2 &params, io::PAUSpair<double> &rf,
     imutil::fliplr_inplace(rf.US);
 
     // Do rotate
-    const auto rotate_offset = params.alineRotationOffset;
+    const auto rotate_offset = params.US.rotateOffset;
     rf.PA = arma::shift(rf.PA, rotate_offset, 1);
     rf.US = arma::shift(rf.US, rotate_offset, 1);
   }
 
   // compute filter kernels
   const auto kernelPA =
-      signal::firwin2(95, params.filterFreqPA, params.filterGainPA);
+      signal::firwin2(95, params.PA.filterFreq, params.PA.filterGain);
   const auto kernelUS =
-      signal::firwin2(95, params.filterFreqUS, params.filterGainUS);
+      signal::firwin2(95, params.US.filterFreq, params.US.filterGain);
 
   auto env = io::PAUSpair<double>::empty_like(rf);
 
   recon(rf.PA, kernelPA, env.PA);
-  logCompress<double>(env.PA, rfLog.PA, params.noiseFloorPA,
-                      params.desiredDynamicRangePA);
+  logCompress<double>(env.PA, rfLog.PA, params.PA.noiseFloor,
+                      params.PA.desiredDynamicRange);
 
   recon(rf.US, kernelUS, env.US);
-  logCompress<double>(env.US, rfLog.US, params.noiseFloorUS,
-                      params.desiredDynamicRangeUS);
+  logCompress<double>(env.US, rfLog.US, params.US.noiseFloor,
+                      params.US.desiredDynamicRange);
 }
 
 auto reconOneScan(const ReconParams2 &params, io::PAUSpair<double> &rf,
