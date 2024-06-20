@@ -228,9 +228,7 @@ void DataProcWorker::processCurrentFrame() {
       perfMetrics.splitRfPAUS_ms = timeit.get_ms();
     }
 
-    const auto paramsPA = m_params.getPA();
-    const auto paramsUS = m_params.getUS();
-    return std::tuple(paramsPA, paramsUS);
+    return std::tuple(m_params.PA, m_params.US);
   }();
 
   // Recon

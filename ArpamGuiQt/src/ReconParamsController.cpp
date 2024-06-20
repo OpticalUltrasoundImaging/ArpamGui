@@ -1,4 +1,5 @@
 #include "ReconParamsController.hpp"
+#include "uspam/reconParams.hpp"
 #include <QIntValidator>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -82,10 +83,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   const QString &help_DynamicRange =
       "Dynamic range above the noisefloor that will be displayed.";
 
-  // PA params
-  {
-    auto *gb = new QGroupBox(tr("PA"));
-    layout->addWidget(gb);
+  const auto makeReconParamsControl = [&](const QString &groupBoxName,
+                                          uspam::recon::ReconParams &p) {
+    auto *gb = new QGroupBox(groupBoxName);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
     int row = 1;
@@ -95,81 +95,15 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(help_Freq);
       layout->addWidget(label, row, 1);
 
-      filtFreqPA = new QLineEdit();
-      filtFreqPA->setValidator(doubleListValidator);
-      layout->addWidget(filtFreqPA, row, 2);
-      filtFreqPA->setReadOnly(true);
+      auto *filtFreq = new QLineEdit();
+      filtFreq->setValidator(doubleListValidator);
+      layout->addWidget(filtFreq, row, 2);
+      filtFreq->setReadOnly(true);
       row++;
 
-      updateGuiFromParamsCallbacks.emplace_back([this] {
-        this->filtFreqPA->setText(QString::fromStdString(
-            vectorToStdString(this->params.filterFreqPA)));
-      });
-    }
-
-    {
-      auto *label = new QLabel("Gain");
-      label->setToolTip(help_Gain);
-      layout->addWidget(label, row, 1);
-      filtGainPA = new QLineEdit();
-      filtGainPA->setValidator(doubleListValidator);
-      layout->addWidget(filtGainPA, row, 2);
-      filtGainPA->setReadOnly(true);
-      row++;
-
-      updateGuiFromParamsCallbacks.emplace_back([this] {
-        this->filtGainPA->setText(QString::fromStdString(
-            vectorToStdString(this->params.filterGainPA)));
-      });
-    }
-
-    {
-      auto *label = new QLabel("Noise floor");
-      label->setToolTip(help_NoiseFloor);
-      layout->addWidget(label, row, 1);
-      auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorPA, this);
-      layout->addWidget(spinBox, row++, 2);
-
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->params.noiseFloorPA); });
-    }
-
-    {
-      auto *label = new QLabel("Dynamic range");
-      label->setToolTip(help_DynamicRange);
-      layout->addWidget(label, row, 1);
-      auto *spinBox =
-          makeQSpinBox({10, 70}, params.desiredDynamicRangePA, this);
-      layout->addWidget(spinBox, row++, 2);
-
-      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
-        spinBox->setValue(this->params.desiredDynamicRangePA);
-      });
-    }
-  }
-
-  // US params
-  {
-    auto *gb = new QGroupBox(tr("US"));
-    layout->addWidget(gb);
-    auto *layout = new QGridLayout;
-    gb->setLayout(layout);
-    int row = 1;
-
-    {
-      auto *label = new QLabel("Freq");
-      label->setToolTip(help_Freq);
-      layout->addWidget(label, row, 1);
-
-      filtFreqUS = new QLineEdit;
-      filtFreqUS->setValidator(doubleListValidator);
-      layout->addWidget(filtFreqUS, row, 2);
-      filtFreqUS->setReadOnly(true);
-      row++;
-
-      updateGuiFromParamsCallbacks.emplace_back([this] {
-        this->filtFreqUS->setText(QString::fromStdString(
-            vectorToStdString(this->params.filterFreqUS)));
+      updateGuiFromParamsCallbacks.emplace_back([&p, filtFreq] {
+        filtFreq->setText(
+            QString::fromStdString(vectorToStdString(p.filterFreq)));
       });
     }
 
@@ -178,15 +112,15 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(help_Gain);
       layout->addWidget(label, row, 1);
 
-      filtGainUS = new QLineEdit;
-      filtGainUS->setValidator(doubleListValidator);
-      layout->addWidget(filtGainUS, row, 2);
-      filtGainUS->setReadOnly(true);
+      auto *filtGain = new QLineEdit();
+      filtGain->setValidator(doubleListValidator);
+      layout->addWidget(filtGain, row, 2);
+      filtGain->setReadOnly(true);
       row++;
 
-      updateGuiFromParamsCallbacks.emplace_back([this] {
-        this->filtGainUS->setText(QString::fromStdString(
-            vectorToStdString(this->params.filterGainUS)));
+      updateGuiFromParamsCallbacks.emplace_back([&p, filtGain] {
+        filtGain->setText(
+            QString::fromStdString(vectorToStdString(p.filterGain)));
       });
     }
 
@@ -194,26 +128,30 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *label = new QLabel("Noise floor");
       label->setToolTip(help_NoiseFloor);
       layout->addWidget(label, row, 1);
-      auto *spinBox = makeQSpinBox({0, 2000}, params.noiseFloorUS, this);
+
+      auto *spinBox = makeQSpinBox({0, 2000}, p.noiseFloor, this);
       layout->addWidget(spinBox, row++, 2);
 
       updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->params.noiseFloorUS); });
+          [this, spinBox, &p] { spinBox->setValue(p.noiseFloor); });
     }
 
     {
       auto *label = new QLabel("Dynamic range");
       label->setToolTip(help_DynamicRange);
       layout->addWidget(label, row, 1);
-      auto *spinBox =
-          makeQSpinBox({10, 70}, params.desiredDynamicRangeUS, this);
+
+      auto *spinBox = makeQSpinBox({10, 70}, p.desiredDynamicRange, this);
       layout->addWidget(spinBox, row++, 2);
 
-      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
-        spinBox->setValue(this->params.desiredDynamicRangeUS);
-      });
+      updateGuiFromParamsCallbacks.emplace_back(
+          [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
     }
-  }
+    return gb;
+  };
+
+  layout->addWidget(makeReconParamsControl(tr("PA"), this->params.PA));
+  layout->addWidget(makeReconParamsControl(tr("US"), this->params.US));
 
   // Registration params
   {
@@ -228,12 +166,12 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(
           "Rotation offset in no. of Alines to stablize the display.");
       layout->addWidget(label, row, 0);
-      auto *spinBox =
-          makeQSpinBox({-500, 500}, params.alineRotationOffset, this);
+      auto *spinBox = makeQSpinBox({-500, 500}, params.US.rotateOffset, this);
       layout->addWidget(spinBox, row++, 1);
 
       updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
-        spinBox->setValue(this->params.alineRotationOffset);
+        spinBox->setValue(this->params.PA.rotateOffset);
+        spinBox->setValue(this->params.US.rotateOffset);
       });
     }
 

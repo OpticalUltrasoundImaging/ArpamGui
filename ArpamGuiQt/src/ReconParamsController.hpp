@@ -27,17 +27,12 @@ public slots:
 signals:
   void paramsUpdated(uspam::recon::ReconParams2 params,
                      uspam::io::IOParams ioparams);
+
   void error(QString err);
 
 private:
   void updateGuiFromParams();
   inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
-
-  QLineEdit *filtFreqPA;
-  QLineEdit *filtGainPA;
-
-  QLineEdit *filtFreqUS;
-  QLineEdit *filtGainUS;
 
   std::vector<std::function<void()>> updateGuiFromParamsCallbacks;
 };
