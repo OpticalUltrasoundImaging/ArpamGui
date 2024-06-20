@@ -1,20 +1,29 @@
 #include "Annotation/AnnotationJsonFile.hpp"
 #include "Annotation/Annotation.hpp"
 #include "datetime.hpp"
+#include <QDebug>
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/rapidjson.h>
 #include <uspam/json.hpp>
 #include <utility>
 
 namespace annotation {
 
-AnnotationJsonFile::AnnotationJsonFile() {}
+AnnotationJsonFile::AnnotationJsonFile() { init(); }
 
-void AnnotationJsonFile::loadFromFile(const fs::path &path) {
+bool AnnotationJsonFile::readFromFile(const fs::path &path) {
   uspam::json::fromFile(path, m_doc);
+
+  if (m_doc.HasParseError()) {
+    qDebug() << "Parse Error at offset " << m_doc.GetErrorOffset() << ". "
+             << rapidjson::GetParseError_En(m_doc.GetParseError());
+    return false;
+  }
+  return true;
 }
 
-void AnnotationJsonFile::saveToFile(const fs::path &path) const {
+void AnnotationJsonFile::writeToFile(const fs::path &path) const {
   uspam::json::toFile(path, m_doc);
 }
 
@@ -24,9 +33,8 @@ void AnnotationJsonFile::init() {
   auto &allocator = m_doc.GetAllocator();
 
   {
-    const auto time = datetime::datetimeISO8601();
-    rapidjson::Value timeVal;
-    timeVal.SetString(time.c_str(), allocator);
+    auto timeVal =
+        uspam::json::serializeString(datetime::datetimeISO8601(), allocator);
     m_doc.AddMember("date-created", timeVal, allocator);
     m_doc.AddMember("date-modified", timeVal, allocator);
   }

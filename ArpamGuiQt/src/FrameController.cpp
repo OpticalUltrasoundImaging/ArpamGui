@@ -163,11 +163,11 @@ void FrameController::acceptNewBinfile(const QString &filename) {
 
   // Load if exists
   if (fs::exists(m_annoPath)) {
-    m_doc.loadFromFile(m_annoPath);
+    m_doc.readFromFile(m_annoPath);
     loadFrameAnnotationsFromDocToModel(frameNum());
   } else {
     m_doc.init();
-    m_doc.saveToFile(m_annoPath);
+    m_doc.writeToFile(m_annoPath);
   }
 }
 
@@ -186,7 +186,7 @@ void FrameController::setFrameNum(int frame) {
   loadFrameAnnotationsFromDocToModel(frame);
 
   // Save doc to file
-  m_doc.saveToFile(m_annoPath);
+  m_doc.writeToFile(m_annoPath);
 
   // Update GUI
   m_frameNumSpinBox->setValue(frame);

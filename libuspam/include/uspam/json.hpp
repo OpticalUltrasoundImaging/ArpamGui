@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 [[nodiscard]] inline auto serializeString(const std::string &str,
                                           Document::AllocatorType &allocator) {
   Value value;
-  value.SetString(str.c_str(), allocator);
+  value.SetString(str.c_str(), str.size(), allocator);
   return value;
 }
 

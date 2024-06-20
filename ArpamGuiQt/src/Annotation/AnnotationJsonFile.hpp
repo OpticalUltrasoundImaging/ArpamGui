@@ -2,6 +2,7 @@
 
 #include "Annotation/Annotation.hpp"
 #include <QList>
+#include <QObject>
 #include <filesystem>
 #include <rapidjson/document.h>
 #include <uspam/json.hpp>
@@ -12,12 +13,14 @@ namespace fs = std::filesystem;
 /**
 Represents the json annotation file for a binfile
  */
-class AnnotationJsonFile {
+class AnnotationJsonFile : public QObject {
+  Q_OBJECT
+
 public:
   AnnotationJsonFile();
 
-  void saveToFile(const fs::path &path) const;
-  void loadFromFile(const fs::path &path);
+  void writeToFile(const fs::path &path) const;
+  bool readFromFile(const fs::path &path);
 
   void init();
 
