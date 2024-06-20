@@ -1,7 +1,6 @@
 #include "Annotation/AnnotationJsonFile.hpp"
 #include "Annotation/Annotation.hpp"
 #include "datetime.hpp"
-#include <__ranges/all.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <uspam/json.hpp>

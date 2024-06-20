@@ -104,9 +104,11 @@ void AnnotationModel::addAnnotation(const Annotation &annotation) {
 }
 
 void AnnotationModel::clear() {
-  beginRemoveRows(QModelIndex(), 0, m_annotations.size() - 1);
-  m_annotations.clear();
-  endRemoveRows();
+  if (size() > 0) {
+    beginRemoveRows(QModelIndex(), 0, m_annotations.size() - 1);
+    m_annotations.clear();
+    endRemoveRows();
+  }
 }
 
 rapidjson::Value AnnotationModel::serializeToJson(
@@ -125,6 +127,16 @@ void AnnotationModel::deserializeFromJson(const rapidjson::Value &value) {
 
   for (const auto &annoVal : value["annotations"].GetArray()) {
     addAnnotation(Annotation::deserializeFromJson(annoVal));
+  }
+}
+
+void AnnotationModel::setAnnotations(QList<Annotation> annotations) {
+  clear();
+
+  if (!annotations.empty()) {
+    beginInsertRows(QModelIndex{}, 0, annotations.size() - 1);
+    m_annotations = std::move(annotations);
+    endInsertRows();
   }
 }
 

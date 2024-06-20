@@ -56,11 +56,7 @@ public:
   enum AnnotationRoles { TypeRole = Qt::UserRole + 1, NameRole, ColorRole };
 
   [[nodiscard]] auto &annotations() const { return m_annotations; }
-  void setAnnotations(QList<Annotation> annotations) {
-    beginResetModel();
-    m_annotations = std::move(annotations);
-    endResetModel();
-  }
+  void setAnnotations(QList<Annotation> annotations);
 
   using ColMeta = details::ColumnMetaData;
 
