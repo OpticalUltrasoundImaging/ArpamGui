@@ -9,14 +9,16 @@
 
 namespace uspam::recon {
 
-void recon(const arma::mat &rf, const arma::vec &kernel, arma::mat &env) {
+template <FloatOrDouble T>
+void recon(const arma::Mat<T> &rf, const arma::Col<T> &kernel,
+           arma::Mat<T> &env) {
   const cv::Range range(0, static_cast<int>(rf.n_cols));
   // cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-  arma::vec rf_filt(rf.n_rows);
+  arma::Col<T> rf_filt(rf.n_rows);
   for (int i = range.start; i < range.end; ++i) {
     const auto src = rf.unsafe_col(i);
     auto dst = env.unsafe_col(i);
-    fftconv::oaconvolve_fftw_same<double>(src, kernel, rf_filt);
+    fftconv::oaconvolve_fftw_same<T>(src, kernel, rf_filt);
     signal::hilbert_abs_r2c(rf_filt, dst);
   }
   // });
@@ -53,7 +55,7 @@ void reconOneScan(const ReconParams &params, arma::Mat<double> &rf,
 
   arma::Mat<double> env(rf.n_rows, rf.n_cols, arma::fill::none);
 
-  recon(rf, kernel, env);
+  recon<double>(rf, kernel, env);
   logCompress<double>(env, rfLog, params.noiseFloor,
                       params.desiredDynamicRange);
 }

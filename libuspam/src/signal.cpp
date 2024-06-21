@@ -97,7 +97,7 @@ auto firwin2(int numtaps, const std::span<const double> freq,
   // Compute the inverse fft
   const int real_size = (static_cast<int>(fx.size()) - 1) * 2;
 
-  auto &fft_engine = fft::fftw_engine_c2r_1d::get(real_size);
+  auto &fft_engine = fft::engine_c2r_1d<double>::get(real_size);
   // NOLINTBEGIN(*-pointer-arithmetic)
   for (int i = 0; i < nfreqs; ++i) {
     fft_engine.complex[i][0] = fx(i).real();
@@ -119,7 +119,7 @@ auto firwin2(int numtaps, const std::span<const double> freq,
 
 void hilbert_abs(const std::span<const double> x, const std::span<double> env) {
   const auto n = x.size();
-  auto &engine = fft::fftw_engine_1d::get(n);
+  auto &engine = fft::fftw_engine_1d<double>::get(n);
 
   // Copy input to real buffer
   // NOLINTBEGIN(*-pointer-arithmetic, *-magic-numbers)
@@ -168,7 +168,7 @@ void hilbert_abs(const std::span<const double> x, const std::span<double> env) {
 void hilbert_abs_r2c(const std::span<const double> x,
                      const std::span<double> env) {
   const auto n = x.size();
-  auto &engine = fft::fftw_engine_half_cx_1d::get(n);
+  auto &engine = fft::fftw_engine_half_cx_1d<double>::get(n);
 
   // Copy input to real buffer
   // NOLINTBEGIN(*-pointer-arithmetic)
