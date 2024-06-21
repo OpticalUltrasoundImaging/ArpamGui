@@ -65,7 +65,7 @@
       }
     },
     {
-      "name": "clang-debug",
+      "name": "clang-relwithdebinfo",
       "displayName": "Clang RelWithDebInfo",
       "inherits": "clang",
       "cacheVariables": {
