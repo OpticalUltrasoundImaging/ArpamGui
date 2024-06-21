@@ -237,13 +237,8 @@ void DataProcWorker::processCurrentFrame() {
   cv::Mat USradial;
   cv::Mat PAradial;
 
-  // procOne(paramsPA, rfPair.PA, rfLog.PA, flip,
-  // PAradial_img);
-
-  // procOne(paramsUS, rfPair.US, rfLog.US, flip,
-  // USradial_img);
-
-  {
+  constexpr bool USE_ASYNC = true;
+  if constexpr (USE_ASYNC) {
     const uspam::TimeIt timeit;
 
     const auto a1 = std::async(
@@ -256,6 +251,13 @@ void DataProcWorker::processCurrentFrame() {
 
     a1.wait();
     a2.wait();
+
+    perfMetrics.reconUSPA_ms = timeit.get_ms();
+  } else {
+    const uspam::TimeIt timeit;
+
+    procOne(paramsPA, m_rfPair.PA, m_rfLog.PA, flip, PAradial, PAradial_img);
+    procOne(paramsUS, m_rfPair.US, m_rfLog.US, flip, USradial, USradial_img);
 
     perfMetrics.reconUSPA_ms = timeit.get_ms();
   }

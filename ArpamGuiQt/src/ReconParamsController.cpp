@@ -78,6 +78,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   const QString &help_Freq = "Parameters to the FIR filter.";
   const QString &help_Gain = "Parameters to the FIR filter.";
 
+  const QString &help_Truncate = "Truncate num points from the beginning to "
+                                 "remove pulser/laser artifacts.";
   const QString &help_NoiseFloor =
       "Noise floor is the maximum noise level that will be cut out.";
   const QString &help_DynamicRange =
@@ -122,6 +124,18 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         filtGain->setText(
             QString::fromStdString(vectorToStdString(p.filterGain)));
       });
+    }
+
+    {
+      auto *label = new QLabel("Truncate");
+      label->setToolTip(help_Truncate);
+      layout->addWidget(label, row, 1);
+
+      auto *spinBox = makeQSpinBox({0, 1000}, p.noiseFloor, this);
+      layout->addWidget(spinBox, row++, 2);
+
+      updateGuiFromParamsCallbacks.emplace_back(
+          [this, spinBox, &p] { spinBox->setValue(p.noiseFloor); });
     }
 
     {

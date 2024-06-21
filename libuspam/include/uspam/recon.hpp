@@ -97,14 +97,17 @@ auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
   return dynamicRangeDB;
 }
 
-// FIR filter + Envelope detection + log compression
+// FIR filter + Envelope detection + log compression for PA/US pair
+// rf contains the RF signal, and results are saved to rfLog
 void reconOneScan(const ReconParams2 &params, io::PAUSpair<double> &rf,
                   io::PAUSpair<uint8_t> &rfLog, bool flip = false);
 
+// Similar to the above, but returns rfLog in a new buffer.
 [[nodiscard]] auto reconOneScan(const ReconParams2 &params,
                                 io::PAUSpair<double> &rf, bool flip = false)
     -> io::PAUSpair<uint8_t>;
 
+// FIR filter + Envelope detection + log compression for one
 void reconOneScan(const ReconParams &params, arma::Mat<double> &rf,
                   arma::Mat<uint8_t> &rfLog, bool flip = false);
 
