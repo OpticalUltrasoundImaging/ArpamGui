@@ -1,22 +1,21 @@
 #pragma once
 
 #include <complex>
-#include <concepts>
 #include <cstdlib>
+#include <fftw3.h>
 #include <iostream>
 #include <mutex>
 #include <span>
 #include <type_traits>
 #include <unordered_map>
 
-#include <fftw3.h>
-
 namespace uspam::fftw {
 
 template <typename T>
-concept Floating = std::is_same_v<T, float> || std::is_same_v<T, double>;
+concept Floating = std::is_floating_point_v<T>;
 
 namespace details {
+
 template <Floating T> struct ComplexTraits {};
 template <> struct ComplexTraits<double> {
   using Type = fftw_complex;
@@ -40,76 +39,111 @@ template <Floating T> struct FloatingTraits {
   using Complex = std::complex<T>;
 };
 template <Floating T> using Complex = details::ComplexTraits<T>::Type;
-
 template <Floating T> using Plan = details::PlanTraits<T>::Type;
 
-template <Floating T> T *alloc_real(size_t n);
-template <> double *alloc_real<double>(size_t n) { return fftw_alloc_real(n); };
-template <> float *alloc_real<float>(size_t n) { return fftwf_alloc_real(n); };
+/**
+fftw_alloc_real
+ */
+template <Floating T> inline T *alloc_real(size_t n);
+template <> inline double *alloc_real<double>(size_t n) {
+  return fftw_alloc_real(n);
+};
+template <> inline float *alloc_real<float>(size_t n) {
+  return fftwf_alloc_real(n);
+};
 
-template <Floating T> Complex<T> *alloc_complex(size_t n);
-template <> Complex<double> *alloc_complex<double>(size_t n) {
+/**
+fftw_alloc_complex
+ */
+template <Floating T> Complex<T> inline *alloc_complex(size_t n);
+template <> inline Complex<double> *alloc_complex<double>(size_t n) {
   return fftw_alloc_complex(n);
 };
-template <> Complex<float> *alloc_complex<float>(size_t n) {
+template <> inline Complex<float> *alloc_complex<float>(size_t n) {
   return fftwf_alloc_complex(n);
 };
 
-template <Floating T> void free(void *ptr);
-template <> void free<double>(void *ptr) { fftw_free(ptr); }
-template <> void free<float>(void *ptr) { fftwf_free(ptr); }
+/**
+fftw_free
+ */
+template <Floating T> inline void free(void *ptr);
+template <> inline void free<double>(void *ptr) { fftw_free(ptr); }
+template <> inline void free<float>(void *ptr) { fftwf_free(ptr); }
 
-template <Floating T> void execute(Plan<T> plan);
-template <> void execute<double>(Plan<double> plan) { fftw_execute(plan); }
-template <> void execute<float>(Plan<float> plan) { fftwf_execute(plan); }
+/**
+fftw_execute
+ */
+template <Floating T> inline void execute(Plan<T> plan);
+template <> void inline execute<double>(Plan<double> plan) {
+  fftw_execute(plan);
+}
+template <> void inline execute<float>(Plan<float> plan) {
+  fftwf_execute(plan);
+}
 
-template <Floating T> void destroy_plan(Plan<T> plan);
-template <> void destroy_plan<double>(Plan<double> plan) {
+/**
+fftw_destroy_plan
+ */
+template <Floating T> inline void destroy_plan(Plan<T> plan);
+template <> inline void destroy_plan<double>(Plan<double> plan) {
   fftw_destroy_plan(plan);
 }
-template <> void destroy_plan<float>(Plan<float> plan) {
+template <> inline void destroy_plan<float>(Plan<float> plan) {
   fftwf_destroy_plan(plan);
 }
 
+/**
+fftw_plan_dft_1d
+ */
 template <Floating T>
-Plan<T> plan_dft_1d(int n, Complex<T> *in, Complex<T> *out, int sign,
-                    unsigned int flags);
+inline Plan<T> plan_dft_1d(int n, Complex<T> *in, Complex<T> *out, int sign,
+                           unsigned int flags);
 
 template <>
-Plan<double> plan_dft_1d<double>(int n, Complex<double> *in,
-                                 Complex<double> *out, int sign,
-                                 unsigned int flags) {
+inline Plan<double> plan_dft_1d<double>(int n, Complex<double> *in,
+                                        Complex<double> *out, int sign,
+                                        unsigned int flags) {
   return fftw_plan_dft_1d(n, in, out, sign, flags);
 }
 template <>
-Plan<float> plan_dft_1d<float>(int n, Complex<float> *in, Complex<float> *out,
-                               int sign, unsigned int flags) {
+inline Plan<float> plan_dft_1d<float>(int n, Complex<float> *in,
+                                      Complex<float> *out, int sign,
+                                      unsigned int flags) {
   return fftwf_plan_dft_1d(n, in, out, sign, flags);
 }
 
+/**
+fftw_plan_dft_r2c_1d
+ */
 template <Floating T>
-Plan<T> plan_dft_r2c_1d(int n, T *in, Complex<T> *out, unsigned int flags);
+inline Plan<T> plan_dft_r2c_1d(int n, T *in, Complex<T> *out,
+                               unsigned int flags);
 template <>
-Plan<double> plan_dft_r2c_1d<double>(int n, double *in, Complex<double> *out,
-                                     unsigned int flags) {
+inline Plan<double> plan_dft_r2c_1d<double>(int n, double *in,
+                                            Complex<double> *out,
+                                            unsigned int flags) {
   return fftw_plan_dft_r2c_1d(n, in, out, flags);
 }
 template <>
-Plan<float> plan_dft_r2c_1d<float>(int n, float *in, Complex<float> *out,
-                                   unsigned int flags) {
+inline Plan<float> plan_dft_r2c_1d<float>(int n, float *in, Complex<float> *out,
+                                          unsigned int flags) {
   return fftwf_plan_dft_r2c_1d(n, in, out, flags);
 }
 
+/**
+fftw_plan_dft_c2r_1d
+ */
 template <Floating T>
-Plan<T> plan_dft_c2r_1d(int n, Complex<T> *in, T *out, unsigned int flags);
+inline Plan<T> plan_dft_c2r_1d(int n, Complex<T> *in, T *out,
+                               unsigned int flags);
 template <>
-Plan<double> plan_dft_c2r_1d(int n, Complex<double> *in, double *out,
-                             unsigned int flags) {
+inline Plan<double> plan_dft_c2r_1d(int n, Complex<double> *in, double *out,
+                                    unsigned int flags) {
   return fftw_plan_dft_c2r_1d(n, in, out, flags);
 }
 template <>
-Plan<float> plan_dft_c2r_1d(int n, Complex<float> *in, float *out,
-                            unsigned int flags) {
+inline Plan<float> plan_dft_c2r_1d(int n, Complex<float> *in, float *out,
+                                   unsigned int flags) {
   return fftwf_plan_dft_c2r_1d(n, in, out, flags);
 }
 
@@ -117,7 +151,7 @@ Plan<float> plan_dft_c2r_1d(int n, Complex<float> *in, float *out,
 
 namespace uspam::fft {
 
-inline static std::mutex *_fftw_mutex;
+inline static std::mutex *_fftw_mutex{};
 inline void use_fftw_mutex(std::mutex *fftw_mutex) {
   if (!fftw_mutex) {
     std::cerr << "Warning: passed a nullptr to uspam::fft::use_fftw_mutex!\n";

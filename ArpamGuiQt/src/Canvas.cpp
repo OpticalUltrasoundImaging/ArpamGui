@@ -521,11 +521,6 @@ void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
   for (int row = last; row >= first; --row) {
     addGraphicsItemFromModel(row);
   }
-
-  const auto msg = QString("Canvas %1, after onRowsInserted has %2 items")
-                       .arg(m_overlay->modality())
-                       .arg(m_graphicsItems.size());
-  emit error(msg);
 }
 
 void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {

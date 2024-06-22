@@ -8,6 +8,7 @@
 #include <future>
 #include <sstream>
 #include <tuple>
+#include <uspam/fft.hpp>
 #include <uspam/imutil.hpp>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>
@@ -98,7 +99,7 @@ void DataProcWorker::setBinfile(const fs::path &binfile) {
     {
       QMutexLocker lock(&m_paramsMutex);
       m_rfPair =
-          m_ioparams.allocateSplitPair<double>(m_loader.getAlinesPerBscan());
+          m_ioparams.allocateSplitPair<FloatType>(m_loader.getAlinesPerBscan());
     }
     m_rfLog = io::PAUSpair<uint8_t>::zeros_like(m_rfPair);
 
@@ -161,11 +162,12 @@ void DataProcWorker::saveParamsToFile() {
 
 namespace {
 
-void procOne(const uspam::recon::ReconParams &params, arma::Mat<double> &rf,
+template <uspam::fftw::Floating T>
+void procOne(const uspam::recon::ReconParams &params, arma::Mat<T> &rf,
              arma::Mat<uint8_t> &rfLog, bool flip, cv::Mat &radial_img,
              QImage &radial_qimg) {
 
-  uspam::recon::reconOneScan(params, rf, rfLog, flip);
+  uspam::recon::reconOneScan<T>(params, rf, rfLog, flip);
   radial_img = uspam::imutil::makeRadial(rfLog);
   radial_qimg = cvMatToQImage(radial_img);
 }
@@ -241,13 +243,15 @@ void DataProcWorker::processCurrentFrame() {
   if constexpr (USE_ASYNC) {
     const uspam::TimeIt timeit;
 
-    const auto a1 = std::async(
-        std::launch::async, procOne, std::ref(paramsPA), std::ref(m_rfPair.PA),
-        std::ref(m_rfLog.PA), flip, std::ref(PAradial), std::ref(PAradial_img));
+    const auto a1 =
+        std::async(std::launch::async, procOne<FloatType>, std::ref(paramsPA),
+                   std::ref(m_rfPair.PA), std::ref(m_rfLog.PA), flip,
+                   std::ref(PAradial), std::ref(PAradial_img));
 
-    const auto a2 = std::async(
-        std::launch::async, procOne, std::ref(paramsUS), std::ref(m_rfPair.US),
-        std::ref(m_rfLog.US), flip, std::ref(USradial), std::ref(USradial_img));
+    const auto a2 =
+        std::async(std::launch::async, procOne<FloatType>, std::ref(paramsUS),
+                   std::ref(m_rfPair.US), std::ref(m_rfLog.US), flip,
+                   std::ref(USradial), std::ref(USradial_img));
 
     a1.wait();
     a2.wait();
@@ -256,8 +260,10 @@ void DataProcWorker::processCurrentFrame() {
   } else {
     const uspam::TimeIt timeit;
 
-    procOne(paramsPA, m_rfPair.PA, m_rfLog.PA, flip, PAradial, PAradial_img);
-    procOne(paramsUS, m_rfPair.US, m_rfLog.US, flip, USradial, USradial_img);
+    procOne<FloatType>(paramsPA, m_rfPair.PA, m_rfLog.PA, flip, PAradial,
+                       PAradial_img);
+    procOne<FloatType>(paramsUS, m_rfPair.US, m_rfLog.US, flip, USradial,
+                       USradial_img);
 
     perfMetrics.reconUSPA_ms = timeit.get_ms();
   }

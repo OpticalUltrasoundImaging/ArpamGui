@@ -1,9 +1,8 @@
 #pragma once
-#include <concepts>
+
 #include <filesystem>
 #include <rapidjson/document.h>
 #include <type_traits>
-#include <vector>
 
 namespace uspam::json {
 using namespace rapidjson; // NOLINT

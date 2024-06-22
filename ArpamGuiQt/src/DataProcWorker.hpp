@@ -16,6 +16,8 @@ namespace fs = std::filesystem;
 class DataProcWorker : public QObject {
   Q_OBJECT
 
+  using FloatType = float;
+
 public:
   DataProcWorker()
       : m_params(uspam::recon::ReconParams2::system2024v1()),
@@ -86,7 +88,7 @@ private:
 
   // Buffers;
   arma::Mat<uint16_t> m_rf;
-  uspam::io::PAUSpair<double> m_rfPair;
+  uspam::io::PAUSpair<FloatType> m_rfPair;
   uspam::io::PAUSpair<uint8_t> m_rfLog;
 
   // mutex for ReconParams2 and IOParams

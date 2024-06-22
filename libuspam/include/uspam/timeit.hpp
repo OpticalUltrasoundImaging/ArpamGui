@@ -1,13 +1,12 @@
 #pragma once
 
-#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <numeric>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace uspam {
@@ -23,7 +22,12 @@ Example:
 */
 template <bool PrintStdOut = false> struct TimeIt {
   using clock = std::chrono::high_resolution_clock;
-  TimeIt(const std::string &name = {}) : name(name), start(clock::now()) {}
+  explicit TimeIt(std::string name = {})
+      : name(std::move(name)), start(clock::now()) {}
+  TimeIt(const TimeIt &) = delete;
+  TimeIt(TimeIt &&) = delete;
+  TimeIt &operator=(const TimeIt &) = delete;
+  TimeIt &operator=(TimeIt &&) = delete;
   float get_ms() const {
     using namespace std::chrono;
     const auto elapsed = clock::now() - start;
@@ -81,7 +85,7 @@ auto bench(const std::string &name, const int runs, const Func &func,
 
   // Select best unit to display based on mean
   std::string unit;
-  double scale;
+  double scale{};
   if (mean < 1000.0) { // nanoseconds
     unit = "ns";
     scale = 1.0;

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "uspam/io.hpp"
 #include <armadillo>
 #include <opencv2/opencv.hpp>
-#include <type_traits>
 
 namespace uspam::imutil {
 
