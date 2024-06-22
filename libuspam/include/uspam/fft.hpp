@@ -151,29 +151,13 @@ inline Plan<float> plan_dft_c2r_1d(int n, Complex<float> *in, float *out,
 
 namespace uspam::fft {
 
-inline static std::mutex *_fftw_mutex{};
-inline void use_fftw_mutex(std::mutex *fftw_mutex) {
-  if (!fftw_mutex) {
-    std::cerr << "Warning: passed a nullptr to uspam::fft::use_fftw_mutex!\n";
-  }
-  _fftw_mutex = fftw_mutex;
-}
-
-inline std::mutex *get_fftw_mutex() { return _fftw_mutex; }
-
 // In memory cache with key type K and value type V
 // additionally accepts a mutex to guard the V constructor
-template <class Key, class Val>
-auto get_cached_vlock(Key key, std::mutex *V_mutex) {
+template <class Key, class Val> auto get_cached(Key key) {
   static thread_local std::unordered_map<Key, std::unique_ptr<Val>> _cache;
 
   auto &val = _cache[key];
   if (val == nullptr) {
-    // Using unique_lock here for RAII locking since the mutex is optional.
-    // If we have a non-optional mutex, prefer scoped_lock
-    const auto lock = V_mutex == nullptr ? std::unique_lock<std::mutex>{}
-                                         : std::unique_lock(*V_mutex);
-
     val = std::make_unique<Val>(key);
   }
   return val.get();
@@ -185,8 +169,8 @@ template <fftw::Floating T> struct engine_r2c_1d {
   fftw::Plan<T> plan;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached_vlock<size_t, engine_r2c_1d>;
-    return *cache(n, get_fftw_mutex());
+    thread_local static auto cache = get_cached<size_t, engine_r2c_1d>;
+    return *cache(n);
   }
 
   explicit engine_r2c_1d(size_t n)
@@ -213,8 +197,8 @@ template <fftw::Floating T> struct engine_c2r_1d {
   fftw::Plan<T> plan;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached_vlock<size_t, engine_c2r_1d>;
-    return *cache(n, get_fftw_mutex());
+    thread_local static auto cache = get_cached<size_t, engine_c2r_1d>;
+    return *cache(n);
   }
 
   explicit engine_c2r_1d(size_t n)
@@ -242,9 +226,8 @@ template <typename T> struct fftw_engine_half_cx_1d {
   fftw::Plan<T> plan_b;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache =
-        get_cached_vlock<size_t, fftw_engine_half_cx_1d>;
-    return *cache(n, get_fftw_mutex());
+    const auto cache = get_cached<size_t, fftw_engine_half_cx_1d>;
+    return *cache(n);
   }
 
   explicit fftw_engine_half_cx_1d(size_t n)
@@ -278,8 +261,8 @@ template <typename T> struct fftw_engine_1d {
   fftw::Plan<T> plan_b;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached_vlock<size_t, fftw_engine_1d>;
-    return *cache(n, get_fftw_mutex());
+    thread_local static auto cache = get_cached<size_t, fftw_engine_1d>;
+    return *cache(n);
   }
 
   explicit fftw_engine_1d(size_t n)

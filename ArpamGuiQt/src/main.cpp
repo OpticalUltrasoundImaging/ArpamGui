@@ -62,6 +62,7 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
 auto main(int argc, char **argv) -> int {
   // Make FFTW thread safe
   fftw_make_planner_thread_safe();
+  fftwf_make_planner_thread_safe();
 
   // qInstallMessageHandler(myMessageHandler);
 
