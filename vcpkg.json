@@ -37,6 +37,7 @@
       "platform": "!x64",
       "features": ["opencv", "tbb"]
     },
+    "qcustomplot",
     "gtest",
     "cli11",
     "indicators"

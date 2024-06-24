@@ -1,4 +1,5 @@
 #include "FrameController.hpp"
+#include "AlinePlot.hpp"
 #include "CoregDisplay.hpp"
 #include "datetime.hpp"
 #include "strConvUtils.hpp"
@@ -138,6 +139,9 @@ FrameController::FrameController(DataProcWorker *worker,
     connect(worker, &DataProcWorker::finishedPlaying, this,
             [this] { this->updatePlayingState(false); });
   }
+
+  auto *alinePlot = new AlinePlot(this);
+  vlayout->addWidget(alinePlot);
 }
 
 void FrameController::openFileSelectDialog() {

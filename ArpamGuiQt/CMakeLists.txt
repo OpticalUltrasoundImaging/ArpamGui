@@ -7,6 +7,15 @@ find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui)
 qt_standard_project_setup()
 set(CMAKE_AUTOMOC ON)
 
+# Manually include QCustomPlot
+find_path(QCUSTOMPLOT_INCLUDE_DIR qcustomplot.h PATH_SUFFIXES qcustomplot)
+find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot)
+
+if (QCUSTOMPLOT_INCLUDE_DIR AND QCUSTOMPLOT_LIBRARY)
+    message(STATUS "Found QCustomPlot: ${QCUSTOMPLOT_LIBRARY}")
+else()
+    message(FATAL_ERROR "Could not find QCustomPlot")
+endif()
 
 ### Icons
 # https://doc.qt.io/qt-6/appicon.html
@@ -27,6 +36,8 @@ qt_add_executable(${EXE_NAME}
     src/MainWindow.cpp
     src/Canvas.hpp
     src/Canvas.cpp
+    src/AlinePlot.hpp
+    src/AlinePlot.cpp
     src/Annotation/Annotation.hpp
     src/Annotation/Annotation.cpp
     src/Annotation/AnnotationModel.hpp
@@ -72,13 +83,16 @@ qt_add_resources(${EXE_NAME} styles
     resources/styles/styles.qss
 )
 
-target_include_directories(${EXE_NAME} PRIVATE src)
+target_include_directories(${EXE_NAME} PRIVATE 
+    src
+    ${QCUSTOMPLOT_INCLUDE_DIR}
+)
 
-target_link_libraries(${EXE_NAME}
-    PRIVATE
+target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
     Qt::Widgets
     Qt::Gui
+    ${QCUSTOMPLOT_LIBRARY}
     #Vulkan::Vulkan
 )
 

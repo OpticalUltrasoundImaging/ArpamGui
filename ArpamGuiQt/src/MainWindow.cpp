@@ -17,11 +17,11 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <Qt>
 #include <QtDebug>
 #include <QtLogging>
 #include <filesystem>
 #include <opencv2/opencv.hpp>
-#include <qnamespace.h>
 #include <uspam/defer.h>
 #include <utility>
 

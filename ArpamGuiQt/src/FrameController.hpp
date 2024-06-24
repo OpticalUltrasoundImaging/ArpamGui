@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AlinePlot.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
