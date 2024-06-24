@@ -211,14 +211,13 @@ void DataProcWorker::processCurrentFrame() {
   // Read next RF scan from file
   {
     const uspam::TimeIt timeit;
-    m_loader.get(m_data.rf, m_frameIdx);
+    m_data.rf = m_loader.get<FloatType>(m_frameIdx);
     perfMetrics.fileloader_ms = timeit.get_ms();
   }
 
   const auto [paramsPA, paramsUS] = [&] {
     // Estimate background from current RF
-    const auto rf_f64 = arma::conv_to<arma::mat>::from(m_data.rf);
-    const arma::vec background_aline = arma::mean(rf_f64, 1);
+    const arma::Col<FloatType> background_aline = arma::mean(m_data.rf, 1);
 
     // this->params and this->ioparams are used in this block
     // lock with paramsMutex
@@ -226,7 +225,7 @@ void DataProcWorker::processCurrentFrame() {
     {
       // Split RF into PA and US scan lines
       const uspam::TimeIt timeit;
-      m_ioparams.splitRfPAUS_sub(rf_f64, background_aline, m_data.rfPair);
+      m_ioparams.splitRfPAUS_sub(m_data.rf, background_aline, m_data.rfPair);
       perfMetrics.splitRfPAUS_ms = timeit.get_ms();
     }
 

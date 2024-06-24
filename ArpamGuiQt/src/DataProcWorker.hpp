@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
  * From RF to Image
  */
 template <uspam::Floating FloatType> struct BScanData {
-  arma::Mat<uint16_t> rf;
+  arma::Mat<FloatType> rf;
   uspam::io::PAUSpair<FloatType> rfPair;
   uspam::io::PAUSpair<uint8_t> rfLog;
 };

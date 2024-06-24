@@ -99,16 +99,15 @@ public:
     std::lock_guard lock(mtx);
     assert(currScanIdx < numScans);
 
-    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != alinesPerBscan) {
-      rf.resize(RF_ALINE_SIZE, alinesPerBscan);
-    }
-
     const auto sizeBytes = scanSizeBytes();
     const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
     file.seekg(start_pos, std::ios::beg);
 
     if constexpr (std::is_same_v<T, TypeInBin>) {
       // type stored in bin is the same type as the buffer give. Use directly
+      if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != alinesPerBscan) {
+        rf.resize(RF_ALINE_SIZE, alinesPerBscan);
+      }
       return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
 
     } else {
@@ -132,6 +131,38 @@ public:
   template <typename T> inline bool get(arma::Mat<T> &rf, int idx) {
     setCurrIdx(idx);
     return get<T>(rf);
+  }
+
+  template <typename T> auto get() -> arma::Mat<T> {
+    if (!isOpen()) [[unlikely]] {
+      return {};
+    }
+
+    std::lock_guard lock(mtx);
+    assert(currScanIdx < numScans);
+
+    const auto sizeBytes = scanSizeBytes();
+    const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
+    file.seekg(start_pos, std::ios::beg);
+
+    // Type stored in bin different from the given buffer.
+    // Read into .readBuffer first then convert
+    if (readBuffer.n_rows != RF_ALINE_SIZE ||
+        readBuffer.n_cols != alinesPerBscan) {
+      readBuffer.resize(RF_ALINE_SIZE, alinesPerBscan);
+    }
+
+    // Read file
+    // NOLINTNEXTLINE(*-reinterpret-cast)
+    if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
+      return arma::conv_to<arma::Mat<T>>::from(readBuffer);
+    }
+    return {};
+  }
+
+  template <typename T> auto get(int idx) -> arma::Mat<T> {
+    setCurrIdx(idx);
+    return get<T>();
   }
 
   auto getNext(arma::Mat<TypeInBin> &rfStorage) {
