@@ -12,6 +12,7 @@
 #include <rapidjson/document.h>
 #include <span>
 #include <string>
+#include <type_traits>
 
 namespace uspam::io {
 
@@ -29,6 +30,8 @@ private:
   int alinesPerBscan = 0;
   int currScanIdx = 0;
   std::mutex mtx;
+
+  arma::Mat<TypeInBin> readBuffer;
 
 public:
   BinfileLoader() = default;
@@ -88,7 +91,7 @@ public:
 
   auto setCurrIndex(int idx) { currScanIdx = idx; }
 
-  bool get(arma::Mat<TypeInBin> &rf) {
+  template <typename T> bool get(arma::Mat<T> &rf) {
     if (!isOpen()) [[unlikely]] {
       return false;
     }
@@ -104,14 +107,31 @@ public:
     const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
     file.seekg(start_pos, std::ios::beg);
 
-    // Read file
-    // NOLINTNEXTLINE(*-reinterpret-cast)
-    return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
+    if constexpr (std::is_same_v<T, TypeInBin>) {
+      // type stored in bin is the same type as the buffer give. Use directly
+      return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
+
+    } else {
+      // Type stored in bin different from the given buffer.
+      // Read into .readBuffer first then convert
+      if (readBuffer.n_rows != RF_ALINE_SIZE ||
+          readBuffer.n_cols != alinesPerBscan) {
+        readBuffer.resize(RF_ALINE_SIZE, alinesPerBscan);
+      }
+
+      // Read file
+      // NOLINTNEXTLINE(*-reinterpret-cast)
+      if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
+        rf = arma::conv_to<arma::mat<T>>::from(readBuffer);
+        return true;
+      }
+      return false;
+    }
   }
 
-  inline bool get(arma::Mat<TypeInBin> &rf, int idx) {
+  template <typename T> inline bool get(arma::Mat<T> &rf, int idx) {
     setCurrIdx(idx);
-    return get(rf);
+    return get<T>(rf);
   }
 
   auto getNext(arma::Mat<TypeInBin> &rfStorage) {
