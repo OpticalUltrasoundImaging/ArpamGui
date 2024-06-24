@@ -10,7 +10,7 @@ namespace uspam::json {
 
 // NOLINTBEGIN
 bool fromFile(const fs::path &path, Document &doc) {
-  FILE *fp = std::fopen(path.c_str(), "r");
+  FILE *fp = std::fopen(path.string().c_str(), "r");
   if (fp == nullptr) {
     return false;
   }
@@ -26,7 +26,7 @@ bool fromFile(const fs::path &path, Document &doc) {
 }
 
 bool toFile(const fs::path &path, const Document &doc) {
-  FILE *fp = std::fopen(path.c_str(), "w");
+  FILE *fp = std::fopen(path.string().c_str(), "w");
   if (fp == nullptr) {
     return false;
   }

@@ -2,6 +2,7 @@
 #include "geometryUtils.hpp"
 #include <QColor>
 #include <QLineF>
+#include <QList>
 #include <QPolygonF>
 #include <QRectF>
 #include <QString>
@@ -39,7 +40,7 @@ struct Arc {
 class Annotation {
 public:
   enum Type { Line, Rect, Fan, Polygon, Size };
-  inline const static std::array TypeToString = {
+  inline const static std::array<QString, Size> TypeToString = {
       QString("Line"), QString("Rect"), QString("Fan"), QString("Polygon")};
 
   /* Constructors */
@@ -96,12 +97,17 @@ public:
   [[nodiscard]] auto name() const { return m_name; }
   void setName(QString name) { m_name = std::move(name); }
 
-  static QString typeToString(Type type) { return TypeToString.at(type); }
+  static QString typeToString(Type type) {
+    if (type < Type::Size) {
+      return TypeToString.at(type);
+    }
+    return {};
+  }
+
   static Type typeFromString(const QString &type) {
-    const auto *const it =
-        std::find(TypeToString.cbegin(), TypeToString.cend(), type);
+    const auto it = std::find(TypeToString.cbegin(), TypeToString.cend(), type);
     if (it != TypeToString.cend()) {
-      return static_cast<Type>(it - TypeToString.cbegin());
+      return static_cast<Type>(std::distance(TypeToString.cbegin(), it));
     }
     return static_cast<Type>(0);
   }

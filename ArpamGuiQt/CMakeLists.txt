@@ -3,13 +3,17 @@ project(ArpamGuiQt VERSION 1.0.0 LANGUAGES CXX)
 set(EXE_NAME ArpamGuiQt)
 
 #find_package(Vulkan REQUIRED)
-find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui PrintSupport)
 qt_standard_project_setup()
 set(CMAKE_AUTOMOC ON)
 
 # Manually include QCustomPlot
 find_path(QCUSTOMPLOT_INCLUDE_DIR qcustomplot.h PATH_SUFFIXES qcustomplot)
-find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot)
+if (WIN32)
+    find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot2)
+else ()
+    find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot)
+endif()
 
 if (QCUSTOMPLOT_INCLUDE_DIR AND QCUSTOMPLOT_LIBRARY)
     message(STATUS "Found QCustomPlot: ${QCUSTOMPLOT_LIBRARY}")
@@ -92,6 +96,7 @@ target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
     Qt::Widgets
     Qt::Gui
+    Qt::PrintSupport
     ${QCUSTOMPLOT_LIBRARY}
     #Vulkan::Vulkan
 )
