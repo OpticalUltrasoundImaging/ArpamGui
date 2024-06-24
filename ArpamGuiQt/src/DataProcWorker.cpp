@@ -98,10 +98,10 @@ void DataProcWorker::setBinfile(const fs::path &binfile) {
     // Init buffers
     {
       QMutexLocker lock(&m_paramsMutex);
-      m_rfPair =
+      m_data.rfPair =
           m_ioparams.allocateSplitPair<FloatType>(m_loader.getAlinesPerBscan());
     }
-    m_rfLog = io::PAUSpair<uint8_t>::zeros_like(m_rfPair);
+    m_data.rfLog = io::PAUSpair<uint8_t>::zeros_like(m_data.rfPair);
 
     // Save init params
     saveParamsToFile();
@@ -211,13 +211,13 @@ void DataProcWorker::processCurrentFrame() {
   // Read next RF scan from file
   {
     const uspam::TimeIt timeit;
-    m_loader.get(m_rf, m_frameIdx);
+    m_loader.get(m_data.rf, m_frameIdx);
     perfMetrics.fileloader_ms = timeit.get_ms();
   }
 
   const auto [paramsPA, paramsUS] = [&] {
     // Estimate background from current RF
-    const auto rf_f64 = arma::conv_to<arma::mat>::from(m_rf);
+    const auto rf_f64 = arma::conv_to<arma::mat>::from(m_data.rf);
     const arma::vec background_aline = arma::mean(rf_f64, 1);
 
     // this->params and this->ioparams are used in this block
@@ -226,7 +226,7 @@ void DataProcWorker::processCurrentFrame() {
     {
       // Split RF into PA and US scan lines
       const uspam::TimeIt timeit;
-      m_ioparams.splitRfPAUS_sub(rf_f64, background_aline, m_rfPair);
+      m_ioparams.splitRfPAUS_sub(rf_f64, background_aline, m_data.rfPair);
       perfMetrics.splitRfPAUS_ms = timeit.get_ms();
     }
 
@@ -245,12 +245,12 @@ void DataProcWorker::processCurrentFrame() {
 
     const auto a1 =
         std::async(std::launch::async, procOne<FloatType>, std::ref(paramsPA),
-                   std::ref(m_rfPair.PA), std::ref(m_rfLog.PA), flip,
+                   std::ref(m_data.rfPair.PA), std::ref(m_data.rfLog.PA), flip,
                    std::ref(PAradial), std::ref(PAradial_img));
 
     const auto a2 =
         std::async(std::launch::async, procOne<FloatType>, std::ref(paramsUS),
-                   std::ref(m_rfPair.US), std::ref(m_rfLog.US), flip,
+                   std::ref(m_data.rfPair.US), std::ref(m_data.rfLog.US), flip,
                    std::ref(USradial), std::ref(USradial_img));
 
     a1.wait();
@@ -260,10 +260,10 @@ void DataProcWorker::processCurrentFrame() {
   } else {
     const uspam::TimeIt timeit;
 
-    procOne<FloatType>(paramsPA, m_rfPair.PA, m_rfLog.PA, flip, PAradial,
-                       PAradial_img);
-    procOne<FloatType>(paramsUS, m_rfPair.US, m_rfLog.US, flip, USradial,
-                       USradial_img);
+    procOne<FloatType>(paramsPA, m_data.rfPair.PA, m_data.rfLog.PA, flip,
+                       PAradial, PAradial_img);
+    procOne<FloatType>(paramsUS, m_data.rfPair.US, m_data.rfLog.US, flip,
+                       USradial, USradial_img);
 
     perfMetrics.reconUSPA_ms = timeit.get_ms();
   }
@@ -278,7 +278,7 @@ void DataProcWorker::processCurrentFrame() {
     constexpr double fctRect = soundSpeed / fs / 2;
 
     // [points]
-    const auto USpoints_rect = static_cast<double>(m_rfPair.US.n_rows);
+    const auto USpoints_rect = static_cast<double>(m_data.rfPair.US.n_rows);
 
     // [points]
     const auto USpoints_radial = static_cast<double>(USradial.rows) / 2;

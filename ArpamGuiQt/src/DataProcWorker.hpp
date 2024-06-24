@@ -13,6 +13,19 @@
 
 namespace fs = std::filesystem;
 
+/**
+ * Contains all the data for one BScan
+ * From RF to Image
+ */
+template <uspam::Floating FloatType> struct BScanData {
+  arma::Mat<uint16_t> rf;
+  uspam::io::PAUSpair<FloatType> rfPair;
+  uspam::io::PAUSpair<uint8_t> rfLog;
+};
+
+/**
+ * Data processing worker that will be launched in a QThread
+ */
 class DataProcWorker : public QObject {
   Q_OBJECT
 
@@ -87,9 +100,7 @@ private:
   fs::path m_imageSaveDir;
 
   // Buffers;
-  arma::Mat<uint16_t> m_rf;
-  uspam::io::PAUSpair<FloatType> m_rfPair;
-  uspam::io::PAUSpair<uint8_t> m_rfLog;
+  BScanData<FloatType> m_data;
 
   // mutex for ReconParams2 and IOParams
   QMutex m_paramsMutex;
