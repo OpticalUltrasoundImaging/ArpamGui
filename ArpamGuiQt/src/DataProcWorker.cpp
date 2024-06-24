@@ -162,7 +162,7 @@ void DataProcWorker::saveParamsToFile() {
 
 namespace {
 
-template <uspam::fftw::Floating T>
+template <uspam::Floating T>
 void procOne(const uspam::recon::ReconParams &params, arma::Mat<T> &rf,
              arma::Mat<uint8_t> &rfLog, bool flip, cv::Mat &radial_img,
              QImage &radial_qimg) {

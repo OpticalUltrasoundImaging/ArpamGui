@@ -1,7 +1,7 @@
 #pragma once
 
-#include <span>
 #include <armadillo>
+#include <span>
 #include <uspam/fft.hpp>
 
 namespace uspam::signal {
@@ -50,13 +50,13 @@ be between 0 and ``fs/2``. Default is 2.
 of length numtaps
 */
 auto firwin2(int numtaps, const std::span<const double> freq,
-             const std::span<const double> gain, int nfreqs = 0, double fs = 2)
-    -> arma::vec;
+             const std::span<const double> gain, int nfreqs = 0,
+             double fs = 2) -> arma::vec;
 
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
 */
-template <fftw::Floating T>
+template <Floating T>
 void hilbert_abs(const std::span<const T> x, const std::span<T> env) {
   const auto n = x.size();
   auto &engine = fft::fftw_engine_1d<T>::get(n);
@@ -105,7 +105,7 @@ void hilbert_abs(const std::span<const T> x, const std::span<T> env) {
   // NOLINTEND(*-pointer-arithmetic, *-magic-numbers)
 }
 
-template <fftw::Floating T>
+template <Floating T>
 [[nodiscard]] inline auto hilbert_abs(const std::span<const T> x) {
   arma::Col<T> env(x.size());
   hilbert_abs(x, env);
@@ -117,7 +117,7 @@ template <fftw::Floating T>
 Optimized internally to use r2c transforms.
 */
 
-template <fftw::Floating T>
+template <Floating T>
 void hilbert_abs_r2c(const std::span<const T> x, const std::span<T> env) {
   const auto n = x.size();
   auto &engine = fft::fftw_engine_half_cx_1d<T>::get(n);

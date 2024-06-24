@@ -9,10 +9,12 @@
 #include <type_traits>
 #include <unordered_map>
 
-namespace uspam::fftw {
-
+namespace uspam {
 template <typename T>
 concept Floating = std::is_floating_point_v<T>;
+}
+
+namespace uspam::fftw {
 
 namespace details {
 
@@ -163,7 +165,7 @@ template <class Key, class Val> auto get_cached(Key key) {
   return val.get();
 }
 
-template <fftw::Floating T> struct engine_r2c_1d {
+template <Floating T> struct engine_r2c_1d {
   std::span<T> real;
   std::span<fftw::Complex<T>> complex;
   fftw::Plan<T> plan;
@@ -191,7 +193,7 @@ template <fftw::Floating T> struct engine_r2c_1d {
   inline void execute() const { fftw::execute(plan); }
 };
 
-template <fftw::Floating T> struct engine_c2r_1d {
+template <Floating T> struct engine_c2r_1d {
   std::span<T> real;
   std::span<fftw::Complex<T>> complex;
   fftw::Plan<T> plan;
@@ -238,11 +240,11 @@ template <typename T> struct fftw_engine_half_cx_1d {
         plan_b(fftw::plan_dft_c2r_1d(static_cast<int>(n), complex.data(),
                                      real.data(), FFTW_ESTIMATE)) {}
   fftw_engine_half_cx_1d(const fftw_engine_half_cx_1d &) = default;
-  auto operator=(const fftw_engine_half_cx_1d &)
-      -> fftw_engine_half_cx_1d & = default;
+  auto operator=(const fftw_engine_half_cx_1d &) -> fftw_engine_half_cx_1d & =
+                                                        default;
   fftw_engine_half_cx_1d(fftw_engine_half_cx_1d &&) = delete;
-  auto operator=(fftw_engine_half_cx_1d &&)
-      -> fftw_engine_half_cx_1d & = delete;
+  auto
+  operator=(fftw_engine_half_cx_1d &&) -> fftw_engine_half_cx_1d & = delete;
   ~fftw_engine_half_cx_1d() {
     fftw::destroy_plan<T>(plan_f);
     fftw::destroy_plan<T>(plan_b);

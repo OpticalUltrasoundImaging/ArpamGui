@@ -18,8 +18,6 @@ namespace fs = std::filesystem;
 
 namespace uspam::recon {
 
-using fftw::Floating;
-
 template <Floating T>
 void recon(const arma::Mat<T> &rf, const arma::Col<T> &kernel,
            arma::Mat<T> &env) {
