@@ -18,24 +18,6 @@ namespace io = uspam::io;
 
 namespace {
 
-auto estimate_aline_background_from_file(const io::IOParams &ioparams,
-                                         const fs::path &fname,
-                                         int num_alines = 0) {
-  const auto num_alines_all = ioparams.get_num_scans<uint16_t>(fname, 1);
-  if (num_alines < 1) {
-    num_alines = num_alines_all;
-  } else {
-    num_alines = std::min(num_alines, num_alines_all);
-  }
-
-  arma::Mat<uint16_t> rf(uspam::io::RF_ALINE_SIZE, num_alines,
-                         arma::fill::none);
-  ioparams.load_rf<uint16_t>(fname, rf, 1, 1, num_alines);
-
-  arma::vec background = arma::mean(arma::conv_to<arma::mat>::from(rf), 1);
-  return background;
-}
-
 QImage cvMatToQImage(const cv::Mat &mat) {
   switch (mat.type()) {
   // 8-bit, 4 channel
@@ -73,10 +55,6 @@ QImage cvMatToQImage(const cv::Mat &mat) {
 }
 
 } // namespace
-
-struct ReconPerformanceStats {
-  float reconTimeMs;
-};
 
 void DataProcWorker::setBinfile(const fs::path &binfile) {
   m_binfilePath = binfile;

@@ -22,6 +22,21 @@ template <typename T> void swap_endian_inplace(T *val) {
   std::reverse(ptr, ptr + sizeof(T));        // NOLINT
 }
 
+// Function to convert matrix using OpenCV's cv::parallel_for_
+template <typename Tin, typename Tout>
+void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
+  output.set_size(input.n_rows, input.n_cols);
+  cv::parallel_for_(cv::Range(0, input.n_cols), [&](const cv::Range &range) {
+    for (int col = range.start; col < range.end; ++col) {
+      const auto *inptr = input.colptr(col);
+      auto *outptr = output.colptr(col);
+      for (int i = 0; i < input.n_rows; ++i) {
+        outptr[i] = static_cast<Tout>(inptr[i]);
+      }
+    }
+  });
+}
+
 template <typename TypeInBin> class BinfileLoader {
 private:
   std::ifstream file;
@@ -121,7 +136,7 @@ public:
       // Read file
       // NOLINTNEXTLINE(*-reinterpret-cast)
       if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
-        rf = arma::conv_to<arma::mat<T>>::from(readBuffer);
+        parallel_convert<TypeInBin, T>(readBuffer, rf);
         return true;
       }
       return false;
@@ -155,7 +170,9 @@ public:
     // Read file
     // NOLINTNEXTLINE(*-reinterpret-cast)
     if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
-      return arma::conv_to<arma::Mat<T>>::from(readBuffer);
+      arma::Mat<T> out;
+      parallel_convert<TypeInBin, T>(readBuffer, out);
+      return out;
     }
     return {};
   }

@@ -21,6 +21,8 @@ template <uspam::Floating FloatType> struct BScanData {
   arma::Mat<FloatType> rf;
   uspam::io::PAUSpair<FloatType> rfPair;
   uspam::io::PAUSpair<uint8_t> rfLog;
+  cv::Mat imgRect;
+  cv::Mat imgRadial;
 };
 
 /**
