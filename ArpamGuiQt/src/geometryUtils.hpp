@@ -4,6 +4,7 @@
 #include <QPoint>
 #include <QRectF>
 #include <cmath>
+#include <numbers>
 #include <tuple>
 
 namespace geometry {
@@ -23,19 +24,20 @@ namespace geometry {
                                       const QRectF &bound);
 
 // Arc
-[[nodiscard]] inline auto rad2deg(double rad) { return rad * 180.0 / M_PI; }
-[[nodiscard]] inline auto deg2rad(double deg) { return deg / 180.0 * M_PI; }
+[[nodiscard]] inline auto rad2deg(double rad) {
+  return rad * 180.0 / std::numbers::pi;
+}
+[[nodiscard]] inline auto deg2rad(double deg) {
+  return deg / 180.0 * std::numbers::pi;
+}
 
 // Calculate the angle (in degrees) of a point with respect to a rect
 [[nodiscard]] inline double calcAngleFromPos(const QRectF &rect, QPointF pos) {
   const auto center = rect.center();
   // The angle computed by atan2 uses signs to determine the quadrant.
   // y axis is flipped
-  auto angle = rad2deg(atan2(center.y() - pos.y(), pos.x() - center.x()));
-  if (angle < 0) {
-    angle = 360.0 + angle;
-  }
-  return angle;
+  const auto angle = rad2deg(atan2(center.y() - pos.y(), pos.x() - center.x()));
+  return (angle < 0) ? 360.0 + angle : angle;
 }
 
 // Calculate the position on the circle's circumference given a bounding rect

@@ -138,8 +138,6 @@ private:
 
   void drawTicks(QPainter *painter);
 
-  void selectCurrentCursorAScan();
-
   // [mm] Get distance between 2 points in the original pixmap space.
   [[nodiscard]] double computeDistance_mm(QPointF pt1, QPointF pt2) const;
 

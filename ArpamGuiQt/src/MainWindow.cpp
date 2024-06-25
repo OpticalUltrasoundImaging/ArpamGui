@@ -40,8 +40,11 @@ MainWindow::MainWindow(QWidget *parent)
 
       worker(new DataProcWorker),
 
-      textEdit(new QPlainTextEdit(this)), m_coregDisplay(new CoregDisplay),
-      m_frameController(new FrameController(worker, m_coregDisplay))
+      textEdit(new QPlainTextEdit(this)),
+      reconParamsController(new ReconParamsController),
+      m_coregDisplay(new CoregDisplay),
+      m_frameController(
+          new FrameController(reconParamsController, worker, m_coregDisplay))
 
 {
   // Enable QStatusBar at the bottom of the MainWindow
@@ -114,7 +117,6 @@ MainWindow::MainWindow(QWidget *parent)
       resizeDocks({dock}, {dock->sizeHint().width()},
                   Qt::Orientation::Horizontal);
 
-      auto *reconParamsController = new ReconParamsController;
       // dockLayout->addWidget(reconParamsController);
       dock->setWidget(reconParamsController);
 

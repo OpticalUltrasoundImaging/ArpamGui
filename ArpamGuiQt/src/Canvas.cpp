@@ -10,12 +10,10 @@
 #include <QPainter>
 #include <QPinchGesture>
 #include <QVBoxLayout>
+#include <Qt>
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
-#include <qgraphicsview.h>
-#include <qlogging.h>
-#include <qnamespace.h>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)
@@ -190,13 +188,6 @@ void Canvas::undo() {
   // }
 }
 
-void Canvas::selectCurrentCursorAScan() {
-  const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
-  constexpr int numAScansPerBScan = 1000;
-  const auto idx = angle / 360 * numAScansPerBScan;
-  emit AScanSelected(idx);
-}
-
 void Canvas::mousePressEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
   m_cursor.startPos = m_PixmapItem->mapFromScene(mapToScene(event->pos()));
@@ -210,11 +201,13 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       QGraphicsView::mousePressEvent(event);
       break;
 
-    case (CursorMode::SelectAScan):
+    case (CursorMode::SelectAScan): {
       // TODO
       // Insert ALine graphics here in canvas
-      selectCurrentCursorAScan();
-      break;
+
+      const auto idx = m_cursor.selectAScan(m_Pixmap.rect());
+      emit AScanSelected(idx);
+    } break;
 
     case CursorMode::Pan:
       panStartEvent(event);
@@ -287,11 +280,14 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       QGraphicsView::mouseMoveEvent(event);
       break;
 
-    case (CursorMode::SelectAScan):
+    case (CursorMode::SelectAScan): {
       // TODO
       // Move ALine graphics here in canvas
-      selectCurrentCursorAScan();
-      break;
+
+      const auto idx = m_cursor.selectAScan(m_Pixmap.rect());
+      emit AScanSelected(idx);
+
+    } break;
 
     case CursorMode::Pan: {
       panMoveEvent(event);

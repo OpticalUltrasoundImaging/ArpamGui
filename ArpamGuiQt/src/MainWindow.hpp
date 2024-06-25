@@ -52,6 +52,7 @@ private:
   DataProcWorker *worker;
 
   QPlainTextEdit *textEdit;
+  ReconParamsController *reconParamsController;
   CoregDisplay *m_coregDisplay;
   FrameController *m_frameController;
 };

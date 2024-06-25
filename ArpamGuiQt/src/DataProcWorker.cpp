@@ -162,8 +162,6 @@ public:
 } // namespace
 
 void DataProcWorker::processCurrentFrame() {
-  const bool flip{m_frameIdx % 2 == 0};
-
   PerformanceMetrics perfMetrics{};
   uspam::TimeIt timeit;
 
@@ -193,6 +191,8 @@ void DataProcWorker::processCurrentFrame() {
 
     return std::tuple(m_params.PA, m_params.US);
   }();
+
+  const bool flip = uspam::recon::ReconParams::flip(m_frameIdx);
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {

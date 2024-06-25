@@ -23,10 +23,11 @@
 #include <string>
 #include <uspam/json.hpp>
 
-FrameController::FrameController(DataProcWorker *worker,
+FrameController::FrameController(ReconParamsController *paramsController,
+                                 DataProcWorker *worker,
                                  CoregDisplay *coregDisplay, QWidget *parent)
-    : QWidget(parent), m_worker(worker), m_coregDisplay(coregDisplay),
-      m_AScanPlot(new AScanPlot(this)),
+    : QWidget(parent), m_reconParams(paramsController), m_worker(worker),
+      m_coregDisplay(coregDisplay), m_AScanPlot(new AScanPlot(this)),
       m_btnPlayPause(new QPushButton("Play", this)),
       m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
 
@@ -156,6 +157,17 @@ FrameController::FrameController(DataProcWorker *worker,
   // Signals emittied from CoregDisplay
   {
     connect(m_coregDisplay, &CoregDisplay::AScanSelected, [this](int idx) {
+      if (uspam::recon::ReconParams::flip(m_data->frameIdx)) {
+        idx += m_reconParams->params.PA.rotateOffset;
+
+        constexpr int AScansPerBScan = 1000;
+        if (idx < 0) {
+          idx += AScansPerBScan;
+        } else if (idx >= AScansPerBScan) {
+          idx -= AScansPerBScan;
+        }
+      }
+
       m_AScanPlotIdx = idx;
 
       plotCurrentAScan();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AScanPlot.hpp"
+#include "ReconParamsController.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
@@ -17,7 +18,7 @@ class FrameController : public QWidget {
 public:
   // FrameController does not own the worker or the coregDisplay (both are owned
   // by MainWindow). It merely keeps a reference to it for control
-  explicit FrameController(DataProcWorker *worker, CoregDisplay *coregDisplay,
+  explicit FrameController(ReconParamsController *paramsController, DataProcWorker *worker, CoregDisplay *coregDisplay,
                            QWidget *parent = nullptr);
 
 public slots:
@@ -57,9 +58,9 @@ private:
   void saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
 
+  ReconParamsController *m_reconParams;
   DataProcWorker *m_worker;
   CoregDisplay *m_coregDisplay;
-
   AScanPlot *m_AScanPlot;
   int m_AScanPlotIdx{};
 

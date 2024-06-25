@@ -19,6 +19,8 @@ struct ReconParams {
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;
   static ReconParams deserialize(const rapidjson::Value &obj);
+
+  static bool flip(int frameIdx) { return frameIdx % 2 == 0; }
 };
 
 struct ReconParams2 {
