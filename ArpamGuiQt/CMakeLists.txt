@@ -11,6 +11,9 @@ set(CMAKE_AUTOMOC ON)
 find_path(QCUSTOMPLOT_INCLUDE_DIR qcustomplot.h PATH_SUFFIXES qcustomplot)
 if (WIN32)
     find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot2)
+    find_library(QCUSTOMPLOT_LIBRARY_DEBUG NAMES qcustomplotd2)
+
+    set(QCUSTOMPLOT_LIBRARY "$<IF:$<CONFIG:Debug>,${QCUSTOMPLOT_LIBRARY_DEBUG},${QCUSTOMPLOT_LIBRARY}>")
 else ()
     find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot)
 endif()
@@ -116,11 +119,15 @@ if (WIN32)
         WIN32_EXECUTABLE ON
     )
 
+    # Determine the path to windeployqt
+    set(WINDEPLOYQT_PATH "${Qt6_DIR}/../../tools/Qt6/bin")
+    set(WINDEPLOYQT_EXE "${WINDEPLOYQT_PATH}/windeployqt.exe")
+    set(WINDEPLOYQT_DEBUG_EXE "${WINDEPLOYQT_PATH}/windeployqt.debug.bat")
+
     # Add post build command to call windeployqt
     add_custom_command(TARGET ${EXE_NAME} POST_BUILD
-        COMMAND ${Qt6_DIR}/../../tools/Qt6/bin/windeployqt.exe 
+        COMMAND "$<IF:$<CONFIG:Debug>,${WINDEPLOYQT_DEBUG_EXE},${WINDEPLOYQT_EXE}>"
         --verbose 1
-        "$<IF:$<CONFIG:Debug>,--debug,--release>"
         "$<TARGET_FILE:${EXE_NAME}>"
     )
 
