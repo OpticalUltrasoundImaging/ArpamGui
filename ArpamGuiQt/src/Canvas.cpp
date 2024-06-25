@@ -202,10 +202,19 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       break;
 
     case (CursorMode::SelectAScan): {
-      // TODO
-      // Insert ALine graphics here in canvas
+      // Select an AScan with the cursor
+      // Add a graphics item represending the AScan
+      // Emit a signal to tell the AScan plot
 
-      const auto idx = m_cursor.selectAScan(m_Pixmap.rect());
+      const auto [idx, line] = m_cursor.selectAScan(m_Pixmap.rect());
+
+      // Insert ALine graphics here in canvas
+      const auto color = Qt::green;
+      m_currItem = new annotation::LineItem(Annotation(line, color, ""));
+      m_currItem->updateScaleFactor(m_scaleFactor);
+      m_scene->addItem(m_currItem);
+
+      // Emit
       emit AScanSelected(idx);
     } break;
 
@@ -282,9 +291,16 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
     case (CursorMode::SelectAScan): {
       // TODO
+      const auto [idx, line] = m_cursor.selectAScan(m_Pixmap.rect());
+
       // Move ALine graphics here in canvas
 
-      const auto idx = m_cursor.selectAScan(m_Pixmap.rect());
+      if (auto *lineItem = dynamic_cast<annotation::LineItem *>(m_currItem);
+          lineItem != nullptr) [[likely]] {
+        lineItem->setLine(line);
+      }
+
+      // Emit
       emit AScanSelected(idx);
 
     } break;
@@ -358,8 +374,11 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       break;
 
     case (CursorMode::SelectAScan):
-      // TODO
-      // emit signal
+      // Remove graphics Item
+      m_scene->removeItem(m_currItem);
+      delete m_currItem;
+      m_currItem = nullptr;
+
       break;
 
     case CursorMode::Pan:

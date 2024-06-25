@@ -5,6 +5,7 @@
 #include <QRectF>
 #include <algorithm>
 #include <geometryUtils.hpp>
+#include <tuple>
 
 struct CanvasCursorState {
   bool leftButtonDown = false;
@@ -36,7 +37,7 @@ struct CanvasCursorState {
   }
 
   // Get the AScan under the cursor position in the circular BScan.
-  [[nodiscard]] inline int
+  [[nodiscard]] inline auto
   selectAScan(const QRectF &rect, const int numAScansPerBScan = 1000) const {
     // Convert the angle to start at 12 O'clock
     constexpr double degOffset = -90;
@@ -47,8 +48,22 @@ struct CanvasCursorState {
       angle += 360;
     }
 
-    const auto idx = angle / 360 * numAScansPerBScan;
-    return std::clamp(static_cast<int>(std::round(idx)), 0,
-                      numAScansPerBScan - 1);
+    const auto idx = std::clamp(
+        static_cast<int>(std::round(angle / 360 * numAScansPerBScan)), 0,
+        numAScansPerBScan - 1);
+
+    // Get the line in pixmap space representing the AScan
+    const auto center = rect.center();
+    const auto diff = pos - center;
+    const auto len = geometry::calcMagnitude(diff);
+    // Images have a radius of 500 pixels
+    const auto fct = 500 / len;
+
+    const QPointF p2(center.x() + fct * (pos.x() - center.x()),
+                     center.y() + fct * (pos.y() - center.y()));
+
+    const QLineF line(center, p2);
+
+    return std::tuple{idx, line};
   }
 };
