@@ -58,10 +58,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
 
-    connect(worker, &DataProcWorker::resultReady, m_coregDisplay,
-            &CoregDisplay::imshow);
-
     connect(worker, &DataProcWorker::error, this, &MainWindow::logError);
+
+    // Note: worker's resultReady signal is connected inside FrameController
 
     // Start the worker thread event loop
     workerThread.start();

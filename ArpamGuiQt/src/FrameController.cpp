@@ -3,6 +3,7 @@
 #include "CoregDisplay.hpp"
 #include "datetime.hpp"
 #include "strConvUtils.hpp"
+#include <QDebug>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -15,6 +16,7 @@
 #include <cassert>
 #include <chrono>
 #include <filesystem>
+#include <memory>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <string>
@@ -29,6 +31,14 @@ FrameController::FrameController(DataProcWorker *worker,
   // Actions
   connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
           &FrameController::openFileSelectDialog);
+
+  // Result ready
+  connect(worker, &DataProcWorker::resultReady, this,
+          [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
+            m_coregDisplay->imshow(data->PAUSradial_img, data->USradial_img,
+                                   data->fct);
+            qDebug() << data.get();
+          });
 
   // UI
   auto *vlayout = new QVBoxLayout;

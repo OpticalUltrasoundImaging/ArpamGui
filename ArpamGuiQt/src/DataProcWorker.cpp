@@ -57,6 +57,12 @@ QImage cvMatToQImage(const cv::Mat &mat) {
 
 } // namespace
 
+void DataProcWorker::initDataBuffers() {
+  QMutexLocker lock(&m_paramsMutex);
+  m_data = std::make_shared<BScanData<FloatType>>(m_ioparams,
+                                                  m_loader.getAlinesPerBscan());
+}
+
 void DataProcWorker::setBinfile(const fs::path &binfile) {
   m_binfilePath = binfile;
   m_imageSaveDir = m_binfilePath.parent_path() / m_binfilePath.stem();
@@ -68,21 +74,11 @@ void DataProcWorker::setBinfile(const fs::path &binfile) {
     emit error(tr("Saving images to ") + path2QString(m_imageSaveDir));
   }
 
-  m_data = std::make_shared<BScanData<FloatType>>();
-
   try {
     // Init loader
     m_loader.setParams(m_ioparams);
     m_loader.open(m_binfilePath);
     emit maxFramesChanged(m_loader.size());
-
-    // Init buffers
-    {
-      QMutexLocker lock(&m_paramsMutex);
-      m_data->rfPair =
-          m_ioparams.allocateSplitPair<FloatType>(m_loader.getAlinesPerBscan());
-    }
-    m_data->rfLog = io::PAUSpair<uint8_t>::zeros_like(m_data->rfPair);
 
     // Save init params
     saveParamsToFile();
@@ -171,6 +167,9 @@ void DataProcWorker::processCurrentFrame() {
   PerformanceMetrics perfMetrics{};
   uspam::TimeIt timeit;
 
+  // Init buffers in m_data
+  initDataBuffers();
+
   // Read next RF scan from file
   {
     const uspam::TimeIt timeit;
@@ -195,25 +194,19 @@ void DataProcWorker::processCurrentFrame() {
     return std::tuple(m_params.PA, m_params.US);
   }();
 
-  // Recon
-  QImage USradial_img;
-  QImage PAradial_img;
-  cv::Mat USradial;
-  cv::Mat PAradial;
-
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
     const uspam::TimeIt timeit;
 
-    const auto a1 =
-        std::async(std::launch::async, procOne<FloatType>, std::ref(paramsPA),
-                   std::ref(m_data->rfPair.PA), std::ref(m_data->rfLog.PA),
-                   flip, std::ref(PAradial), std::ref(PAradial_img));
+    const auto a1 = std::async(
+        std::launch::async, procOne<FloatType>, std::ref(paramsPA),
+        std::ref(m_data->rfPair.PA), std::ref(m_data->rfLog.PA), flip,
+        std::ref(m_data->PAradial), std::ref(m_data->PAradial_img));
 
-    const auto a2 =
-        std::async(std::launch::async, procOne<FloatType>, std::ref(paramsUS),
-                   std::ref(m_data->rfPair.US), std::ref(m_data->rfLog.US),
-                   flip, std::ref(USradial), std::ref(USradial_img));
+    const auto a2 = std::async(
+        std::launch::async, procOne<FloatType>, std::ref(paramsUS),
+        std::ref(m_data->rfPair.US), std::ref(m_data->rfLog.US), flip,
+        std::ref(m_data->USradial), std::ref(m_data->USradial_img));
 
     a1.wait();
     a2.wait();
@@ -223,16 +216,16 @@ void DataProcWorker::processCurrentFrame() {
     const uspam::TimeIt timeit;
 
     procOne<FloatType>(paramsPA, m_data->rfPair.PA, m_data->rfLog.PA, flip,
-                       PAradial, PAradial_img);
+                       m_data->PAradial, m_data->PAradial_img);
     procOne<FloatType>(paramsUS, m_data->rfPair.US, m_data->rfLog.US, flip,
-                       USradial, USradial_img);
+                       m_data->USradial, m_data->USradial_img);
 
     perfMetrics.reconUSPA_ms = timeit.get_ms();
   }
 
   // Compute scalebar scalar
   // fct is the depth [m] of one radial pixel
-  const auto fct = [&] {
+  m_data->fct = [&] {
     constexpr double soundSpeed = 1500.0; // [m/s] Sound speed
     constexpr double fs = 180e6;          // [1/s] Sample frequency
 
@@ -243,24 +236,24 @@ void DataProcWorker::processCurrentFrame() {
     const auto USpoints_rect = static_cast<double>(m_data->rfPair.US.n_rows);
 
     // [points]
-    const auto USpoints_radial = static_cast<double>(USradial.rows) / 2;
+    const auto USpoints_radial = static_cast<double>(m_data->USradial.rows) / 2;
 
     // [m]
     const auto fctRadial = fctRect * USpoints_rect / USpoints_radial;
     return fctRadial;
   }();
 
-  cv::Mat PAUSradial; // CV_8U3C
   {
     const uspam::TimeIt timeit;
-    uspam::imutil::makeOverlay(USradial, PAradial, PAUSradial);
+    uspam::imutil::makeOverlay(m_data->USradial, m_data->PAradial,
+                               m_data->PAUSradial);
     perfMetrics.makeOverlay_ms = timeit.get_ms();
   }
 
-  QImage PAUSradial_img = cvMatToQImage(PAUSradial);
+  m_data->PAUSradial_img = cvMatToQImage(m_data->PAUSradial);
 
   // Send images to GUI thread
-  emit resultReady(USradial_img, PAUSradial_img, fct);
+  emit resultReady(m_data);
   emit frameIdxChanged(m_frameIdx);
 
   // Save to file
@@ -281,15 +274,15 @@ void DataProcWorker::processCurrentFrame() {
     char _buf[64];
     std::snprintf(_buf, sizeof(_buf), "US_%03d.png", m_frameIdx);
     auto fname = path2QString(m_imageSaveDir / std::string(_buf));
-    pool->start(new ImageWriteTask(USradial_img, fname));
+    pool->start(new ImageWriteTask(m_data->USradial_img, fname));
 
     std::snprintf(_buf, sizeof(_buf), "PA_%03d.png", m_frameIdx);
     fname = path2QString(m_imageSaveDir / std::string(_buf));
-    pool->start(new ImageWriteTask(PAradial_img, fname));
+    pool->start(new ImageWriteTask(m_data->PAradial_img, fname));
 
     std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", m_frameIdx);
     fname = path2QString(m_imageSaveDir / std::string(_buf));
-    pool->start(new ImageWriteTask(PAUSradial_img, fname));
+    pool->start(new ImageWriteTask(m_data->PAUSradial_img, fname));
     // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
 
     perfMetrics.writeImages_ms = timeit.get_ms();

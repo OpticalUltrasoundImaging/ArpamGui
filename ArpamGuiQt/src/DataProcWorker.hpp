@@ -36,13 +36,34 @@ struct PerformanceMetrics {
 /**
  * Contains all the data for one BScan
  * From RF to Image
+ *
+ * For initialization, only PAUSpair need to be explicitly allocated since
+ * `rf` will be overwritten, and cv::Mat and QImage have default constructors
  */
 template <uspam::Floating FloatType> struct BScanData {
+  // RF data
   arma::Mat<FloatType> rf;
   uspam::io::PAUSpair<FloatType> rfPair;
   uspam::io::PAUSpair<uint8_t> rfLog;
-  cv::Mat imgRect;
-  cv::Mat imgRadial;
+
+  // Images
+  cv::Mat USradial;   // CV_8U1C
+  cv::Mat PAradial;   // CV_8U1C
+  cv::Mat PAUSradial; // CV_8U3C
+
+  QImage USradial_img;
+  QImage PAradial_img;
+  QImage PAUSradial_img;
+
+  // depth [m] of one radial pixel
+  double fct{};
+
+  // Frame idx
+  int frameIdx{};
+
+  BScanData(const uspam::io::IOParams &ioparams, int alinesPerBscan)
+      : rfPair(ioparams.allocateSplitPair<FloatType>(alinesPerBscan)),
+        rfLog(uspam::io::PAUSpair<uint8_t>::empty_like(rfPair)) {}
 };
 
 /**
@@ -51,9 +72,9 @@ template <uspam::Floating FloatType> struct BScanData {
 class DataProcWorker : public QObject {
   Q_OBJECT
 
+public:
   using FloatType = float;
 
-public:
   DataProcWorker()
       : m_params(uspam::recon::ReconParams2::system2024v1()),
         m_ioparams(uspam::io::IOParams::system2024v1()) {}
@@ -99,12 +120,14 @@ public slots:
     return this->m_imageSaveDir;
   }
 
+  void initDataBuffers();
+
 signals:
   void maxFramesChanged(int);
   void frameIdxChanged(int);
 
   // pix2m is the depth [m] of each radial pixel
-  void resultReady(QImage img1, QImage img2, double pix2m);
+  void resultReady(std::shared_ptr<BScanData<FloatType>>);
 
   void finishedPlaying();
   void error(QString err);
