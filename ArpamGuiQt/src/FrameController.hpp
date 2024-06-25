@@ -54,6 +54,8 @@ private:
   DataProcWorker *m_worker;
   CoregDisplay *m_coregDisplay;
 
+  AlinePlot *m_alinePlot;
+
   QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;
 

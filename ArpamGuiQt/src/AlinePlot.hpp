@@ -8,16 +8,18 @@
 class AlinePlot : public QWidget {
   Q_OBJECT
 public:
+  using FloatType = double;
+
   AlinePlot(QWidget *parent = nullptr);
 
-  auto plot() { return customPlot; }
+  auto getPlot() { return customPlot; }
 
 public slots:
-  void plot(std::span<double> x, std::span<double> y);
+  void plot(std::span<const FloatType> x, std::span<const FloatType> y);
 
 private:
   QCustomPlot *customPlot;
 
-  QVector<double> m_x;
-  QVector<double> m_y;
+  QVector<FloatType> m_x;
+  QVector<FloatType> m_y;
 };

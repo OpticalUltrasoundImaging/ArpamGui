@@ -17,6 +17,7 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <numeric>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <string>
@@ -25,6 +26,7 @@
 FrameController::FrameController(DataProcWorker *worker,
                                  CoregDisplay *coregDisplay, QWidget *parent)
     : QWidget(parent), m_worker(worker), m_coregDisplay(coregDisplay),
+      m_alinePlot(new AlinePlot(this)),
       m_btnPlayPause(new QPushButton("Play", this)),
       m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
 
@@ -35,9 +37,22 @@ FrameController::FrameController(DataProcWorker *worker,
   // Result ready
   connect(worker, &DataProcWorker::resultReady, this,
           [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
+            // Display images
             m_coregDisplay->imshow(data->PAUSradial_img, data->USradial_img,
                                    data->fct);
-            qDebug() << data.get();
+
+            // Display aline
+            const auto &rf = data->rf;
+
+            arma::vec x(rf.n_rows, arma::fill::none);
+            std::iota(x.begin(), x.end(), 0);
+
+            const auto y = arma::conv_to<arma::vec>::from(rf.col(0));
+
+            std::span _x(x.memptr(), x.size());
+            std::span _y(y.memptr(), y.size());
+
+            m_alinePlot->plot(_x, _y);
           });
 
   // UI
@@ -150,8 +165,7 @@ FrameController::FrameController(DataProcWorker *worker,
             [this] { this->updatePlayingState(false); });
   }
 
-  auto *alinePlot = new AlinePlot(this);
-  vlayout->addWidget(alinePlot);
+  vlayout->addWidget(m_alinePlot);
 }
 
 void FrameController::openFileSelectDialog() {
