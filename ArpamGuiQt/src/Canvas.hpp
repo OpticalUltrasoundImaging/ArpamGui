@@ -43,6 +43,7 @@ public:
   enum class CursorMode {
     Default = 0, // Let QGraphicsView handle the mouse event
     Pan,
+    SelectAScan,
     MeasureLine,
     LabelRect,
     LabelFan,
@@ -90,6 +91,9 @@ signals:
   // domain
   void mouseMoved(QPoint pos, double depth_mm);
 
+  // Signal emitted when mouse moved in selectAScan mode.
+  void AScanSelected(int idx);
+
 protected:
   // Override event specifically to handle gesture events
   bool event(QEvent *event) override;
@@ -133,6 +137,8 @@ private:
 
   void drawTicks(QPainter *painter);
 
+  void selectCurrentCursorAScan();
+
   // [mm] Get distance between 2 points in the original pixmap space.
   [[nodiscard]] double computeDistance_mm(QPointF pt1, QPointF pt2) const;
 
@@ -162,7 +168,7 @@ private:
 
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;
-  CursorMode m_cursorMode{CursorMode::LabelRect};
+  CursorMode m_cursorMode{CursorMode::SelectAScan};
 
   // The graphics item currently being drawn by the cursor
   annotation::GraphicsItemBase *m_currItem{nullptr};

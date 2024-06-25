@@ -153,6 +153,15 @@ FrameController::FrameController(DataProcWorker *worker,
             [this] { this->updatePlayingState(false); });
   }
 
+  // Signals emittied from CoregDisplay
+  {
+    connect(m_coregDisplay, &CoregDisplay::AScanSelected, [this](int idx) {
+      m_alinePlotIdx = idx;
+
+      plotCurrentAScan();
+    });
+  }
+
   vlayout->addWidget(m_alinePlot);
 }
 

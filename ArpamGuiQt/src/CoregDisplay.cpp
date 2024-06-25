@@ -19,6 +19,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 
       actResetZoom(new QAction(QIcon(), "Reset zoom")),
       actCursorDefault(new QAction(QIcon(), "Default")),
+      actCursorSelectAScan(new QAction(QIcon(), "Select AScan")),
       actCursorPan(new QAction(QIcon(), "Pan")),
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
@@ -38,6 +39,11 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   connect(m_canvasLeft, &Canvas::error, this, &CoregDisplay::message);
   connect(m_canvasRight, &Canvas::error, this, &CoregDisplay::message);
 
+  connect(m_canvasLeft, &Canvas::AScanSelected, this,
+          &CoregDisplay::AScanSelected);
+  connect(m_canvasRight, &Canvas::AScanSelected, this,
+          &CoregDisplay::AScanSelected);
+
   // Connection actions
   connect(actResetZoom, &QAction::triggered, this, [this] {
     m_canvasLeft->scaleToSize();
@@ -52,6 +58,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 
   const std::array CursorModeActions = {
       AP{actCursorDefault, CursorMode::Default},
+      AP{actCursorSelectAScan, CursorMode::SelectAScan},
       AP{actCursorPan, CursorMode::Pan},
       AP{actCursorLine, CursorMode::MeasureLine},
       AP{actCursorLabelRect, CursorMode::LabelRect},
@@ -91,6 +98,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   // toolbar->addAction(actCursorUndo);
   toolbar->addSeparator();
   toolbar->addAction(actCursorDefault);
+  toolbar->addAction(actCursorSelectAScan);
   toolbar->addAction(actCursorPan);
   toolbar->addAction(actCursorLine);
   toolbar->addAction(actCursorLabelRect);

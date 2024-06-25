@@ -190,6 +190,13 @@ void Canvas::undo() {
   // }
 }
 
+void Canvas::selectCurrentCursorAScan() {
+  const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
+  constexpr int numAScansPerBScan = 1000;
+  const auto idx = angle / 360 * numAScansPerBScan;
+  emit AScanSelected(idx);
+}
+
 void Canvas::mousePressEvent(QMouseEvent *event) {
   // Compute position in the pixmap domain
   m_cursor.startPos = m_PixmapItem->mapFromScene(mapToScene(event->pos()));
@@ -201,6 +208,12 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     switch (m_cursorMode) {
     case (CursorMode::Default):
       QGraphicsView::mousePressEvent(event);
+      break;
+
+    case (CursorMode::SelectAScan):
+      // TODO
+      // Insert ALine graphics here in canvas
+      selectCurrentCursorAScan();
       break;
 
     case CursorMode::Pan:
@@ -274,6 +287,12 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       QGraphicsView::mouseMoveEvent(event);
       break;
 
+    case (CursorMode::SelectAScan):
+      // TODO
+      // Move ALine graphics here in canvas
+      selectCurrentCursorAScan();
+      break;
+
     case CursorMode::Pan: {
       panMoveEvent(event);
       break;
@@ -340,6 +359,11 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
     case CursorMode::Default:
       QGraphicsView::mouseReleaseEvent(event);
+      break;
+
+    case (CursorMode::SelectAScan):
+      // TODO
+      // emit signal
       break;
 
     case CursorMode::Pan:

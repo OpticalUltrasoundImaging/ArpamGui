@@ -20,6 +20,7 @@ public:
   auto model() { return m_model; }
 
   [[nodiscard]] auto actionDefault() const { return actCursorDefault; }
+  [[nodiscard]] auto actionSelectAScan() const { return actCursorSelectAScan; }
   [[nodiscard]] auto actionPan() const { return actCursorPan; }
   [[nodiscard]] auto actionLine() const { return actCursorLine; }
   [[nodiscard]] auto actionLabelRect() const { return actCursorLabelRect; }
@@ -28,6 +29,7 @@ public:
 signals:
   void message(const QString &msg);
   void mouseMoved(QPoint pos, double depth_mm);
+  void AScanSelected(int idx);
 
 public slots:
   void setCursorMode(Canvas::CursorMode mode) {
@@ -77,6 +79,8 @@ private:
 
   // Action to use default cursor
   QAction *actCursorDefault;
+  // Action to use cursor to select AScan for plot
+  QAction *actCursorSelectAScan;
   // Action to use cursor to pan
   QAction *actCursorPan;
   // Action to undo the last cursor action in the canvas
