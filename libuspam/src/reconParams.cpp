@@ -13,7 +13,7 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
   obj.AddMember("filterFreq", serializeArray(filterFreq, allocator), allocator);
   obj.AddMember("filterGain", serializeArray(filterGain, allocator), allocator);
 
-  obj.AddMember("noiseFloor", noiseFloor, allocator);
+  obj.AddMember("noiseFloor", noiseFloor_mV, allocator);
   obj.AddMember("desiredDynamicRange", desiredDynamicRange, allocator);
   obj.AddMember("rotateOffset", rotateOffset, allocator);
 
@@ -35,11 +35,11 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
   }
 
   if (const auto it = obj.FindMember("noiseFloor"); it != obj.MemberEnd()) {
-    params.noiseFloor = it->value.GetInt();
+    params.noiseFloor_mV = it->value.GetInt();
   }
 
   params.rotateOffset = obj["rotateOffset"].GetInt();
-  params.noiseFloor = obj["noiseFloor"].GetFloat();
+  params.noiseFloor_mV = obj["noiseFloor"].GetFloat();
   params.desiredDynamicRange = obj["desiredDynamicRange"].GetFloat();
   return params;
 }

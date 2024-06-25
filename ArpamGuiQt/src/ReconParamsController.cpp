@@ -99,7 +99,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   const QString &help_Truncate = "Truncate num points from the beginning to "
                                  "remove pulser/laser artifacts.";
   const QString &help_NoiseFloor =
-      "Noise floor is the maximum noise level that will be cut out.";
+      "Noise floor (mV) is the maximum noise level that will be cut out.";
   const QString &help_DynamicRange =
       "Dynamic range above the noisefloor that will be displayed.";
 
@@ -151,9 +151,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
       auto *spinBox = makeQSpinBox({0, 1000}, p.truncate, this);
       layout->addWidget(spinBox, row++, 2);
+      spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox, &p] { spinBox->setValue(p.noiseFloor); });
+          [this, spinBox, &p] { spinBox->setValue(p.truncate); });
     }
 
     {
@@ -162,11 +163,13 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 1);
 
       auto *spinBox =
-          makeQDoubleSpinBox({0.0f, 0.06f}, 0.001f, p.noiseFloor, this);
+          makeQDoubleSpinBox({0.0f, 60.0f}, 1.0f, p.noiseFloor_mV, this);
       layout->addWidget(spinBox, row++, 2);
+      spinBox->setSuffix(" mV");
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox, &p] { spinBox->setValue(p.noiseFloor); });
+      updateGuiFromParamsCallbacks.emplace_back([this, spinBox, &p] {
+        spinBox->setValue(static_cast<double>(p.noiseFloor_mV));
+      });
     }
 
     {
@@ -177,6 +180,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *spinBox =
           makeQDoubleSpinBox({10.0f, 70.0f}, 1.0f, p.desiredDynamicRange, this);
       layout->addWidget(spinBox, row++, 2);
+      spinBox->setSuffix(" dB");
 
       updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
@@ -202,6 +206,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-500, 500}, params.US.rotateOffset, this);
       layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" lines");
 
       updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
         spinBox->setValue(this->params.PA.rotateOffset);
@@ -215,6 +220,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({0, 200}, ioparams.rf_size_spacer, this);
       layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
         spinBox->setValue(this->ioparams.rf_size_spacer);
@@ -228,6 +234,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetUS, this);
       layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox] { spinBox->setValue(this->ioparams.offsetUS); });
@@ -240,6 +247,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 0);
       auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetPA, this);
       layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox] { spinBox->setValue(this->ioparams.offsetPA); });

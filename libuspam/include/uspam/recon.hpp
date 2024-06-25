@@ -77,11 +77,7 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
             logCompress(val, noiseFloor, desiredDynamicRangeDB) *
             logCompressFct<T, Tout>();
 
-        if constexpr (std::is_same_v<T, Tout>) {
-          xLog(i, j) = compressedVal;
-        } else {
-          xLog(i, j) = static_cast<Tout>(compressedVal);
-        }
+        xLog(i, j) = static_cast<Tout>(compressedVal);
       }
     }
     //}(cv::Range(0, x.n_cols));
@@ -157,7 +153,8 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
   arma::Mat<T> env(rf.n_rows, rf.n_cols, arma::fill::none);
 
   recon<T>(rf, kernel, env);
-  logCompress<T>(env, rfLog, params.noiseFloor, params.desiredDynamicRange);
+  logCompress<T>(env, rfLog, params.noiseFloor_mV / 1000,
+                 params.desiredDynamicRange);
 }
 
 } // namespace uspam::recon

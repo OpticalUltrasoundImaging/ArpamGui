@@ -50,14 +50,14 @@ TEST(ReconParams2Serialize, ToString) {
 
     ASSERT_NE(params_true.PA.filterFreq, params.PA.filterFreq);
     ASSERT_NE(params_true.PA.filterGain, params.PA.filterGain);
-    ASSERT_NE(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_NE(params_true.PA.noiseFloor_mV, params.PA.noiseFloor_mV);
     ASSERT_NE(params_true.PA.desiredDynamicRange,
               params.PA.desiredDynamicRange);
     ASSERT_NE(params_true.PA.rotateOffset, params.PA.rotateOffset);
 
     ASSERT_NE(params_true.US.filterFreq, params.US.filterFreq);
     ASSERT_NE(params_true.US.filterGain, params.US.filterGain);
-    ASSERT_NE(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_NE(params_true.US.noiseFloor_mV, params.US.noiseFloor_mV);
     ASSERT_NE(params_true.US.desiredDynamicRange,
               params.US.desiredDynamicRange);
     ASSERT_NE(params_true.US.rotateOffset, params.US.rotateOffset);
@@ -66,14 +66,14 @@ TEST(ReconParams2Serialize, ToString) {
 
     ASSERT_EQ(params_true.PA.filterFreq, params.PA.filterFreq);
     ASSERT_EQ(params_true.PA.filterGain, params.PA.filterGain);
-    ASSERT_EQ(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_EQ(params_true.PA.noiseFloor_mV, params.PA.noiseFloor_mV);
     ASSERT_EQ(params_true.PA.desiredDynamicRange,
               params.PA.desiredDynamicRange);
     ASSERT_EQ(params_true.PA.rotateOffset, params.PA.rotateOffset);
 
     ASSERT_EQ(params_true.US.filterFreq, params.US.filterFreq);
     ASSERT_EQ(params_true.US.filterGain, params.US.filterGain);
-    ASSERT_EQ(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_EQ(params_true.US.noiseFloor_mV, params.US.noiseFloor_mV);
     ASSERT_EQ(params_true.US.desiredDynamicRange,
               params.US.desiredDynamicRange);
     ASSERT_EQ(params_true.US.rotateOffset, params.US.rotateOffset);
@@ -90,14 +90,14 @@ TEST(ReconParams2Serialize, ToFile) {
 
     ASSERT_NE(params_true.PA.filterFreq, params.PA.filterFreq);
     ASSERT_NE(params_true.PA.filterGain, params.PA.filterGain);
-    ASSERT_NE(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_NE(params_true.PA.noiseFloor_mV, params.PA.noiseFloor_mV);
     ASSERT_NE(params_true.PA.desiredDynamicRange,
               params.PA.desiredDynamicRange);
     ASSERT_NE(params_true.PA.rotateOffset, params.PA.rotateOffset);
 
     ASSERT_NE(params_true.US.filterFreq, params.US.filterFreq);
     ASSERT_NE(params_true.US.filterGain, params.US.filterGain);
-    ASSERT_NE(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_NE(params_true.US.noiseFloor_mV, params.US.noiseFloor_mV);
     ASSERT_NE(params_true.US.desiredDynamicRange,
               params.US.desiredDynamicRange);
     ASSERT_NE(params_true.US.rotateOffset, params.US.rotateOffset);
@@ -106,14 +106,14 @@ TEST(ReconParams2Serialize, ToFile) {
 
     ASSERT_EQ(params_true.PA.filterFreq, params.PA.filterFreq);
     ASSERT_EQ(params_true.PA.filterGain, params.PA.filterGain);
-    ASSERT_EQ(params_true.PA.noiseFloor, params.PA.noiseFloor);
+    ASSERT_EQ(params_true.PA.noiseFloor_mV, params.PA.noiseFloor_mV);
     ASSERT_EQ(params_true.PA.desiredDynamicRange,
               params.PA.desiredDynamicRange);
     ASSERT_EQ(params_true.PA.rotateOffset, params.PA.rotateOffset);
 
     ASSERT_EQ(params_true.US.filterFreq, params.US.filterFreq);
     ASSERT_EQ(params_true.US.filterGain, params.US.filterGain);
-    ASSERT_EQ(params_true.US.noiseFloor, params.US.noiseFloor);
+    ASSERT_EQ(params_true.US.noiseFloor_mV, params.US.noiseFloor_mV);
     ASSERT_EQ(params_true.US.desiredDynamicRange,
               params.US.desiredDynamicRange);
     ASSERT_EQ(params_true.US.rotateOffset, params.US.rotateOffset);

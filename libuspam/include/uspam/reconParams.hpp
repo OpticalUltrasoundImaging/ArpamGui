@@ -13,7 +13,7 @@ struct ReconParams {
   std::vector<double> filterGain;
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
   int rotateOffset;
-  float noiseFloor;
+  float noiseFloor_mV;
   float desiredDynamicRange;
 
   [[nodiscard]] rapidjson::Value
@@ -31,9 +31,9 @@ struct ReconParams2 {
                    {0, 0, 1, 1, 0, 0},
                    250,
                    25,
-                   0.009,
-                   35.0};
-    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 25, 0.006, 48.0};
+                   9.0f,
+                   35.0f};
+    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 25, 6.0f, 48.0f};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
