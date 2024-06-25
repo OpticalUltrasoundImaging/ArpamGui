@@ -63,9 +63,14 @@ private:
 
   ReconParamsController *m_reconParams;
   DataProcWorker *m_worker;
+
+  // Ptr to the coregDisplay for showing a pair of BScan images
   CoregDisplay *m_coregDisplay;
+
+  // Ptr to the AScanPlot to control 2D plotting
   AScanPlot *m_AScanPlot;
-  int m_AScanPlotIdx{};
+  int m_AScanPlotIdx_canvas{}; // Received from canvas, not corrected for flip and rotation
+  int m_AScanPlotIdx{}; // Corrected for flip and rotation
 
   QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;

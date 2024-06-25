@@ -156,25 +156,9 @@ FrameController::FrameController(ReconParamsController *paramsController,
   // Signals emittied from CoregDisplay
   {
     connect(m_coregDisplay, &CoregDisplay::AScanSelected, [this](int idx) {
-      if (uspam::recon::ReconParams::flip(m_data->frameIdx)) {
-        idx -= m_reconParams->params.PA.rotateOffset;
-
-        constexpr int AScansPerBScan = 1000;
-        if (idx < 0) {
-          idx += AScansPerBScan;
-        } else if (idx >= AScansPerBScan) {
-          idx -= AScansPerBScan;
-        }
-
-        idx = AScansPerBScan - 1 - idx;
-      }
-
-      emit statusMessage(
-          QString("Select AScan: %1. Flip: %2")
-              .arg(idx)
-              .arg(uspam::recon::ReconParams::flip(m_data->frameIdx)));
-
-      m_AScanPlotIdx = idx;
+      // The index received here is in canvas pixmap coordinates (i.e. doesn't
+      // account for flip and rotation offset)
+      m_AScanPlotIdx_canvas = idx;
 
       plotCurrentAScan();
     });
@@ -308,18 +292,39 @@ void FrameController::AScanIdxUpdated(int idx) {
 }
 
 void FrameController::plotCurrentAScan() {
+
+  // Correct for flip and rotation in the selected AScan idx
+  // and store result in m_AScanPlotIdx
+  {
+    auto idx = m_AScanPlotIdx_canvas;
+    if (uspam::recon::ReconParams::flip(m_data->frameIdx)) {
+      idx -= m_reconParams->params.PA.rotateOffset;
+
+      constexpr int AScansPerBScan = 1000;
+      if (idx < 0) {
+        idx += AScansPerBScan;
+      } else if (idx >= AScansPerBScan) {
+        idx -= AScansPerBScan;
+      }
+
+      idx = AScansPerBScan - 1 - idx;
+    }
+
+    emit statusMessage(
+        QString("Select AScan: %1. Flip: %2")
+            .arg(idx)
+            .arg(uspam::recon::ReconParams::flip(m_data->frameIdx)));
+
+    m_AScanPlotIdx = idx;
+  }
+
   // Display aline
   const auto &rf = m_data->rf;
 
   arma::vec x(rf.n_rows, arma::fill::none);
   std::iota(x.begin(), x.end(), 0);
-
   const auto y = arma::conv_to<arma::vec>::from(rf.col(m_AScanPlotIdx));
-
-  std::span _x(x.memptr(), x.size());
-  std::span _y(y.memptr(), y.size());
-
-  m_AScanPlot->plot(_x, _y);
+  m_AScanPlot->plot(x, y);
 }
 
 void FrameController::plotCurrentBScan() {
