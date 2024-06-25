@@ -13,6 +13,25 @@
 
 namespace fs = std::filesystem;
 
+struct PerformanceMetrics {
+  float fileloader_ms{};
+  float splitRfPAUS_ms{};
+  float reconUSPA_ms{};
+  float makeOverlay_ms{};
+  float writeImages_ms{};
+
+  // Template function to handle the common formatting
+  template <typename Stream>
+  friend Stream &operator<<(Stream &stream, const PerformanceMetrics &pm) {
+    stream << "fileloader " << static_cast<int>(pm.fileloader_ms) << ", "
+           << "splitRfPAUS " << static_cast<int>(pm.splitRfPAUS_ms) << ", "
+           << "reconUSPA " << static_cast<int>(pm.reconUSPA_ms) << ", "
+           << "makeOverlay " << static_cast<int>(pm.makeOverlay_ms) << ", "
+           << "writeImages " << static_cast<int>(pm.writeImages_ms);
+    return stream;
+  }
+};
+
 /**
  * Contains all the data for one BScan
  * From RF to Image

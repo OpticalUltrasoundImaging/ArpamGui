@@ -1,5 +1,6 @@
 #include "DataProcWorker.hpp"
 #include "strConvUtils.hpp"
+#include <QTextStream>
 #include <QThreadPool>
 #include <QtDebug>
 #include <QtLogging>
@@ -160,24 +161,6 @@ public:
   void run() override { img.save(fname); }
 };
 
-struct PerformanceMetrics {
-  float fileloader_ms{};
-  float splitRfPAUS_ms{};
-  float reconUSPA_ms{};
-  float makeOverlay_ms{};
-  float writeImages_ms{};
-
-  [[nodiscard]] auto toString() const -> std::string {
-    std::stringstream ss;
-    ss << "fileloader " << static_cast<int>(fileloader_ms);
-    ss << ", splitRfPAUS " << static_cast<int>(splitRfPAUS_ms);
-    ss << ", reconUSPA " << static_cast<int>(reconUSPA_ms);
-    ss << ", makeOverlay " << static_cast<int>(makeOverlay_ms);
-    // ss << ", writeImages " << static_cast<int>(writeImages_ms);
-    return ss.str();
-  }
-};
-
 } // namespace
 
 void DataProcWorker::processCurrentFrame() {
@@ -316,7 +299,9 @@ void DataProcWorker::processCurrentFrame() {
                  .arg(m_frameIdx)
                  .arg(m_loader.size())
                  .arg(static_cast<int>(elapsed));
-  msg += perfMetrics.toString();
+
+  QTextStream stream(&msg);
+  stream << perfMetrics;
 
   emit error(msg);
 }
