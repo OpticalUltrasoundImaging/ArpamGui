@@ -7,6 +7,7 @@
 #include "CanvasOverlay.hpp"
 #include "CanvasTicks.hpp"
 #include <QAbstractListModel>
+#include <QCursor>
 #include <QEvent>
 #include <QGraphicsItem>
 #include <QGraphicsPolygonItem>
@@ -156,6 +157,7 @@ private:
 
   // Panning
   QPointF m_lastPanPoint;
+  QCursor m_panLastCursor;
 
   // Image
   QPixmap m_Pixmap; // Image pixmap

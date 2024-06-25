@@ -455,6 +455,7 @@ void Canvas::panStartEvent(QMouseEvent *event) {
   event->accept();
   m_lastPanPoint = event->pos();
 
+  m_panLastCursor = cursor();
   setCursor(Qt::ClosedHandCursor);
 }
 
@@ -466,7 +467,7 @@ void Canvas::panMoveEvent(QMouseEvent *event) {
   m_lastPanPoint = event->pos();
 }
 
-void Canvas::panEndEvent(QMouseEvent *event) { setCursor(Qt::OpenHandCursor); }
+void Canvas::panEndEvent(QMouseEvent *event) { setCursor(m_panLastCursor); }
 
 void Canvas::updateTransform() {
   // Update transform for the QGraphicsView
