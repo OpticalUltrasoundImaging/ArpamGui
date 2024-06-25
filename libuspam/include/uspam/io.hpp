@@ -37,6 +37,22 @@ void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
   });
 }
 
+// Function to convert matrix using OpenCV's cv::parallel_for_
+template <typename Tin, typename Tout>
+void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
+                       const Tout alpha = 1, const Tout beta = 0) {
+  output.set_size(input.n_rows, input.n_cols);
+  cv::parallel_for_(cv::Range(0, input.n_cols), [&](const cv::Range &range) {
+    for (int col = range.start; col < range.end; ++col) {
+      const auto *inptr = input.colptr(col);
+      auto *outptr = output.colptr(col);
+      for (int i = 0; i < input.n_rows; ++i) {
+        outptr[i] = cv::saturate_cast<Tout>(inptr[i]) * alpha + beta;
+      }
+    }
+  });
+}
+
 template <typename TypeInBin> class BinfileLoader {
 private:
   std::ifstream file;
@@ -118,11 +134,12 @@ public:
     const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
     file.seekg(start_pos, std::ios::beg);
 
+    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != alinesPerBscan) {
+      rf.set_size(RF_ALINE_SIZE, alinesPerBscan);
+    }
+
     if constexpr (std::is_same_v<T, TypeInBin>) {
       // type stored in bin is the same type as the buffer give. Use directly
-      if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != alinesPerBscan) {
-        rf.resize(RF_ALINE_SIZE, alinesPerBscan);
-      }
       return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
 
     } else {
@@ -136,7 +153,14 @@ public:
       // Read file
       // NOLINTNEXTLINE(*-reinterpret-cast)
       if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
-        parallel_convert<TypeInBin, T>(readBuffer, rf);
+
+        // Convert from uint16_t to FloatType, also scale from uint16_t space to
+        // voltage [-1, 1]
+        constexpr T alpha =
+            static_cast<T>(1) / static_cast<T>(1 << 15); // 1 / (2**15)
+        constexpr T beta = -1;
+        parallel_convert_<TypeInBin, T>(readBuffer, rf, alpha, beta);
+
         return true;
       }
       return false;
@@ -149,32 +173,9 @@ public:
   }
 
   template <typename T> auto get() -> arma::Mat<T> {
-    if (!isOpen()) [[unlikely]] {
-      return {};
-    }
-
-    std::lock_guard lock(mtx);
-    assert(currScanIdx < numScans);
-
-    const auto sizeBytes = scanSizeBytes();
-    const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
-    file.seekg(start_pos, std::ios::beg);
-
-    // Type stored in bin different from the given buffer.
-    // Read into .readBuffer first then convert
-    if (readBuffer.n_rows != RF_ALINE_SIZE ||
-        readBuffer.n_cols != alinesPerBscan) {
-      readBuffer.resize(RF_ALINE_SIZE, alinesPerBscan);
-    }
-
-    // Read file
-    // NOLINTNEXTLINE(*-reinterpret-cast)
-    if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
-      arma::Mat<T> out;
-      parallel_convert<TypeInBin, T>(readBuffer, out);
-      return out;
-    }
-    return {};
+    arma::Mat<T> out;
+    get(out);
+    return out;
   }
 
   template <typename T> auto get(int idx) -> arma::Mat<T> {

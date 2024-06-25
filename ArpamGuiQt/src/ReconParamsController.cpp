@@ -1,5 +1,6 @@
 #include "ReconParamsController.hpp"
 #include "uspam/reconParams.hpp"
+#include <QDoubleSpinBox>
 #include <QIntValidator>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -75,6 +76,23 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return spinBox;
   };
 
+  const auto makeQDoubleSpinBox =
+      [this]<typename FloatType>(const std::pair<FloatType, FloatType> &range,
+                                 FloatType singleStep, FloatType &value,
+                                 auto *context) {
+        auto *spinBox = new QDoubleSpinBox;
+        spinBox->setRange(static_cast<double>(range.first),
+                          static_cast<double>(range.second));
+        spinBox->setValue(static_cast<double>(value));
+        spinBox->setSingleStep(static_cast<double>(singleStep));
+        connect(spinBox, &QDoubleSpinBox::valueChanged, context,
+                [&](double newValue) {
+                  value = static_cast<FloatType>(newValue);
+                  this->_paramsUpdatedInternal();
+                });
+        return spinBox;
+      };
+
   const QString &help_Freq = "Parameters to the FIR filter.";
   const QString &help_Gain = "Parameters to the FIR filter.";
 
@@ -131,7 +149,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(help_Truncate);
       layout->addWidget(label, row, 1);
 
-      auto *spinBox = makeQSpinBox({0, 1000}, p.noiseFloor, this);
+      auto *spinBox = makeQSpinBox({0, 1000}, p.truncate, this);
       layout->addWidget(spinBox, row++, 2);
 
       updateGuiFromParamsCallbacks.emplace_back(
@@ -143,7 +161,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(help_NoiseFloor);
       layout->addWidget(label, row, 1);
 
-      auto *spinBox = makeQSpinBox({0, 2000}, p.noiseFloor, this);
+      auto *spinBox =
+          makeQDoubleSpinBox({0.0f, 0.06f}, 0.001f, p.noiseFloor, this);
       layout->addWidget(spinBox, row++, 2);
 
       updateGuiFromParamsCallbacks.emplace_back(
@@ -155,7 +174,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(help_DynamicRange);
       layout->addWidget(label, row, 1);
 
-      auto *spinBox = makeQSpinBox({10, 70}, p.desiredDynamicRange, this);
+      auto *spinBox =
+          makeQDoubleSpinBox({10.0f, 70.0f}, 1.0f, p.desiredDynamicRange, this);
       layout->addWidget(spinBox, row++, 2);
 
       updateGuiFromParamsCallbacks.emplace_back(

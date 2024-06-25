@@ -70,6 +70,6 @@ void AlinePlot::plot(std::span<const FloatType> x,
   // TODO Need to schedule replot
   customPlot->graph(0)->setData(m_x, m_y, true);
   customPlot->xAxis->setRange(x.front(), x.back());
-  customPlot->yAxis->setRange(0, 60000);
+  customPlot->yAxis->setRange(-1, 1);
   customPlot->replot();
 }

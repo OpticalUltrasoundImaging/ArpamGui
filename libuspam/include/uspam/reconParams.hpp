@@ -12,9 +12,9 @@ struct ReconParams {
   std::vector<double> filterFreq;
   std::vector<double> filterGain;
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
-  int noiseFloor;
-  int desiredDynamicRange;
   int rotateOffset;
+  float noiseFloor;
+  float desiredDynamicRange;
 
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;
@@ -27,9 +27,13 @@ struct ReconParams2 {
 
   static inline ReconParams2 system2024v1() {
     // NOLINTBEGIN(*-magic-numbers)
-    ReconParams PA{
-        {0, 0.03, 0.035, 0.2, 0.22, 1}, {0, 0, 1, 1, 0, 0}, 250, 300, 35, 25};
-    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 200, 48, 25};
+    ReconParams PA{{0, 0.03, 0.035, 0.2, 0.22, 1},
+                   {0, 0, 1, 1, 0, 0},
+                   250,
+                   25,
+                   0.009,
+                   35.0};
+    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 25, 0.006, 48.0};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
