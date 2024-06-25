@@ -47,60 +47,59 @@ FrameController::FrameController(ReconParamsController *paramsController,
   // UI
   auto *vlayout = new QVBoxLayout;
   this->setLayout(vlayout);
-  {
-    auto *hlayout = new QHBoxLayout;
-    vlayout->addLayout(hlayout);
-
-    auto *btnPickFile = new QPushButton("Load bin file");
-    hlayout->addWidget(btnPickFile);
-    connect(btnPickFile, &QPushButton::clicked, m_actOpenFileSelectDialog,
-            &QAction::triggered);
-
-    hlayout->addWidget(m_btnPlayPause);
-    m_btnPlayPause->setDisabled(true);
-
-    connect(m_btnPlayPause, &QPushButton::clicked, this,
-            [&] { updatePlayingState(!m_isPlaying); });
-  }
 
   {
     auto *hlayout = new QHBoxLayout;
     vlayout->addLayout(hlayout);
 
-    auto *frameNumLabel = new QLabel;
-    frameNumLabel->setText("Frame:");
-    hlayout->addWidget(frameNumLabel);
+    // Frame num label and spinbox
+    {
+      auto *frameNumLabel = new QLabel;
+      frameNumLabel->setText("Frame:");
+      hlayout->addWidget(frameNumLabel);
 
-    // SpinBox to display frame num
-    m_frameNumSpinBox = new QSpinBox;
-    hlayout->addWidget(m_frameNumSpinBox);
-    m_frameNumSpinBox->setDisabled(true);
-    connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
-      auto val = m_frameNumSpinBox->value();
-      emit sigFrameNumUpdated(val);
-      updatePlayingState(false);
-    });
+      // SpinBox to display frame num
+      m_frameNumSpinBox = new QSpinBox;
+      hlayout->addWidget(m_frameNumSpinBox);
+      m_frameNumSpinBox->setDisabled(true);
+      connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
+        auto val = m_frameNumSpinBox->value();
+        emit sigFrameNumUpdated(val);
+        updatePlayingState(false);
+      });
+    }
 
     // Slider to select frame num in the sequence
-    m_frameSlider = new QSlider(Qt::Horizontal);
-    vlayout->addWidget(m_frameSlider);
-    m_frameSlider->setDisabled(true);
-    m_frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
+    {
+      m_frameSlider = new QSlider(Qt::Horizontal);
+      hlayout->addWidget(m_frameSlider);
+      m_frameSlider->setDisabled(true);
+      m_frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
 
-    connect(m_frameSlider, &QSlider::sliderPressed, this, [&] {
-      updatePlayingState(false);
-      QToolTip::showText(QCursor::pos(),
-                         QString::number(m_frameSlider->value()));
-    });
+      connect(m_frameSlider, &QSlider::sliderPressed, this, [&] {
+        updatePlayingState(false);
+        QToolTip::showText(QCursor::pos(),
+                           QString::number(m_frameSlider->value()));
+      });
 
-    connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
-      const auto val = m_frameSlider->value();
-      QToolTip::showText(QCursor::pos(), QString::number(val));
-      m_frameNumSpinBox->setValue(val);
-    });
+      connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
+        const auto val = m_frameSlider->value();
+        QToolTip::showText(QCursor::pos(), QString::number(val));
+        m_frameNumSpinBox->setValue(val);
+      });
 
-    connect(m_frameSlider, &QSlider::sliderReleased, this,
-            [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
+      connect(m_frameSlider, &QSlider::sliderReleased, this,
+              [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
+    }
+
+    // Play/pause button
+    {
+      hlayout->addWidget(m_btnPlayPause);
+      m_btnPlayPause->setDisabled(true);
+
+      connect(m_btnPlayPause, &QPushButton::clicked, this,
+              [&] { updatePlayingState(!m_isPlaying); });
+    }
   }
 
   // Connections
@@ -158,7 +157,7 @@ FrameController::FrameController(ReconParamsController *paramsController,
   {
     connect(m_coregDisplay, &CoregDisplay::AScanSelected, [this](int idx) {
       if (uspam::recon::ReconParams::flip(m_data->frameIdx)) {
-        idx += m_reconParams->params.PA.rotateOffset;
+        idx -= m_reconParams->params.PA.rotateOffset;
 
         constexpr int AScansPerBScan = 1000;
         if (idx < 0) {
@@ -166,7 +165,14 @@ FrameController::FrameController(ReconParamsController *paramsController,
         } else if (idx >= AScansPerBScan) {
           idx -= AScansPerBScan;
         }
+
+        idx = AScansPerBScan - 1 - idx;
       }
+
+      emit statusMessage(
+          QString("Select AScan: %1. Flip: %2")
+              .arg(idx)
+              .arg(uspam::recon::ReconParams::flip(m_data->frameIdx)));
 
       m_AScanPlotIdx = idx;
 

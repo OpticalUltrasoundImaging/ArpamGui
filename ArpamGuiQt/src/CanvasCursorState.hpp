@@ -47,6 +47,7 @@ struct CanvasCursorState {
     } else if (angle < 0) {
       angle += 360;
     }
+    angle = 360 - angle;
 
     const auto idx = std::clamp(
         static_cast<int>(std::round(angle / 360 * numAScansPerBScan)), 0,

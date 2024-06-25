@@ -99,6 +99,12 @@ MainWindow::MainWindow(QWidget *parent)
     dock->setWidget(m_frameController);
     m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
     m_viewMenu->addAction(dock->toggleViewAction());
+
+    connect(m_frameController, &FrameController::message, this,
+            &MainWindow::logError);
+
+    connect(m_frameController, &FrameController::statusMessage, statusBar(),
+            &QStatusBar::showMessage);
   }
 
   // Tabify ReconParamsController dock and Annotations dock on the left

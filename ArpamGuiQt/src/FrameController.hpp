@@ -1,9 +1,9 @@
 #pragma once
 
 #include "AScanPlot.hpp"
-#include "ReconParamsController.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
+#include "ReconParamsController.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
 #include <QAction>
 #include <QPushButton>
@@ -18,7 +18,8 @@ class FrameController : public QWidget {
 public:
   // FrameController does not own the worker or the coregDisplay (both are owned
   // by MainWindow). It merely keeps a reference to it for control
-  explicit FrameController(ReconParamsController *paramsController, DataProcWorker *worker, CoregDisplay *coregDisplay,
+  explicit FrameController(ReconParamsController *paramsController,
+                           DataProcWorker *worker, CoregDisplay *coregDisplay,
                            QWidget *parent = nullptr);
 
 public slots:
@@ -46,6 +47,8 @@ public slots:
   void plotCurrentBScan();
 
 signals:
+  void message(QString);
+  void statusMessage(QString message, int timeout = 0);
   void sigBinfileSelected(QString);
   void sigPlay();
   void sigPause();

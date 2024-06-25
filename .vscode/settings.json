@@ -78,6 +78,7 @@
     "vector": "cpp",
     "algorithm": "cpp",
     "type_traits": "cpp",
-    "xutility": "cpp"
+    "xutility": "cpp",
+    "system_error": "cpp"
   }
 }

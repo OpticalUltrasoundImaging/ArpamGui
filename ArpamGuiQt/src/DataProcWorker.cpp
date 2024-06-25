@@ -61,6 +61,8 @@ void DataProcWorker::initDataBuffers() {
   QMutexLocker lock(&m_paramsMutex);
   m_data = std::make_shared<BScanData<FloatType>>(m_ioparams,
                                                   m_loader.getAlinesPerBscan());
+
+  m_data->frameIdx = m_frameIdx;
 }
 
 void DataProcWorker::setBinfile(const fs::path &binfile) {
