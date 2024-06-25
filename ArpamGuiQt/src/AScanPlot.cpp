@@ -1,4 +1,4 @@
-#include "AlinePlot.hpp"
+#include "AScanPlot.hpp"
 #include <QBrush>
 #include <QColor>
 #include <QPen>
@@ -7,7 +7,7 @@
 #include <qcustomplot.h>
 #include <span>
 
-AlinePlot::AlinePlot(QWidget *parent)
+AScanPlot::AScanPlot(QWidget *parent)
     : QWidget(parent), customPlot(new QCustomPlot) {
 
   // Set dark background color
@@ -55,7 +55,7 @@ AlinePlot::AlinePlot(QWidget *parent)
   layout->addWidget(customPlot);
 }
 
-void AlinePlot::plot(std::span<const FloatType> x,
+void AScanPlot::plot(std::span<const FloatType> x,
                      std::span<const FloatType> y) {
   assert(x.size() == y.size());
 

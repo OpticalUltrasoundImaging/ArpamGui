@@ -1,5 +1,5 @@
 #include "FrameController.hpp"
-#include "AlinePlot.hpp"
+#include "AScanPlot.hpp"
 #include "CoregDisplay.hpp"
 #include "datetime.hpp"
 #include "strConvUtils.hpp"
@@ -26,7 +26,7 @@
 FrameController::FrameController(DataProcWorker *worker,
                                  CoregDisplay *coregDisplay, QWidget *parent)
     : QWidget(parent), m_worker(worker), m_coregDisplay(coregDisplay),
-      m_alinePlot(new AlinePlot(this)),
+      m_AScanPlot(new AScanPlot(this)),
       m_btnPlayPause(new QPushButton("Play", this)),
       m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
 
@@ -156,13 +156,13 @@ FrameController::FrameController(DataProcWorker *worker,
   // Signals emittied from CoregDisplay
   {
     connect(m_coregDisplay, &CoregDisplay::AScanSelected, [this](int idx) {
-      m_alinePlotIdx = idx;
+      m_AScanPlotIdx = idx;
 
       plotCurrentAScan();
     });
   }
 
-  vlayout->addWidget(m_alinePlot);
+  vlayout->addWidget(m_AScanPlot);
 }
 
 void FrameController::openFileSelectDialog() {
@@ -285,7 +285,7 @@ void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {
 }
 
 void FrameController::AScanIdxUpdated(int idx) {
-  m_alinePlotIdx = idx;
+  m_AScanPlotIdx = idx;
   plotCurrentAScan();
 }
 
@@ -296,12 +296,12 @@ void FrameController::plotCurrentAScan() {
   arma::vec x(rf.n_rows, arma::fill::none);
   std::iota(x.begin(), x.end(), 0);
 
-  const auto y = arma::conv_to<arma::vec>::from(rf.col(m_alinePlotIdx));
+  const auto y = arma::conv_to<arma::vec>::from(rf.col(m_AScanPlotIdx));
 
   std::span _x(x.memptr(), x.size());
   std::span _y(y.memptr(), y.size());
 
-  m_alinePlot->plot(_x, _y);
+  m_AScanPlot->plot(_x, _y);
 }
 
 void FrameController::plotCurrentBScan() {

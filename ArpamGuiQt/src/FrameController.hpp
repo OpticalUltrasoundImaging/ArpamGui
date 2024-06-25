@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AlinePlot.hpp"
+#include "AScanPlot.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
@@ -60,8 +60,8 @@ private:
   DataProcWorker *m_worker;
   CoregDisplay *m_coregDisplay;
 
-  AlinePlot *m_alinePlot;
-  int m_alinePlotIdx{};
+  AScanPlot *m_AScanPlot;
+  int m_AScanPlotIdx{};
 
   QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;

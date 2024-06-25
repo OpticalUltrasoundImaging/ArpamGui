@@ -5,12 +5,12 @@
 #include <qcustomplot.h>
 #include <span>
 
-class AlinePlot : public QWidget {
+class AScanPlot : public QWidget {
   Q_OBJECT
 public:
   using FloatType = double;
 
-  AlinePlot(QWidget *parent = nullptr);
+  explicit AScanPlot(QWidget *parent = nullptr);
 
   auto getPlot() { return customPlot; }
 

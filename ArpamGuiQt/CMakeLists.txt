@@ -43,8 +43,8 @@ qt_add_executable(${EXE_NAME}
     src/MainWindow.cpp
     src/Canvas.hpp
     src/Canvas.cpp
-    src/AlinePlot.hpp
-    src/AlinePlot.cpp
+    src/AScanPlot.hpp
+    src/AScanPlot.cpp
     src/Annotation/Annotation.hpp
     src/Annotation/Annotation.cpp
     src/Annotation/AnnotationModel.hpp
