@@ -7,6 +7,7 @@
 #include <QWaitCondition>
 #include <atomic>
 #include <filesystem>
+#include <memory>
 #include <uspam/io.hpp>
 #include <uspam/recon.hpp>
 #include <uspam/uspam.hpp>
@@ -121,7 +122,7 @@ private:
   fs::path m_imageSaveDir;
 
   // Buffers;
-  BScanData<FloatType> m_data;
+  std::shared_ptr<BScanData<FloatType>> m_data;
 
   // mutex for ReconParams2 and IOParams
   QMutex m_paramsMutex;
