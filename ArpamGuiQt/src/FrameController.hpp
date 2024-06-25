@@ -9,6 +9,7 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QString>
+#include <memory>
 #include <rapidjson/document.h>
 
 class FrameController : public QWidget {
@@ -38,6 +39,11 @@ public slots:
   void nextFrame();
   void prevFrame();
 
+  void AScanIdxUpdated(int idx);
+
+  void plotCurrentAScan();
+  void plotCurrentBScan();
+
 signals:
   void sigBinfileSelected(QString);
   void sigPlay();
@@ -55,6 +61,7 @@ private:
   CoregDisplay *m_coregDisplay;
 
   AlinePlot *m_alinePlot;
+  int m_alinePlotIdx{};
 
   QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;
@@ -62,6 +69,10 @@ private:
   QSpinBox *m_frameNumSpinBox;
   QSlider *m_frameSlider;
   bool m_isPlaying{false};
+
+  // Bscan Data. Processing is done in the worker, and a pointer of the current
+  // result is stored here
+  std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
 
   // Annotation JSON document
   annotation::AnnotationJsonFile m_doc;

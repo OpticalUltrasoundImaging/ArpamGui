@@ -37,22 +37,10 @@ FrameController::FrameController(DataProcWorker *worker,
   // Result ready
   connect(worker, &DataProcWorker::resultReady, this,
           [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
-            // Display images
-            m_coregDisplay->imshow(data->PAUSradial_img, data->USradial_img,
-                                   data->fct);
+            m_data = std::move(data);
 
-            // Display aline
-            const auto &rf = data->rf;
-
-            arma::vec x(rf.n_rows, arma::fill::none);
-            std::iota(x.begin(), x.end(), 0);
-
-            const auto y = arma::conv_to<arma::vec>::from(rf.col(0));
-
-            std::span _x(x.memptr(), x.size());
-            std::span _y(y.memptr(), y.size());
-
-            m_alinePlot->plot(_x, _y);
+            plotCurrentBScan();
+            plotCurrentAScan();
           });
 
   // UI
@@ -281,7 +269,34 @@ void FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
   auto *model = m_coregDisplay->model();
   m_doc.setAnnotationForFrame(frame, model->annotations());
 }
+
 void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {
   auto *model = m_coregDisplay->model();
   model->setAnnotations(m_doc.getAnnotationForFrame(frame));
+}
+
+void FrameController::AScanIdxUpdated(int idx) {
+  m_alinePlotIdx = idx;
+  plotCurrentAScan();
+}
+
+void FrameController::plotCurrentAScan() {
+  // Display aline
+  const auto &rf = m_data->rf;
+
+  arma::vec x(rf.n_rows, arma::fill::none);
+  std::iota(x.begin(), x.end(), 0);
+
+  const auto y = arma::conv_to<arma::vec>::from(rf.col(m_alinePlotIdx));
+
+  std::span _x(x.memptr(), x.size());
+  std::span _y(y.memptr(), y.size());
+
+  m_alinePlot->plot(_x, _y);
+}
+
+void FrameController::plotCurrentBScan() {
+  // Display images
+  m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->USradial_img,
+                         m_data->fct);
 }
