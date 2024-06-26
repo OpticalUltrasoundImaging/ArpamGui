@@ -22,6 +22,7 @@
 #include <QtLogging>
 #include <filesystem>
 #include <opencv2/opencv.hpp>
+#include <qsizepolicy.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -163,30 +164,31 @@ MainWindow::MainWindow(QWidget *parent)
     reconParamsDock->raise();
   }
 
-  // Exit button
-  {
-    auto *dock = new QDockWidget("Exit", this);
-    // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
-    this->addDockWidget(Qt::TopDockWidgetArea, dock);
-    m_viewMenu->addAction(dock->toggleViewAction());
+  // // Exit button
+  // {
+  //   auto *dock = new QDockWidget("Exit", this);
+  //   // dock->setFeatures(dock->features() ^
+  //   (QDockWidget::DockWidgetClosable));
+  //   this->addDockWidget(Qt::TopDockWidgetArea, dock);
+  //   m_viewMenu->addAction(dock->toggleViewAction());
 
-    auto *w = new QWidget;
-    auto *layout = new QVBoxLayout;
-    // dockLayout->addLayout(layout);
-    w->setLayout(layout);
-    dock->setWidget(w);
+  //   auto *w = new QWidget;
+  //   auto *layout = new QVBoxLayout;
+  //   // dockLayout->addLayout(layout);
+  //   w->setLayout(layout);
+  //   dock->setWidget(w);
 
-    auto *closeBtn = new QPushButton("Close");
-    layout->addWidget(closeBtn);
-    connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
-    closeBtn->setObjectName("closeButton");
+  //   auto *closeBtn = new QPushButton("Close");
+  //   layout->addWidget(closeBtn);
+  //   connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
+  //   closeBtn->setObjectName("closeButton");
 
-    auto *toggleFullscreenBtn = new QPushButton("Toggle Fullscreen");
-    layout->addWidget(toggleFullscreenBtn);
-    connect(toggleFullscreenBtn, &QPushButton::clicked, this,
-            &MainWindow::toggleFullScreen);
-    toggleFullscreenBtn->setObjectName("toggleFullscreenButton");
-  }
+  //   auto *toggleFullscreenBtn = new QPushButton("Toggle Fullscreen");
+  //   layout->addWidget(toggleFullscreenBtn);
+  //   connect(toggleFullscreenBtn, &QPushButton::clicked, this,
+  //           &MainWindow::toggleFullScreen);
+  //   toggleFullscreenBtn->setObjectName("toggleFullscreenButton");
+  // }
   // End dock config
 
   // Coreg display
