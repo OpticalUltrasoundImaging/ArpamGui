@@ -152,7 +152,7 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
       connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
     }
 
-    hlayout->addWidget(m_AScanPlot);
+    // hlayout->addWidget(m_AScanPlot);
   }
 }
 

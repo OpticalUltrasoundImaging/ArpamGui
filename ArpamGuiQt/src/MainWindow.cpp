@@ -22,6 +22,8 @@
 #include <QtLogging>
 #include <filesystem>
 #include <opencv2/opencv.hpp>
+#include <qdockwidget.h>
+#include <qnamespace.h>
 #include <qsizepolicy.h>
 #include <uspam/defer.h>
 #include <utility>
@@ -164,6 +166,14 @@ MainWindow::MainWindow(QWidget *parent)
     reconParamsDock->raise();
   }
 
+  {
+    auto *dock = new QDockWidget("AScan Plot", this);
+    this->addDockWidget(Qt::RightDockWidgetArea, dock);
+    m_viewMenu->addAction(dock->toggleViewAction());
+
+    dock->setWidget(m_AScanPlot);
+  }
+
   // // Exit button
   // {
   //   auto *dock = new QDockWidget("Exit", this);
@@ -189,6 +199,7 @@ MainWindow::MainWindow(QWidget *parent)
   //           &MainWindow::toggleFullScreen);
   //   toggleFullscreenBtn->setObjectName("toggleFullscreenButton");
   // }
+
   // End dock config
 
   // Coreg display
