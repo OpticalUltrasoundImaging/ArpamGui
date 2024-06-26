@@ -11,6 +11,7 @@
 #include <numbers>
 #include <qcustomplot.h>
 #include <qnamespace.h>
+#include <qsizepolicy.h>
 #include <qwidget.h>
 #include <span>
 #include <uspam/reconParams.hpp>
@@ -93,6 +94,8 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     // customPlot->setInteraction(QCP::iRangeZoom, true);
     customPlot->setInteraction(QCP::iSelectItems, true);
     customPlot->setInteraction(QCP::iSelectPlottables, true);
+
+    customPlot->setMinimumHeight(200);
   }
 
   // UI
@@ -107,7 +110,10 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     /*
      * Plot
      */
+    customPlot->setSizePolicy(QSizePolicy::MinimumExpanding,
+                              QSizePolicy::MinimumExpanding);
     splitter->addWidget(customPlot);
+    splitter->setStretchFactor(0, 1);
 
     /*
      * Plot selector
@@ -160,6 +166,10 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     // layout->setSpacing(0);
     // layout->setContentsMargins(0, 0, 0, 0);
   }
+
+  this->setSizePolicy(QSizePolicy::MinimumExpanding,
+                      QSizePolicy::MinimumExpanding);
+  this->setMinimumSize(QSize{500, 500});
 }
 
 void AScanPlot::plot(std::span<const FloatType> x,
@@ -235,6 +245,8 @@ void AScanPlot::plotCurrentAScan() {
     // Original RF
     const auto &rf = m_data->rf;
     const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
     plot(y);
   } break;
 
@@ -242,12 +254,16 @@ void AScanPlot::plotCurrentAScan() {
     // US rfLog
     const auto &rf = m_data->rfLog.PA;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
     plot(y, false, 0, 256);
   } break;
 
   case PlotType::RFLogUS: {
     // US rfLog
     const auto &rf = m_data->rfLog.US;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y, false, 0, 256);
   } break;
