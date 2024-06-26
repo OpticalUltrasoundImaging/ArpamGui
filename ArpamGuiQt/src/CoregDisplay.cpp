@@ -108,8 +108,8 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   auto *hlayout = new QHBoxLayout;
   vlayout->addLayout(hlayout);
 
-  m_canvasLeft->overlay()->setModality("US");
-  m_canvasRight->overlay()->setModality("PAUS");
+  m_canvasLeft->overlay()->setModality("PAUS");
+  m_canvasRight->overlay()->setModality("US");
 
   for (auto *const canvas : {m_canvasLeft, m_canvasRight}) {
     hlayout->addWidget(canvas);

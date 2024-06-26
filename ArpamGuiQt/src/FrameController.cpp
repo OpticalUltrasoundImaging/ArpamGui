@@ -117,7 +117,10 @@ FrameController::FrameController(ReconParamsController *paramsController,
                                         path);
 
               // Update canvas dipslay
-              m_coregDisplay->setSequenceName(path2QString(path.stem()));
+              {
+              const auto seq = path2QString(path.parent_path().stem() / path.stem());
+              m_coregDisplay->setSequenceName(seq);
+              }
             });
 
     // When frameController's changes it's frame number (through the drag bar
