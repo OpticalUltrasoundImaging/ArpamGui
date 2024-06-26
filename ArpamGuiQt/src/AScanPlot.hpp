@@ -2,6 +2,7 @@
 
 #include <DataProcWorker.hpp>
 #include <QMouseEvent>
+#include <QString>
 #include <QVector>
 #include <QWidget>
 #include <ReconParamsController.hpp>
@@ -15,6 +16,10 @@ class AScanPlot : public QWidget {
 public:
   using FloatType = double;
 
+  enum PlotType { RFRaw, RFEnvUS, RFEnvPA, RFLogUS, RFLogPA, Size };
+  inline static const std::array<QString, Size> PlotTypeStr{
+      "RF Raw", "RF Env US", "RF Env PA", "RF Log US", "RF Log PA"};
+
   explicit AScanPlot(ReconParamsController *reconParams,
                      QWidget *parent = nullptr);
 
@@ -22,8 +27,9 @@ public:
 
   void plot(std::span<const FloatType> x, std::span<const FloatType> y);
 
-  template <typename T> void plot(std::span<const T> y) {
-
+  template <typename T>
+  void plot(std::span<const T> y, bool autoScaleY = false,
+            FloatType yMin = -1.0, FloatType yMax = 1.0) {
     ensureX(y.size());
 
     // Ensure m_y size
@@ -42,7 +48,18 @@ public:
     // replot
     customPlot->graph(0)->setData(m_x, m_y, true);
     customPlot->xAxis->setRange(m_x.front(), m_x.back());
-    customPlot->yAxis->setRange(-1, 1);
+    if (autoScaleY) {
+      yMin = 99999;
+      yMax = 0;
+      for (int i = 0; i < m_y.size(); ++i) {
+        yMin = std::min(yMin, m_y[i]);
+        yMax = std::max(yMax, m_y[i]);
+      }
+
+      customPlot->yAxis->setRange(yMin, yMax);
+    } else {
+      customPlot->yAxis->setRange(yMin, yMax);
+    }
     customPlot->replot();
   }
 
@@ -74,4 +91,6 @@ private:
   int m_AScanPlotIdx_canvas{}; // Received from canvas, not corrected for flip
                                // and rotation
   int m_AScanPlotIdx{};        // Corrected for flip and rotation
+
+  PlotType m_type{PlotType::RFRaw};
 };

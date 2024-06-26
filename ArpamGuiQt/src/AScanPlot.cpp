@@ -1,7 +1,9 @@
 #include "AScanPlot.hpp"
 #include <QBrush>
+#include <QButtonGroup>
 #include <QColor>
 #include <QPen>
+#include <QRadioButton>
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QVector>
@@ -102,7 +104,55 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     splitter->setOrientation(Qt::Vertical);
     layout->addWidget(splitter);
 
+    /*
+     * Plot
+     */
     splitter->addWidget(customPlot);
+
+    /*
+     * Plot selector
+     */
+    {
+      auto *layout = new QVBoxLayout(this);
+
+      auto *w = new QWidget;
+      w->setLayout(layout);
+      splitter->addWidget(w);
+
+      // Create a button group
+      auto *group = new QButtonGroup(this);
+      group->setExclusive(true);
+
+      // Create radio buttons for each enum value
+      auto *radioRFRaw = new QRadioButton("RF Raw");
+      auto *radioRFEnvUS = new QRadioButton("RF Env US");
+      auto *radioRFEnvPA = new QRadioButton("RF Env PA");
+      auto *radioRFLogUS = new QRadioButton("RF Log US");
+      auto *radioRFLogPA = new QRadioButton("RF Log PA");
+
+      // Add buttons to the layout and button group
+      layout->addWidget(radioRFRaw);
+      layout->addWidget(radioRFEnvUS);
+      layout->addWidget(radioRFEnvPA);
+      layout->addWidget(radioRFLogUS);
+      layout->addWidget(radioRFLogPA);
+
+      group->addButton(radioRFRaw, static_cast<int>(PlotType::RFRaw));
+      group->addButton(radioRFEnvUS, static_cast<int>(PlotType::RFEnvUS));
+      group->addButton(radioRFEnvPA, static_cast<int>(PlotType::RFEnvPA));
+      group->addButton(radioRFLogUS, static_cast<int>(PlotType::RFLogUS));
+      group->addButton(radioRFLogPA, static_cast<int>(PlotType::RFLogPA));
+
+      // Connect the button group's signal to a lambda function
+      connect(group, &QButtonGroup::idClicked, [this](int id) {
+        m_type = static_cast<PlotType>(id);
+        plotCurrentAScan();
+      });
+
+      radioRFRaw->click();
+      radioRFEnvPA->setDisabled(true);
+      radioRFEnvUS->setDisabled(true);
+    }
 
     // Stretchable spacer
     splitter->addWidget(new QWidget);
@@ -147,6 +197,9 @@ void AScanPlot::ensureX(int size) {
 }
 
 void AScanPlot::plotCurrentAScan() {
+  if (m_data == nullptr) [[unlikely]] {
+    return;
+  }
 
   // Correct for flip and rotation in the selected AScan idx
   // and store result in m_AScanPlotIdx
@@ -177,11 +230,37 @@ void AScanPlot::plotCurrentAScan() {
    * Plot AScan
    */
 
-  {
+  switch (m_type) {
+  case PlotType::RFRaw: {
     // Original RF
     const auto &rf = m_data->rf;
     const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
     plot(y);
+  } break;
+
+  case PlotType::RFLogPA: {
+    // US rfLog
+    const auto &rf = m_data->rfLog.PA;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y, false, 0, 256);
+  } break;
+
+  case PlotType::RFLogUS: {
+    // US rfLog
+    const auto &rf = m_data->rfLog.US;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y, false, 0, 256);
+  } break;
+
+  case PlotType::RFEnvPA: {
+    // TODO
+  } break;
+  case PlotType::RFEnvUS: {
+    // TODO
+  } break;
+  case Size: { // NOOP
+    break;
+  }
   }
 }
 
