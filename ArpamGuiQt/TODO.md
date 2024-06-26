@@ -13,6 +13,7 @@
 [x] Hotkeys to support selecting frame tools (Default [D], Line [L], Rect [R], etc.)
 [x] Hotkey [Ctrl-F] for fullscreen
 [x] Float/double proc pipeline
+[x] AScan plot
 
 - Float ~150ms
 - Double ~160ms

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QVector>
+#include <QMouseEvent>
 #include <QWidget>
 #include <qcustomplot.h>
 #include <span>
@@ -16,6 +17,8 @@ public:
 
 public slots:
   void plot(std::span<const FloatType> x, std::span<const FloatType> y);
+
+  void showPointToolTip(QMouseEvent *event);
 
 private:
   QCustomPlot *customPlot;
