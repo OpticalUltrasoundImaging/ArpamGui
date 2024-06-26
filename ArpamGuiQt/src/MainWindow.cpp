@@ -45,7 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
 
       textEdit(new QPlainTextEdit(this)),
       reconParamsController(new ReconParamsController),
-      m_AScanPlot(new AScanPlot), m_coregDisplay(new CoregDisplay(m_AScanPlot)),
+      m_AScanPlot(new AScanPlot(reconParamsController)),
+      m_coregDisplay(new CoregDisplay(m_AScanPlot)),
       m_frameController(new FrameController(reconParamsController, worker,
                                             m_AScanPlot, m_coregDisplay))
 

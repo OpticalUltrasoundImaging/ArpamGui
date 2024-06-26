@@ -42,9 +42,6 @@ public slots:
   void nextFrame();
   void prevFrame();
 
-  void AScanIdxUpdated(int idx);
-
-  void plotCurrentAScan();
   void plotCurrentBScan();
 
 signals:
@@ -70,9 +67,6 @@ private:
 
   // Ptr to the AScanPlot to control 2D plotting
   AScanPlot *m_AScanPlot;
-  int m_AScanPlotIdx_canvas{}; // Received from canvas, not corrected for flip
-                               // and rotation
-  int m_AScanPlotIdx{};        // Corrected for flip and rotation
 
   QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;

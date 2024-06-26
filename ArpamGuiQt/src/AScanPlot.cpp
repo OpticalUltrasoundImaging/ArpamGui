@@ -2,15 +2,19 @@
 #include <QBrush>
 #include <QColor>
 #include <QPen>
+#include <QSplitter>
 #include <QVBoxLayout>
 #include <QVector>
 #include <cmath>
 #include <numbers>
 #include <qcustomplot.h>
+#include <qnamespace.h>
+#include <qwidget.h>
 #include <span>
+#include <uspam/reconParams.hpp>
 
-AScanPlot::AScanPlot(QWidget *parent)
-    : QWidget(parent), customPlot(new QCustomPlot) {
+AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
+    : QWidget(parent), m_reconParams(reconParams), customPlot(new QCustomPlot) {
 
   /*
    * Setup the customPlot
@@ -94,10 +98,17 @@ AScanPlot::AScanPlot(QWidget *parent)
     auto *layout = new QVBoxLayout;
     setLayout(layout);
 
-    layout->addWidget(customPlot);
+    auto *splitter = new QSplitter;
+    splitter->setOrientation(Qt::Vertical);
+    layout->addWidget(splitter);
 
-    layout->setSpacing(0);
-    layout->setContentsMargins(0, 0, 0, 0);
+    splitter->addWidget(customPlot);
+
+    // Stretchable spacer
+    splitter->addWidget(new QWidget);
+
+    // layout->setSpacing(0);
+    // layout->setContentsMargins(0, 0, 0, 0);
   }
 }
 
@@ -126,4 +137,58 @@ void AScanPlot::showPointToolTip(QMouseEvent *event) {
   const auto y = customPlot->yAxis->pixelToCoord(pos.y());
 
   setToolTip(QString("%1, %2").arg(x).arg(y));
+}
+
+void AScanPlot::ensureX(int size) {
+  if (m_x.size() != size) {
+    m_x.resize(size);
+    std::iota(m_x.begin(), m_x.end(), 0);
+  }
+}
+
+void AScanPlot::plotCurrentAScan() {
+
+  // Correct for flip and rotation in the selected AScan idx
+  // and store result in m_AScanPlotIdx
+  {
+    const bool flip = uspam::recon::ReconParams::flip(m_data->frameIdx);
+    auto idx = m_AScanPlotIdx_canvas;
+    if (flip) {
+      idx -= m_reconParams->params.PA.rotateOffset;
+
+      constexpr int AScansPerBScan = 1000;
+      if (idx < 0) {
+        idx += AScansPerBScan;
+      } else if (idx >= AScansPerBScan) {
+        idx -= AScansPerBScan;
+      }
+
+      idx = AScansPerBScan - 1 - idx;
+    }
+
+    const auto msg = QString("Select AScan: %1. Flip: %2")
+                         .arg(idx)
+                         .arg(flip ? "true" : "false");
+
+    m_AScanPlotIdx = idx;
+  }
+
+  /*
+   * Plot AScan
+   */
+
+  {
+    // Original RF
+    const auto &rf = m_data->rf;
+    const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
+    plot(y);
+  }
+}
+
+void AScanPlot::handleAScanSelected(int idx) {
+  // The index received here is in canvas pixmap coordinates (i.e. doesn't
+  // account for flip and rotation offset)
+  m_AScanPlotIdx_canvas = idx;
+
+  plotCurrentAScan();
 }

@@ -38,10 +38,11 @@ FrameController::FrameController(ReconParamsController *paramsController,
   // Result ready
   connect(worker, &DataProcWorker::resultReady, this,
           [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
-            m_data = std::move(data);
+            m_AScanPlot->setData(data);
+            m_AScanPlot->plotCurrentAScan();
 
+            m_data = std::move(data);
             plotCurrentBScan();
-            plotCurrentAScan();
           });
 
   // UI
@@ -159,13 +160,8 @@ FrameController::FrameController(ReconParamsController *paramsController,
 
   // Signals emittied from CoregDisplay
   {
-    connect(m_coregDisplay, &CoregDisplay::AScanSelected, [this](int idx) {
-      // The index received here is in canvas pixmap coordinates (i.e. doesn't
-      // account for flip and rotation offset)
-      m_AScanPlotIdx_canvas = idx;
-
-      plotCurrentAScan();
-    });
+    connect(m_coregDisplay, &CoregDisplay::AScanSelected, m_AScanPlot,
+            &AScanPlot::handleAScanSelected);
   }
 }
 
@@ -286,47 +282,6 @@ void FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
 void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {
   auto *model = m_coregDisplay->model();
   model->setAnnotations(m_doc.getAnnotationForFrame(frame));
-}
-
-void FrameController::AScanIdxUpdated(int idx) {
-  m_AScanPlotIdx = idx;
-  plotCurrentAScan();
-}
-
-void FrameController::plotCurrentAScan() {
-
-  // Correct for flip and rotation in the selected AScan idx
-  // and store result in m_AScanPlotIdx
-  {
-    auto idx = m_AScanPlotIdx_canvas;
-    if (uspam::recon::ReconParams::flip(m_data->frameIdx)) {
-      idx -= m_reconParams->params.PA.rotateOffset;
-
-      constexpr int AScansPerBScan = 1000;
-      if (idx < 0) {
-        idx += AScansPerBScan;
-      } else if (idx >= AScansPerBScan) {
-        idx -= AScansPerBScan;
-      }
-
-      idx = AScansPerBScan - 1 - idx;
-    }
-
-    emit statusMessage(
-        QString("Select AScan: %1. Flip: %2")
-            .arg(idx)
-            .arg(uspam::recon::ReconParams::flip(m_data->frameIdx)));
-
-    m_AScanPlotIdx = idx;
-  }
-
-  // Display aline
-  const auto &rf = m_data->rf;
-
-  arma::vec x(rf.n_rows, arma::fill::none);
-  std::iota(x.begin(), x.end(), 0);
-  const auto y = arma::conv_to<arma::vec>::from(rf.col(m_AScanPlotIdx));
-  m_AScanPlot->plot(x, y);
 }
 
 void FrameController::plotCurrentBScan() {
