@@ -126,7 +126,7 @@ template <Floating T>
 // FIR filter + Envelope detection + log compression for one
 template <Floating T>
 void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
-                  arma::Mat<uint8_t> &rfLog, bool flip) {
+                  arma::Mat<T> &rfEnv, arma::Mat<uint8_t> &rfLog, bool flip) {
   if (flip) {
     // Do flip
     imutil::fliplr_inplace(rf);
@@ -150,10 +150,13 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
     }
   }();
 
-  arma::Mat<T> env(rf.n_rows, rf.n_cols, arma::fill::none);
+  if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
+    rfEnv.set_size(rf.n_rows, rf.n_cols);
+  }
 
-  recon<T>(rf, kernel, env);
-  logCompress<T>(env, rfLog, params.noiseFloor_mV / 1000,
+  recon<T>(rf, kernel, rfEnv);
+
+  logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV / 1000,
                  params.desiredDynamicRange);
 }
 

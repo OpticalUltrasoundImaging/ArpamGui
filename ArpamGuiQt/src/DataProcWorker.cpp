@@ -143,10 +143,10 @@ namespace {
 
 template <uspam::Floating T>
 void procOne(const uspam::recon::ReconParams &params, arma::Mat<T> &rf,
-             arma::Mat<uint8_t> &rfLog, bool flip, cv::Mat &radial_img,
-             QImage &radial_qimg) {
+             arma::Mat<T> &rfEnv, arma::Mat<uint8_t> &rfLog, bool flip,
+             cv::Mat &radial_img, QImage &radial_qimg) {
 
-  uspam::recon::reconOneScan<T>(params, rf, rfLog, flip);
+  uspam::recon::reconOneScan<T>(params, rf, rfEnv, rfLog, flip);
   radial_img = uspam::imutil::makeRadial(rfLog);
   radial_qimg = cvMatToQImage(radial_img);
 }
@@ -200,15 +200,17 @@ void DataProcWorker::processCurrentFrame() {
   if constexpr (USE_ASYNC) {
     const uspam::TimeIt timeit;
 
-    const auto a1 = std::async(
-        std::launch::async, procOne<FloatType>, std::ref(paramsPA),
-        std::ref(m_data->rfPair.PA), std::ref(m_data->rfLog.PA), flip,
-        std::ref(m_data->PAradial), std::ref(m_data->PAradial_img));
+    const auto a1 =
+        std::async(std::launch::async, procOne<FloatType>, std::ref(paramsPA),
+                   std::ref(m_data->rfPair.PA), std::ref(m_data->rfEnv.PA),
+                   std::ref(m_data->rfLog.PA), flip, std::ref(m_data->PAradial),
+                   std::ref(m_data->PAradial_img));
 
-    const auto a2 = std::async(
-        std::launch::async, procOne<FloatType>, std::ref(paramsUS),
-        std::ref(m_data->rfPair.US), std::ref(m_data->rfLog.US), flip,
-        std::ref(m_data->USradial), std::ref(m_data->USradial_img));
+    const auto a2 =
+        std::async(std::launch::async, procOne<FloatType>, std::ref(paramsUS),
+                   std::ref(m_data->rfPair.US), std::ref(m_data->rfEnv.US),
+                   std::ref(m_data->rfLog.US), flip, std::ref(m_data->USradial),
+                   std::ref(m_data->USradial_img));
 
     a1.wait();
     a2.wait();
@@ -217,10 +219,12 @@ void DataProcWorker::processCurrentFrame() {
   } else {
     const uspam::TimeIt timeit;
 
-    procOne<FloatType>(paramsPA, m_data->rfPair.PA, m_data->rfLog.PA, flip,
-                       m_data->PAradial, m_data->PAradial_img);
-    procOne<FloatType>(paramsUS, m_data->rfPair.US, m_data->rfLog.US, flip,
-                       m_data->USradial, m_data->USradial_img);
+    procOne<FloatType>(paramsPA, m_data->rfPair.PA, m_data->rfEnv.PA,
+                       m_data->rfLog.PA, flip, m_data->PAradial,
+                       m_data->PAradial_img);
+    procOne<FloatType>(paramsUS, m_data->rfPair.US, m_data->rfEnv.US,
+                       m_data->rfLog.US, flip, m_data->USradial,
+                       m_data->USradial_img);
 
     perfMetrics.reconUSPA_ms = timeit.get_ms();
   }

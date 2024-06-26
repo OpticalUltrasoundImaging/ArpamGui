@@ -156,8 +156,6 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       });
 
       radioRFRaw->click();
-      radioRFEnvPA->setDisabled(true);
-      radioRFEnvUS->setDisabled(true);
     }
 
     // Stretchable spacer
@@ -269,14 +267,24 @@ void AScanPlot::plotCurrentAScan() {
   } break;
 
   case PlotType::RFEnvPA: {
-    // TODO
+    // PA rfEnv
+    const auto &rf = m_data->rfEnv.PA;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y, true);
   } break;
   case PlotType::RFEnvUS: {
-    // TODO
+    // US rfEnv
+    const auto &rf = m_data->rfEnv.US;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y, true);
   } break;
-  case Size: { // NOOP
+  case Size:
+    // NOOP
     break;
-  }
   }
 }
 
