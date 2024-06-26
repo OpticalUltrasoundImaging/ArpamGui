@@ -34,10 +34,6 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
     deserializeArray(it->value, params.filterGain);
   }
 
-  if (const auto it = obj.FindMember("noiseFloor"); it != obj.MemberEnd()) {
-    params.noiseFloor_mV = it->value.GetInt();
-  }
-
   params.rotateOffset = obj["rotateOffset"].GetInt();
   params.noiseFloor_mV = obj["noiseFloor"].GetFloat();
   params.desiredDynamicRange = obj["desiredDynamicRange"].GetFloat();
