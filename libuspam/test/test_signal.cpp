@@ -282,7 +282,7 @@ TEST(HilbertTest, CorrectEven1) {
   // }
 
   {
-    const arma::vec env2 = uspam::signal::hilbert_abs(input);
+    const arma::vec env2 = uspam::signal::hilbert_abs<double>(input);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -290,7 +290,7 @@ TEST(HilbertTest, CorrectEven1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs(input, env2);
+    uspam::signal::hilbert_abs<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -298,7 +298,7 @@ TEST(HilbertTest, CorrectEven1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs_r2c(input, env2);
+    uspam::signal::hilbert_abs_r2c<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -342,7 +342,7 @@ TEST(HilbertTest, CorrectEven2) {
   // }
 
   {
-    const arma::vec env2 = uspam::signal::hilbert_abs(input);
+    const arma::vec env2 = uspam::signal::hilbert_abs<double>(input);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -350,7 +350,7 @@ TEST(HilbertTest, CorrectEven2) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs(input, env2);
+    uspam::signal::hilbert_abs<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -358,7 +358,7 @@ TEST(HilbertTest, CorrectEven2) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs_r2c(input, env2);
+    uspam::signal::hilbert_abs_r2c<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -402,7 +402,7 @@ TEST(HilbertTest, CorrectOdd1) {
   // }
 
   {
-    const arma::vec env2 = uspam::signal::hilbert_abs(input);
+    const arma::vec env2 = uspam::signal::hilbert_abs<double>(input);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -410,7 +410,7 @@ TEST(HilbertTest, CorrectOdd1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs(input, env2);
+    uspam::signal::hilbert_abs<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -418,7 +418,7 @@ TEST(HilbertTest, CorrectOdd1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs_r2c(input, env2);
+    uspam::signal::hilbert_abs_r2c<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }

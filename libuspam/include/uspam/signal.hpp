@@ -50,8 +50,8 @@ be between 0 and ``fs/2``. Default is 2.
 of length numtaps
 */
 auto firwin2(int numtaps, const std::span<const double> freq,
-             const std::span<const double> gain, int nfreqs = 0,
-             double fs = 2) -> arma::vec;
+             const std::span<const double> gain, int nfreqs = 0, double fs = 2)
+    -> arma::vec;
 
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
@@ -108,7 +108,7 @@ void hilbert_abs(const std::span<const T> x, const std::span<T> env) {
 template <Floating T>
 [[nodiscard]] inline auto hilbert_abs(const std::span<const T> x) {
   arma::Col<T> env(x.size());
-  hilbert_abs(x, env);
+  hilbert_abs<T>(x, env);
   return env;
 }
 
