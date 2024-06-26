@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AScanPlot.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include "FrameController.hpp"
@@ -53,6 +54,11 @@ private:
 
   QPlainTextEdit *textEdit;
   ReconParamsController *reconParamsController;
+
+  // AScan plot
+  AScanPlot *m_AScanPlot;
+  // BScan display
   CoregDisplay *m_coregDisplay;
+  // Controller
   FrameController *m_frameController;
 };

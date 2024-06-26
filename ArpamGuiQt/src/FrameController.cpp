@@ -24,10 +24,10 @@
 #include <uspam/json.hpp>
 
 FrameController::FrameController(ReconParamsController *paramsController,
-                                 DataProcWorker *worker,
+                                 DataProcWorker *worker, AScanPlot *ascanPlot,
                                  CoregDisplay *coregDisplay, QWidget *parent)
     : QWidget(parent), m_reconParams(paramsController), m_worker(worker),
-      m_coregDisplay(coregDisplay), m_AScanPlot(new AScanPlot(this)),
+      m_coregDisplay(coregDisplay), m_AScanPlot(ascanPlot),
       m_btnPlayPause(new QPushButton("Play", this)),
       m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
 
@@ -118,8 +118,9 @@ FrameController::FrameController(ReconParamsController *paramsController,
 
               // Update canvas dipslay
               {
-              const auto seq = path2QString(path.parent_path().stem() / path.stem());
-              m_coregDisplay->setSequenceName(seq);
+                const auto seq =
+                    path2QString(path.parent_path().stem() / path.stem());
+                m_coregDisplay->setSequenceName(seq);
               }
             });
 
@@ -166,8 +167,6 @@ FrameController::FrameController(ReconParamsController *paramsController,
       plotCurrentAScan();
     });
   }
-
-  vlayout->addWidget(m_AScanPlot);
 }
 
 void FrameController::openFileSelectDialog() {

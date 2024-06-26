@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AScanPlot.hpp"
 #include "Annotation/AnnotationModel.hpp"
 #include "Annotation/AnnotationView.hpp"
 #include "Canvas.hpp"
@@ -14,7 +15,7 @@ public:
   using AnnotationModel = annotation::AnnotationModel;
   using Annotation = annotation::Annotation;
 
-  explicit CoregDisplay(QWidget *parent = nullptr);
+  explicit CoregDisplay(AScanPlot *ascanPlot, QWidget *parent = nullptr);
 
   auto annotationView() { return m_annoView; }
   auto model() { return m_model; }
@@ -33,41 +34,42 @@ signals:
 
 public slots:
   void setCursorMode(Canvas::CursorMode mode) {
-    m_canvasLeft->setCursorMode(mode);
-    m_canvasRight->setCursorMode(mode);
+    m_canvasPAUS->setCursorMode(mode);
+    m_canvasUS->setCursorMode(mode);
   }
 
   void undo() {
-    m_canvasLeft->undo();
-    m_canvasRight->undo();
+    m_canvasPAUS->undo();
+    m_canvasUS->undo();
   }
 
-  void imshow(const QImage &img1, const QImage &img2, double pix2m);
+  void imshow(const QImage &imgPAUS, const QImage &imgUS, double pix2m);
 
   void resetZoom() { actResetZoom->trigger(); }
   void resetZoomOnNextImshow() {
-    m_canvasLeft->resetZoomOnNextImshow();
-    m_canvasRight->resetZoomOnNextImshow();
+    m_canvasPAUS->resetZoomOnNextImshow();
+    m_canvasUS->resetZoomOnNextImshow();
   }
 
   void setSequenceName(const QString &sequence) {
-    m_canvasLeft->overlay()->setSequence(sequence);
-    m_canvasRight->overlay()->setSequence(sequence);
+    m_canvasPAUS->overlay()->setSequence(sequence);
+    m_canvasUS->overlay()->setSequence(sequence);
   }
 
   void setMaxIdx(int maxIdx) {
-    m_canvasLeft->overlay()->setMaxIdx(maxIdx);
-    m_canvasRight->overlay()->setMaxIdx(maxIdx);
+    m_canvasPAUS->overlay()->setMaxIdx(maxIdx);
+    m_canvasUS->overlay()->setMaxIdx(maxIdx);
   }
 
   void setIdx(int idx) {
-    m_canvasLeft->overlay()->setIdx(idx);
-    m_canvasRight->overlay()->setIdx(idx);
+    m_canvasPAUS->overlay()->setIdx(idx);
+    m_canvasUS->overlay()->setIdx(idx);
   }
 
 private:
-  Canvas *m_canvasLeft;
-  Canvas *m_canvasRight;
+  Canvas *m_canvasPAUS;
+  Canvas *m_canvasUS;
+  AScanPlot *m_AScanPlot;
 
   AnnotationModel *m_model;
 
@@ -99,4 +101,5 @@ private:
    * Canvas View Actions
    */
   QAction *actToggleUSCanvas;
+  QAction *actToggleAScanPlot;
 };

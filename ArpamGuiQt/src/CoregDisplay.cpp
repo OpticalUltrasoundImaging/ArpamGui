@@ -1,5 +1,6 @@
 #include "CoregDisplay.hpp"
 
+#include "AScanPlot.hpp"
 #include <QAction>
 #include <QBoxLayout>
 #include <QHBoxLayout>
@@ -10,10 +11,11 @@
 #include <uspam/defer.h>
 #include <utility>
 
-CoregDisplay::CoregDisplay(QWidget *parent)
+CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
     : QWidget(parent),
 
-      m_canvasLeft(new Canvas(this)), m_canvasRight(new Canvas(this)),
+      m_canvasPAUS(new Canvas(this)), m_canvasUS(new Canvas(this)),
+      m_AScanPlot(ascanPlot),
 
       m_model(new annotation::AnnotationModel),
       m_annoView(new annotation::AnnotationView),
@@ -27,30 +29,31 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       actCursorLabelRect(new QAction(QIcon(), "Rect")),
       actCursorLabelFan(new QAction(QIcon(), "Fan")),
 
-      actToggleUSCanvas(new QAction(QIcon(), "Toggle US"))
+      actToggleUSCanvas(new QAction(QIcon(), "Toggle US")),
+      actToggleAScanPlot(new QAction(QIcon(), "Toggle AScan"))
 
 {
   // Connect annotation model to canvas
   m_model->setParent(this);
-  m_canvasLeft->setModel(m_model);
-  m_canvasRight->setModel(m_model);
+  m_canvasPAUS->setModel(m_model);
+  m_canvasUS->setModel(m_model);
 
   // Connect annotation model to the table view
   m_annoView->setModel(m_model);
 
   // Signals from canvas
-  connect(m_canvasLeft, &Canvas::error, this, &CoregDisplay::message);
-  connect(m_canvasRight, &Canvas::error, this, &CoregDisplay::message);
+  connect(m_canvasPAUS, &Canvas::error, this, &CoregDisplay::message);
+  connect(m_canvasUS, &Canvas::error, this, &CoregDisplay::message);
 
-  connect(m_canvasLeft, &Canvas::AScanSelected, this,
+  connect(m_canvasPAUS, &Canvas::AScanSelected, this,
           &CoregDisplay::AScanSelected);
-  connect(m_canvasRight, &Canvas::AScanSelected, this,
+  connect(m_canvasUS, &Canvas::AScanSelected, this,
           &CoregDisplay::AScanSelected);
 
   // Connection actions
   connect(actResetZoom, &QAction::triggered, this, [this] {
-    m_canvasLeft->scaleToSize();
-    m_canvasRight->scaleToSize();
+    m_canvasPAUS->scaleToSize();
+    m_canvasUS->scaleToSize();
   });
 
   /*
@@ -95,7 +98,9 @@ CoregDisplay::CoregDisplay(QWidget *parent)
    *  Connect cursor actions
    */
   connect(actToggleUSCanvas, &QAction::triggered,
-          [this] { m_canvasRight->setVisible(!m_canvasRight->isVisible()); });
+          [this] { m_canvasUS->setVisible(!m_canvasUS->isVisible()); });
+  connect(actToggleAScanPlot, &QAction::triggered,
+          [this] { m_AScanPlot->setVisible(!m_AScanPlot->isVisible()); });
 
   /*
    * Setup UI
@@ -129,6 +134,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       toolbar->addWidget(emptyStretchable);
     }
     toolbar->addAction(actToggleUSCanvas);
+    toolbar->addAction(actToggleAScanPlot);
   }
 
   // Image Canvas
@@ -136,23 +142,25 @@ CoregDisplay::CoregDisplay(QWidget *parent)
     auto *hlayout = new QHBoxLayout;
     vlayout->addLayout(hlayout);
 
-    m_canvasLeft->overlay()->setModality("PAUS");
-    m_canvasRight->overlay()->setModality("US");
+    m_canvasPAUS->overlay()->setModality("PAUS");
+    m_canvasUS->overlay()->setModality("US");
 
-    for (auto *const canvas : {m_canvasLeft, m_canvasRight}) {
+    for (auto *const canvas : {m_canvasPAUS, m_canvasUS}) {
       hlayout->addWidget(canvas);
       canvas->setStyleSheet("border: 1px solid black");
       canvas->setDisabled(true);
       connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
     }
+
+    hlayout->addWidget(m_AScanPlot);
   }
 }
 
-void CoregDisplay::imshow(const QImage &img1, const QImage &img2,
+void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,
                           double pix2m) {
-  m_canvasLeft->imshow(img1, pix2m);
-  m_canvasRight->imshow(img2, pix2m);
+  m_canvasPAUS->imshow(imgPAUS, pix2m);
+  m_canvasUS->imshow(imgUS, pix2m);
 
-  m_canvasLeft->setEnabled(true);
-  m_canvasRight->setEnabled(true);
+  m_canvasPAUS->setEnabled(true);
+  m_canvasUS->setEnabled(true);
 }
