@@ -88,7 +88,6 @@ MainWindow::MainWindow(QWidget *parent)
     // dockLayout->addWidget(textEdit);
     dock->setWidget(textEdit);
     textEdit->setReadOnly(true);
-    textEdit->setPlainText("Application started.\n");
     textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
   }
 

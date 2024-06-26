@@ -36,6 +36,17 @@ set_source_files_properties(${app_icon_macos} PROPERTIES
 
 set(app_icon_resource_windows "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ArpamGui.rc")
 
+### Embed some compile time information as macros
+# Current date and time
+string(TIMESTAMP CURRENT_DATE "%Y-%m-%d" UTC)
+string(TIMESTAMP CURRENT_TIME "%H:%M:%S" UTC)
+add_definitions(-DARPAM_COMPILE_DATE="${CURRENT_DATE}")
+add_definitions(-DARPAM_COMPILE_TIME="${CURRENT_TIME}")
+
+# Compiler name and version
+add_definitions(-DARPAM_COMPILER_NAME="${CMAKE_CXX_COMPILER_ID}")
+add_definitions(-DARPAM_COMPILER_VERSION="${CMAKE_CXX_COMPILER_VERSION}")
+
 ### Source files
 qt_add_executable(${EXE_NAME}
     src/main.cpp
