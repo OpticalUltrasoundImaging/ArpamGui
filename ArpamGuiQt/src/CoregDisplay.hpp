@@ -77,6 +77,9 @@ private:
   // Reset image zoom
   QAction *actResetZoom;
 
+  /*
+   * Cursor Actions
+   */
   // Action to use default cursor
   QAction *actCursorDefault;
   // Action to use cursor to select AScan for plot
@@ -91,4 +94,9 @@ private:
   QAction *actCursorLabelRect;
   // Action to set the cursor mode to label fan
   QAction *actCursorLabelFan;
+
+  /*
+   * Canvas View Actions
+   */
+  QAction *actToggleUSCanvas;
 };

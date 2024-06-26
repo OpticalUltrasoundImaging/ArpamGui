@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QTableView>
 #include <array>
+#include <qsizepolicy.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -24,7 +25,9 @@ CoregDisplay::CoregDisplay(QWidget *parent)
       actCursorUndo(new QAction(QIcon(), "Undo")),
       actCursorLine(new QAction(QIcon(), "Line")),
       actCursorLabelRect(new QAction(QIcon(), "Rect")),
-      actCursorLabelFan(new QAction(QIcon(), "Fan"))
+      actCursorLabelFan(new QAction(QIcon(), "Fan")),
+
+      actToggleUSCanvas(new QAction(QIcon(), "Toggle US"))
 
 {
   // Connect annotation model to canvas
@@ -50,6 +53,9 @@ CoregDisplay::CoregDisplay(QWidget *parent)
     m_canvasRight->scaleToSize();
   });
 
+  /*
+   *  Connect cursor actions
+   */
   connect(actCursorUndo, &QAction::triggered, this, &CoregDisplay::undo);
 
   // Exclusive, checkable actions that change the cursor mode
@@ -85,37 +91,60 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 
   defer { actCursorDefault->trigger(); };
 
-  // Setup UI
+  /*
+   *  Connect cursor actions
+   */
+  connect(actToggleUSCanvas, &QAction::triggered,
+          [this] { m_canvasRight->setVisible(!m_canvasRight->isVisible()); });
+
+  /*
+   * Setup UI
+   */
   auto *vlayout = new QVBoxLayout;
   this->setLayout(vlayout);
 
   // Toolbar
-  auto *toolbar = new QToolBar("Cursor type");
-  vlayout->addWidget(toolbar);
+  {
+    auto *toolbar = new QToolBar("Cursor type");
+    vlayout->addWidget(toolbar);
 
-  toolbar->addAction(actResetZoom);
-  // toolbar->addSeparator();
-  // toolbar->addAction(actCursorUndo);
-  toolbar->addSeparator();
-  toolbar->addAction(actCursorDefault);
-  toolbar->addAction(actCursorSelectAScan);
-  toolbar->addAction(actCursorPan);
-  toolbar->addAction(actCursorLine);
-  toolbar->addAction(actCursorLabelRect);
-  toolbar->addAction(actCursorLabelFan);
+    toolbar->addAction(actResetZoom);
+    // toolbar->addSeparator();
+    // toolbar->addAction(actCursorUndo);
+
+    toolbar->addSeparator();
+    toolbar->addAction(actCursorDefault);
+    toolbar->addAction(actCursorSelectAScan);
+    toolbar->addAction(actCursorPan);
+    toolbar->addAction(actCursorLine);
+    toolbar->addAction(actCursorLabelRect);
+    toolbar->addAction(actCursorLabelFan);
+
+    // Add stretchable spacer
+    // toolbar->addSeparator();
+    {
+      auto *emptyStretchable = new QWidget;
+      emptyStretchable->setSizePolicy(QSizePolicy::Expanding,
+                                      QSizePolicy::Preferred);
+      toolbar->addWidget(emptyStretchable);
+    }
+    toolbar->addAction(actToggleUSCanvas);
+  }
 
   // Image Canvas
-  auto *hlayout = new QHBoxLayout;
-  vlayout->addLayout(hlayout);
+  {
+    auto *hlayout = new QHBoxLayout;
+    vlayout->addLayout(hlayout);
 
-  m_canvasLeft->overlay()->setModality("PAUS");
-  m_canvasRight->overlay()->setModality("US");
+    m_canvasLeft->overlay()->setModality("PAUS");
+    m_canvasRight->overlay()->setModality("US");
 
-  for (auto *const canvas : {m_canvasLeft, m_canvasRight}) {
-    hlayout->addWidget(canvas);
-    canvas->setStyleSheet("border: 1px solid black");
-    canvas->setDisabled(true);
-    connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
+    for (auto *const canvas : {m_canvasLeft, m_canvasRight}) {
+      hlayout->addWidget(canvas);
+      canvas->setStyleSheet("border: 1px solid black");
+      canvas->setDisabled(true);
+      connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
+    }
   }
 }
 
