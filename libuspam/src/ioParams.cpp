@@ -11,7 +11,6 @@ rapidjson::Document IOParams::serializeToDoc() const {
 
   doc.AddMember("rfSizePA", this->rf_size_PA, allocator);
   doc.AddMember("rfSizeSpacer", this->rf_size_spacer, allocator);
-  doc.AddMember("rfSizeUS", this->rf_size_US, allocator);
 
   doc.AddMember("offsetUS", this->offsetUS, allocator);
   doc.AddMember("offsetPA", this->offsetPA, allocator);
@@ -23,7 +22,6 @@ rapidjson::Document IOParams::serializeToDoc() const {
 bool IOParams::deserialize(const rapidjson::Document &doc) {
   this->rf_size_PA = doc["rfSizePA"].GetInt();
   this->rf_size_spacer = doc["rfSizeSpacer"].GetInt();
-  this->rf_size_US = doc["rfSizeUS"].GetInt();
 
   this->offsetPA = doc["offsetPA"].GetInt();
   this->offsetUS = doc["offsetUS"].GetInt();

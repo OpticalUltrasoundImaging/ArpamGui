@@ -94,6 +94,7 @@ add_executable(test_libuspam
     test/test_signal.cpp
     test/test_recon.cpp
     test/test_imutil.cpp
+    test/test_SAFT.cpp
 )
 
 if (CMAKE_CUDA_COMPILER)

@@ -33,8 +33,6 @@ template <typename T> struct PAUSpair {
 struct IOParams {
   int rf_size_PA{};
   int rf_size_spacer{};
-  // No. of samples in US RF. Must be twice rf_size_PA
-  int rf_size_US{};
 
   int offsetUS{};
   // Number of points
@@ -44,10 +42,12 @@ struct IOParams {
   int byte_offset = 0;
 
 public:
+  [[nodiscard]] auto rf_size_US() const { return rf_size_PA * 2; }
+
   // System parameters from early 2024
   static inline IOParams system2024v1() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{2650, 87, 5300, -100, -100, 1};
+    return IOParams{2650, 87, -100, -100, 1};
   }
 
   // Serialize to JSON
@@ -62,26 +62,25 @@ public:
   PAUSpair<T>
   allocateSplitPair(int alines_per_bscan = NUM_ALINES_DETAULT) const {
     arma::Mat<T> rfPA(this->rf_size_PA, alines_per_bscan, arma::fill::none);
-    arma::Mat<T> rfUS(this->rf_size_US, alines_per_bscan, arma::fill::none);
+    arma::Mat<T> rfUS(this->rf_size_US(), alines_per_bscan, arma::fill::none);
     return {rfPA, rfUS};
   }
 
   template <typename T1, typename T2>
   auto splitRfPAUS(const arma::Mat<T1> &rf, PAUSpair<T2> &split) const {
     const auto USstart = this->rf_size_PA + this->rf_size_spacer;
-    const auto USend = USstart + this->rf_size_US;
+    const auto USend = USstart + this->rf_size_US();
     const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
 
     assert(split.PA.size() == this->rf_size_PA * rf.n_cols);
     assert(split.US.size() == (USend - USstart) * rf.n_cols);
 
     for (int j = 0; j < rf.n_cols; ++j) {
-      // PA
       for (int i = 0; i < this->rf_size_PA; ++i) {
         split.PA(i, j) = static_cast<T2>(rf(i, j));
       }
       // US
-      for (int i = 0; i < this->rf_size_US; ++i) {
+      for (int i = 0; i < this->rf_size_US(); ++i) {
         split.US(i, j) = static_cast<T2>(rf(i + USstart, j));
       }
 
@@ -102,7 +101,7 @@ public:
   auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
                        PAUSpair<Tout> &split) const {
     const auto USstart = this->rf_size_PA + this->rf_size_spacer;
-    const auto USend = USstart + this->rf_size_US;
+    const auto USend = USstart + this->rf_size_US();
     auto offsetUS = this->offsetUS;
     while (offsetUS < 0) {
       offsetUS = split.US.n_rows + offsetUS;
@@ -125,7 +124,7 @@ public:
               static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
         }
         // US
-        for (int i = 0; i < this->rf_size_US; ++i) {
+        for (int i = 0; i < this->rf_size_US(); ++i) {
           split.US(i, j) = static_cast<Tout>(
               static_cast<Tb>(rf(i + USstart, j)) - background(i + USstart));
         }
