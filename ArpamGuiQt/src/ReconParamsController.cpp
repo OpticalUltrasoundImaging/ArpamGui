@@ -1,11 +1,13 @@
 #include "ReconParamsController.hpp"
 #include "uspam/reconParams.hpp"
+#include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QIntValidator>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSpinBox>
 #include <QValidator>
+#include <qnamespace.h>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -102,6 +104,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       "Noise floor (mV) is the maximum noise level that will be cut out.";
   const QString &help_DynamicRange =
       "Dynamic range above the noisefloor that will be displayed.";
+  const QString &help_SAFT = "Use SAFT";
 
   const auto makeReconParamsControl = [&](const QString &groupBoxName,
                                           uspam::recon::ReconParams &p) {
@@ -163,7 +166,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 1);
 
       auto *spinBox =
-          makeQDoubleSpinBox({0.0f, 60.0f}, 1.0f, p.noiseFloor_mV, this);
+          makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV, this);
       layout->addWidget(spinBox, row++, 2);
       spinBox->setSuffix(" mV");
 
@@ -178,12 +181,30 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       layout->addWidget(label, row, 1);
 
       auto *spinBox =
-          makeQDoubleSpinBox({10.0f, 70.0f}, 1.0f, p.desiredDynamicRange, this);
+          makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F, p.desiredDynamicRange, this);
       layout->addWidget(spinBox, row++, 2);
       spinBox->setSuffix(" dB");
 
       updateGuiFromParamsCallbacks.emplace_back(
           [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
+    }
+
+    {
+      // auto *label = new QLabel("SAFT");
+      // label->setToolTip(help_DynamicRange);
+      // layout->addWidget(label, row, 1);
+
+      auto *checkbox = new QCheckBox("SAFT");
+      layout->addWidget(checkbox, row++, 2);
+
+      checkbox->setChecked(p.saft);
+      connect(checkbox, &QCheckBox::checkStateChanged,
+              [&](Qt::CheckState state) {
+                p.saft = state != Qt::CheckState::Unchecked;
+              });
+
+      updateGuiFromParamsCallbacks.emplace_back(
+          [this, checkbox, &p] { checkbox->setChecked(p.saft); });
     }
     return gb;
   };

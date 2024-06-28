@@ -15,6 +15,7 @@ struct ReconParams {
   int rotateOffset;
   float noiseFloor_mV;
   float desiredDynamicRange;
+  bool saft;
 
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;
@@ -33,9 +34,10 @@ struct ReconParams2 {
                    {0, 0, 1, 1, 0, 0},
                    250,
                    25,
-                   9.0f,
-                   35.0f};
-    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 25, 6.0f, 48.0f};
+                   9.0F,
+                   35.0F,
+                   true};
+    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 25, 6.0F, 48.0F, false};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
