@@ -201,6 +201,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       connect(checkbox, &QCheckBox::checkStateChanged,
               [&](Qt::CheckState state) {
                 p.saft = state != Qt::CheckState::Unchecked;
+                this->_paramsUpdatedInternal();
               });
 
       updateGuiFromParamsCallbacks.emplace_back(
