@@ -218,17 +218,6 @@ MainWindow::MainWindow(QWidget *parent)
                            .arg(depth_mm);
           });
 
-  // auto *modeSwitchButton = new QPushButton("Switch Mode", this);
-  // connect(modeSwitchButton, &QPushButton::clicked, this,
-  //         &MainWindow::switchMode);
-  // layout->addWidget(modeSwitchButton);
-
-  // Add mode views
-  // stackedWidget->addWidget(new RealTimeView());
-  // stackedWidget->addWidget(new PostProcessingView());
-
-  //   layout->addWidget(modeSwitchButton);
-
   // Set global style
   setGlobalStyle(m_coregDisplay->layout());
 }
@@ -310,10 +299,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
       QMainWindow::keyPressEvent(event);
     }
   }
-}
-
-void MainWindow::contextMenuEvent(QContextMenuEvent *event) {
-  // TODO
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

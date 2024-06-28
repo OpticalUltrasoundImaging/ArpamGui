@@ -36,8 +36,6 @@ protected:
   void dropEvent(QDropEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
 
-  void contextMenuEvent(QContextMenuEvent *event) override;
-
 private:
   void closeEvent(QCloseEvent *event) override;
 
