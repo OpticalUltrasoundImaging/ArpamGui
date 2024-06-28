@@ -14,7 +14,6 @@
 #include <QScrollArea>
 #include <QSlider>
 #include <QTabWidget>
-#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <Qt>
@@ -76,6 +75,11 @@ MainWindow::MainWindow(QWidget *parent)
   /**
    * Setup GUI
    */
+
+  m_viewMenu->addAction(m_coregDisplay->actionToggleUSCanvas());
+  m_viewMenu->addAction(m_coregDisplay->actionToggleAScanPlot());
+
+  m_viewMenu->addSeparator();
 
   // Log dock widget
   {

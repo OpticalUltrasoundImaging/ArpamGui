@@ -113,7 +113,6 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
     auto *toolbar = new QToolBar("Cursor type");
     vlayout->addWidget(toolbar);
 
-    toolbar->addAction(actResetZoom);
     // toolbar->addSeparator();
     // toolbar->addAction(actCursorUndo);
 
@@ -133,6 +132,7 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
                                       QSizePolicy::Preferred);
       toolbar->addWidget(emptyStretchable);
     }
+    toolbar->addAction(actResetZoom);
     toolbar->addAction(actToggleUSCanvas);
     toolbar->addAction(actToggleAScanPlot);
   }
@@ -154,6 +154,9 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
 
     // hlayout->addWidget(m_AScanPlot);
   }
+
+  // By default don't show the US canvas
+  m_canvasUS->hide();
 }
 
 void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,

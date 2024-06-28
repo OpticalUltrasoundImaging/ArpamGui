@@ -27,6 +27,11 @@ public:
   [[nodiscard]] auto actionLabelRect() const { return actCursorLabelRect; }
   [[nodiscard]] auto actionLabelFan() const { return actCursorLabelFan; }
 
+  [[nodiscard]] auto actionToggleUSCanvas() const { return actToggleUSCanvas; }
+  [[nodiscard]] auto actionToggleAScanPlot() const {
+    return actToggleAScanPlot;
+  }
+
 signals:
   void message(const QString &msg);
   void mouseMoved(QPoint pos, double depth_mm);
