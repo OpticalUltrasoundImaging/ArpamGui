@@ -1,13 +1,14 @@
 #pragma once
 #include <armadillo>
 #include <cmath>
+#include <numbers>
 #include <tuple>
 #include <uspam/fft.hpp>
 #include <uspam/signal.hpp>
 
 namespace uspam::saft {
 
-double deg2rad(double deg) { return deg * arma::datum::pi / 180; }
+inline double deg2rad(double deg) { return deg * std::numbers::pi / 180.0; }
 
 struct TimeDelay {
   arma::Mat<double> timeDelay;

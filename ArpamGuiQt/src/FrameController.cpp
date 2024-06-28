@@ -54,21 +54,21 @@ FrameController::FrameController(ReconParamsController *paramsController,
     vlayout->addLayout(hlayout);
 
     // Frame num label and spinbox
-    {
-      auto *frameNumLabel = new QLabel;
-      frameNumLabel->setText("Frame:");
-      hlayout->addWidget(frameNumLabel);
+    // {
+    //   auto *frameNumLabel = new QLabel;
+    //   frameNumLabel->setText("Frame:");
+    //   hlayout->addWidget(frameNumLabel);
 
-      // SpinBox to display frame num
-      m_frameNumSpinBox = new QSpinBox;
-      hlayout->addWidget(m_frameNumSpinBox);
-      m_frameNumSpinBox->setDisabled(true);
-      connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
-        auto val = m_frameNumSpinBox->value();
-        emit sigFrameNumUpdated(val);
-        updatePlayingState(false);
-      });
-    }
+    //   // SpinBox to display frame num
+    //   m_frameNumSpinBox = new QSpinBox;
+    //   hlayout->addWidget(m_frameNumSpinBox);
+    //   m_frameNumSpinBox->setDisabled(true);
+    //   connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
+    //     auto val = m_frameNumSpinBox->value();
+    //     emit sigFrameNumUpdated(val);
+    //     updatePlayingState(false);
+    //   });
+    // }
 
     // Slider to select frame num in the sequence
     {
@@ -86,7 +86,7 @@ FrameController::FrameController(ReconParamsController *paramsController,
       connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
         const auto val = m_frameSlider->value();
         QToolTip::showText(QCursor::pos(), QString::number(val));
-        m_frameNumSpinBox->setValue(val);
+        // m_frameNumSpinBox->setValue(val);
       });
 
       connect(m_frameSlider, &QSlider::sliderReleased, this,
@@ -197,9 +197,8 @@ void FrameController::acceptNewBinfile(const QString &filename) {
 }
 
 int FrameController::frameNum() const {
-  const auto val = m_frameNumSpinBox->value();
-  assert(val == m_frameSlider->value());
-  return val;
+  // const auto val = m_frameNumSpinBox->value();
+  return m_frameSlider->value();
 }
 
 void FrameController::setFrameNum(int frame) {
@@ -214,25 +213,24 @@ void FrameController::setFrameNum(int frame) {
   m_doc.writeToFile(m_annoPath);
 
   // Update GUI
-  m_frameNumSpinBox->setValue(frame);
+  // m_frameNumSpinBox->setValue(frame);
   m_frameSlider->setValue(frame);
 }
 
 int FrameController::maxFrameNum() const {
-  const auto val = m_frameNumSpinBox->maximum();
-  assert(val == m_frameSlider->maximum());
-  return val;
+  // const auto val = m_frameNumSpinBox->maximum();
+  return m_frameSlider->maximum();
 }
 
 void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   m_frameSlider->setMinimum(0);
   m_frameSlider->setMaximum(maxFrameNum - 1);
-  m_frameNumSpinBox->setMinimum(0);
-  m_frameNumSpinBox->setMaximum(maxFrameNum - 1);
+  // m_frameNumSpinBox->setMinimum(0);
+  // m_frameNumSpinBox->setMaximum(maxFrameNum - 1);
 
   m_btnPlayPause->setEnabled(true);
-  m_frameNumSpinBox->setEnabled(true);
+  // m_frameNumSpinBox->setEnabled(true);
   m_frameSlider->setEnabled(true);
 }
 
@@ -257,8 +255,8 @@ void FrameController::togglePlayPause() { updatePlayingState(!m_isPlaying); }
 
 void FrameController::nextFrame() {
   updatePlayingState(false);
-  const auto idx = m_frameNumSpinBox->value();
-  const auto maxIdx = m_frameNumSpinBox->maximum();
+  const auto idx = m_frameSlider->value();
+  const auto maxIdx = m_frameSlider->maximum();
   if (idx < maxIdx) {
     setFrameNum(idx + 1);
     emit sigFrameNumUpdated(idx + 1);
@@ -267,7 +265,7 @@ void FrameController::nextFrame() {
 
 void FrameController::prevFrame() {
   updatePlayingState(false);
-  const auto idx = m_frameNumSpinBox->value();
+  const auto idx = m_frameSlider->value();
   if (idx > 0) {
     setFrameNum(idx - 1);
     emit sigFrameNumUpdated(idx - 1);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fftconv.hpp"
+#include "uspam/SAFT.hpp"
 #include "uspam/fft.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
@@ -154,7 +155,17 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
     rfEnv.set_size(rf.n_rows, rf.n_cols);
   }
 
-  recon<T>(rf, kernel, rfEnv);
+  if (params.saft) {
+    const auto saftParams = uspam::saft::SaftDelayParams::make();
+    const auto timeDelay = saftParams.computeSaftTimeDelay();
+    const auto [rfSaft, rfSaftCF] =
+        uspam::saft::apply_saft<T, T>(timeDelay, rf);
+
+    recon<T>(rfSaftCF, kernel, rfEnv);
+  } else {
+
+    recon<T>(rf, kernel, rfEnv);
+  }
 
   logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV / 1000,
                  params.desiredDynamicRange);

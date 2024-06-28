@@ -71,7 +71,7 @@ private:
   QPushButton *m_btnPlayPause;
   QAction *m_actOpenFileSelectDialog;
 
-  QSpinBox *m_frameNumSpinBox;
+  // QSpinBox *m_frameNumSpinBox;
   QSlider *m_frameSlider;
   bool m_isPlaying{false};
 

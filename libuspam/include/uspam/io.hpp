@@ -60,7 +60,7 @@ private:
   int numScans = 0;
   int alinesPerBscan = 0;
   int currScanIdx = 0;
-  std::mutex mtx;
+  mutable std::mutex mtx;
 
   arma::Mat<TypeInBin> readBuffer;
 
@@ -183,14 +183,15 @@ public:
     return get<T>();
   }
 
-  auto getNext(arma::Mat<TypeInBin> &rfStorage) {
+  auto getNext(arma::Mat<TypeInBin> &rfStorage) -> bool {
     if (!isOpen()) [[unlikely]] {
       return false;
     }
 
-    get(rfStorage);
+    const auto ret = get(rfStorage);
     std::lock_guard lock(mtx);
     currScanIdx++;
+    return ret;
   }
 
   auto getAlinesPerBscan() const { return alinesPerBscan; }
