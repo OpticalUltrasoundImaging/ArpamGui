@@ -39,7 +39,6 @@ private:
   // Menu items
   QMenu *m_fileMenu;
   QMenu *m_viewMenu;
-  QMenu *m_helpMenu;
 
   // Actions
 

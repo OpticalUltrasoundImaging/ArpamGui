@@ -23,6 +23,7 @@
 #include <opencv2/opencv.hpp>
 #include <qdockwidget.h>
 #include <qkeysequence.h>
+#include <qmessagebox.h>
 #include <qnamespace.h>
 #include <qsizepolicy.h>
 #include <uspam/defer.h>
@@ -40,7 +41,6 @@ MainWindow::MainWindow(QWidget *parent)
 
       m_fileMenu(menuBar()->addMenu(tr("&File"))),
       m_viewMenu(menuBar()->addMenu(tr("&View"))),
-      m_helpMenu(menuBar()->addMenu(tr("&Help"))),
 
       worker(new DataProcWorker),
 
@@ -99,7 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
     // dockLayout->addWidget(textEdit);
     dock->setWidget(textEdit);
     textEdit->setReadOnly(true);
-    textEdit->appendPlainText(ARPAM_GUI_ABOUT()());
+    textEdit->appendPlainText(arpam_about::aboutString());
   }
 
   // Frame controller dock widget
@@ -232,6 +232,15 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Set global style
   setGlobalStyle(m_coregDisplay->layout());
+
+  // About action
+  const auto title = QString("About %1").arg(QApplication::applicationName());
+  auto *actAbout = new QAction(title, this);
+  actAbout->setMenuRole(QAction::AboutRole);
+  statusBar()->showMessage(title);
+  connect(actAbout, &QAction::triggered, this,
+          [this] { arpam_about::showAboutDialog(this); });
+  m_fileMenu->addAction(actAbout);
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {

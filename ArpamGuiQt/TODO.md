@@ -6,8 +6,9 @@
 [] Model and JSON is a little finicky
 
 **Processing**
-[] Impl SAFT
+[x] Impl SAFT
 [] Impl arrival time normalization (flattening)
+[] Draw ROI, compute FWHM inside
 
 **Done**
 [x] Hotkeys to support selecting frame tools (Default [D], Line [L], Rect [R], etc.)

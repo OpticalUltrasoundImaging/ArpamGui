@@ -52,6 +52,8 @@ qt_add_executable(${EXE_NAME}
     src/main.cpp
     src/MainWindow.hpp
     src/MainWindow.cpp
+    src/About.hpp
+    src/About.cpp
     src/Canvas.hpp
     src/Canvas.cpp
     src/AScanPlot.hpp
