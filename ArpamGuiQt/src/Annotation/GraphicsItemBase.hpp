@@ -14,9 +14,9 @@ namespace annotation {
 
 class GraphicsItemBase : public QGraphicsItem {
 public:
-  inline const static int PEN_WIDTH = 2;
   inline const static QColor COLOR_HOVER = Qt::green;
   inline const static QColor COLOR_DEFAULT = Qt::white;
+  inline const static double PEN_WIDTH_BASE = 2;
   inline const static double FONT_SIZE_BASE = 16.0;
 
   GraphicsItemBase();
@@ -29,7 +29,7 @@ public:
                             QGraphicsItem *parent = nullptr);
   explicit GraphicsItemBase(const QColor &color,
                             QGraphicsItem *parent = nullptr);
-  virtual ~GraphicsItemBase() override;
+  ~GraphicsItemBase() override;
 
   virtual void updateAnno(const Annotation &anno) = 0;
 
@@ -42,11 +42,7 @@ public:
   void setColor(const QColor &color) { m_color = color; }
 
   // Pen for drawing the shape outline
-  [[nodiscard]] auto pen() const {
-    QPen pen(color());
-    pen.setWidth(PEN_WIDTH);
-    return pen;
-  }
+  [[nodiscard]] auto pen() const -> QPen;
 
   [[nodiscard]] auto text() const { return m_textGraphic->text(); }
   void setText(const QString &text) { m_textGraphic->setText(text); }
@@ -62,6 +58,7 @@ protected:
 private:
   QGraphicsSimpleTextItem *m_textGraphic{}; // Child item
   QColor m_color;
+  double m_penWidth{PEN_WIDTH_BASE};
   bool m_inHover{false};
 };
 

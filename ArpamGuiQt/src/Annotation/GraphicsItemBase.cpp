@@ -14,9 +14,6 @@ GraphicsItemBase::GraphicsItemBase(const Annotation &annotation,
   setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
            QGraphicsItem::ItemIsMovable);
   setAcceptHoverEvents(true);
-
-  QFont font;
-  font.setPointSizeF(FONT_SIZE_BASE);
 }
 
 GraphicsItemBase::GraphicsItemBase(const QColor &color, QGraphicsItem *parent)
@@ -35,6 +32,14 @@ void GraphicsItemBase::updateScaleFactor(double scaleFactor) {
   QFont font;
   font.setPointSizeF(FONT_SIZE_BASE / scaleFactor);
   textItem()->setFont(font);
+
+  m_penWidth = PEN_WIDTH_BASE / scaleFactor;
+}
+
+auto GraphicsItemBase::pen() const -> QPen {
+  QPen pen(color());
+  pen.setWidthF(m_penWidth);
+  return pen;
 }
 
 void GraphicsItemBase::hoverEnterEvent(QGraphicsSceneHoverEvent *event) {
