@@ -10,118 +10,121 @@ namespace uspam::saft {
 
 inline double deg2rad(double deg) { return deg * std::numbers::pi / 180.0; }
 
-struct TimeDelay {
-  arma::Mat<double> timeDelay;
+template <Floating FloatType> struct TimeDelay {
+  arma::Mat<FloatType> timeDelay;
   arma::Col<uint8_t> saftLines;
-  int zStart;
-  int zEnd;
+  int zStart{};
+  int zEnd{};
 };
 
 /**
  * @brief SAFT parameters relating to transducer geometry, rotation geometry,
  * and illumination geometry
  */
-struct SaftDelayParams {
-  double rt; // [mm] distance from axis of rotation to transducer surface
-  double vs; // [m/s] sound speed
-  double dt; // [s] timestep
-  double da; // [rad] angle step size in each rotation
+template <Floating FloatType> struct SaftDelayParams {
+  FloatType rt; // [mm] distance from axis of rotation to transducer surface
+  FloatType vs; // [m/s] sound speed
+  FloatType dt; // [s] timestep
+  FloatType da; // [rad] angle step size in each rotation
 
-  double f;     // [mm] transducer focal length
-  double d;     // [mm] transducer diameter
-  double angle; // [rad] transducer focus angle
+  FloatType f;     // [mm] transducer focal length
+  FloatType d;     // [mm] transducer diameter
+  FloatType angle; // [rad] transducer focus angle
 
-  double angleLight; // [rad] illumination angle
+  FloatType angleLight; // [rad] illumination angle
 
   // [mm] spatial step size
-  [[nodiscard]] double dr() const { return vs * dt * 1e3; }
+  [[nodiscard]] FloatType dr() const { return vs * dt * 1e3; }
 
   static auto make() {
+    // NOLINTBEGIN(*-magic-numbers)
     SaftDelayParams saftParams{
         6.2,
         1.5e3,
         1.0 / 180e6,
-        2 * arma::Datum<double>::pi / 1000,
+        2 * std::numbers::pi / 1000,
         15.0,
         8.5,
-        std::asin(8.5 / (2 * 15.0)),
-        deg2rad(5),
+        std::asin(static_cast<FloatType>(8.5 / (2 * 15.0))),
+        static_cast<float>(deg2rad(5.0)),
     };
+    // NOLINTEND(*-magic-numbers)
     return saftParams;
-  }
-
-  [[nodiscard]] auto computeSaftTimeDelay(int zStart = -1,
-                                          int zEnd = -1) const {
-    // [pts] z start and end points of SAFT.
-    // By default start = (half focal distance), end = (1.5x focal distance)
-    const auto &p = *this;
-
-    const auto pi = arma::Datum<double>::pi;
-
-    if (zStart < 0) {
-      zStart = static_cast<int>(round((p.f * 0.25) / p.dr()));
-    }
-
-    if (zEnd < 0) {
-      zEnd = static_cast<int>(round((p.f * 1.5) / p.dr()));
-    }
-
-    const int max_saft_lines = 15;
-
-    // number of saft lines as a func of z
-    arma::Col<uint8_t> nLines(zEnd - zStart, arma::fill::zeros);
-    arma::Mat<double> timeDelay(zEnd - zStart, max_saft_lines,
-                                arma::fill::zeros);
-
-    for (int j = 1; j < max_saft_lines; ++j) {
-      // relative position to the transducer center dr2 and ang2
-
-      for (int i = zStart; i < zEnd; ++i) {
-
-        const auto ang1 = j * p.da;
-
-        const auto dr1 = i * p.dr();
-        const auto r = p.rt + i * p.dr();
-
-        const auto dr2 =
-            std::sqrt(r * r + p.rt * p.rt - 2 * r * p.rt * std::cos(ang1));
-        const auto ang2 = pi - std::acos((p.rt * p.rt + dr2 * dr2 - r * r) /
-                                         (2 * p.rt * dr2));
-
-        // Determine if point is within the light beam field
-        if (ang2 >= p.angleLight)
-          continue;
-
-        // Determine if point is within the transducer field
-
-        // distance to focus
-        const auto dr3 =
-            std::sqrt(p.f * p.f + dr2 * dr2 - 2 * p.f * dr2 * std::cos(ang2));
-
-        // angle wrt focal line
-        const auto ang3 =
-            std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
-
-        if (dr3 <= p.f && ang3 <= p.angle) {
-          timeDelay(i - zStart, j) = (abs(p.f - dr1) - dr3) / p.dr();
-          nLines(i - zStart) += 1;
-        } else if ((pi - ang3) <= p.angle) {
-          timeDelay(i - zStart, j) = (dr3 - abs(p.f - dr1)) / p.dr();
-          nLines(i - zStart) += 1;
-        }
-      }
-    }
-
-    TimeDelay ret{timeDelay, nLines, zStart, zEnd};
-    return ret;
   }
 };
 
-template <typename T, Floating FloatType>
-auto apply_saft(const TimeDelay &timeDelay, const arma::Mat<T> &rf) {
+template <Floating FloatType>
+[[nodiscard]] auto computeSaftTimeDelay(const SaftDelayParams<FloatType> &p,
+                                        int zStart = -1, int zEnd = -1) {
+  // [pts] z start and end points of SAFT.
+  // By default start = (half focal distance), end = (1.5x focal distance)
+  const auto pi = std::numbers::pi_v<FloatType>;
+
+  if (zStart < 0) {
+    zStart = static_cast<int>(std::round((p.f * 0.25) / p.dr()));
+  }
+
+  if (zEnd < 0) {
+    zEnd = static_cast<int>(std::round((p.f * 1.5) / p.dr()));
+  }
+
+  const int max_saft_lines = 15;
+
+  // number of saft lines as a func of z
+  arma::Col<uint8_t> nLines(zEnd - zStart, arma::fill::zeros);
+  arma::Mat<FloatType> timeDelay(zEnd - zStart, max_saft_lines,
+                                 arma::fill::zeros);
+
+  for (int j = 1; j < max_saft_lines; ++j) {
+    // relative position to the transducer center dr2 and ang2
+
+    for (int i = zStart; i < zEnd; ++i) {
+
+      const auto ang1 = j * p.da;
+
+      const auto dr1 = i * p.dr();
+      const auto r = p.rt + i * p.dr();
+
+      const auto dr2 =
+          std::sqrt(r * r + p.rt * p.rt - 2 * r * p.rt * std::cos(ang1));
+      const auto ang2 =
+          pi - std::acos((p.rt * p.rt + dr2 * dr2 - r * r) / (2 * p.rt * dr2));
+
+      // Determine if point is within the light beam field
+      if (ang2 >= p.angleLight) {
+        continue;
+      }
+
+      // Determine if point is within the transducer field
+
+      // distance to focus
+      const auto dr3 =
+          std::sqrt(p.f * p.f + dr2 * dr2 - 2 * p.f * dr2 * std::cos(ang2));
+
+      // angle wrt focal line
+      const auto ang3 =
+          std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
+
+      if (dr3 <= p.f && ang3 <= p.angle) {
+        timeDelay(i - zStart, j) = (abs(p.f - dr1) - dr3) / p.dr();
+        nLines(i - zStart) += 1;
+      } else if ((pi - ang3) <= p.angle) {
+        timeDelay(i - zStart, j) = (dr3 - abs(p.f - dr1)) / p.dr();
+        nLines(i - zStart) += 1;
+      }
+    }
+  }
+
+  return TimeDelay<FloatType>{timeDelay, nLines, zStart, zEnd};
+}
+
+template <typename RfType, Floating FloatType>
+auto apply_saft(const TimeDelay<FloatType> &timeDelay,
+                const arma::Mat<RfType> &rf) {
   const int nScans = rf.n_cols;
   const int nPts = rf.n_rows;
-  arma::Mat<T> rf_saft = rf; // copy
+
+  arma::Mat<RfType> rf_saft = rf; // copy
   arma::Mat<uint8_t> n_saft(rf.n_rows, rf.n_cols, arma::fill::ones);
 
   arma::Mat<FloatType> CF_denom = arma::square(rf);

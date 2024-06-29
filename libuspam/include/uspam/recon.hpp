@@ -141,11 +141,12 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
 
   // compute filter kernels
   const auto kernel = [&] {
+    constexpr int numtaps = 95;
     if constexpr (std::is_same_v<T, double>) {
-      return signal::firwin2(95, params.filterFreq, params.filterGain);
+      return signal::firwin2(numtaps, params.filterFreq, params.filterGain);
     } else {
       const auto _kernel =
-          signal::firwin2(95, params.filterFreq, params.filterGain);
+          signal::firwin2(numtaps, params.filterFreq, params.filterGain);
       const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
       return kernel;
     }
@@ -156,8 +157,8 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
   }
 
   if (params.saft) {
-    const auto saftParams = uspam::saft::SaftDelayParams::make();
-    const auto timeDelay = saftParams.computeSaftTimeDelay();
+    const auto saftParams = uspam::saft::SaftDelayParams<T>::make();
+    const auto timeDelay = uspam::saft::computeSaftTimeDelay<T>(saftParams);
     const auto [rfSaft, rfSaftCF] =
         uspam::saft::apply_saft<T, T>(timeDelay, rf);
 
@@ -167,7 +168,8 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
     recon<T>(rf, kernel, rfEnv);
   }
 
-  logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV / 1000,
+  constexpr float fct_mV2V = 1.0F / 1000;
+  logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
                  params.desiredDynamicRange);
 }
 

@@ -5,10 +5,12 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
+// NOLINTBEGIN(*-magic-numbers,*-constant-array-index,*-global-variables,*-goto)
+
 namespace saft = uspam::saft;
 
 TEST(SaftTimeDelayParamTest, Correct) {
-  saft::SaftDelayParams saftParams;
+  saft::SaftDelayParams saftParams{};
   saftParams.rt = 6.2;
   saftParams.vs = 1.5e3;
   saftParams.dt = 1.0 / 180e6;
@@ -18,7 +20,7 @@ TEST(SaftTimeDelayParamTest, Correct) {
   saftParams.angle = std::asin(8.5 / (2 * 15.0));
   saftParams.angleLight = saft::deg2rad(5);
 
-  const auto timeDelay = saftParams.computeSaftTimeDelay(769, 2450);
+  const auto timeDelay = saft::computeSaftTimeDelay(saftParams, 769, 2450);
 
   arma::mat gt(timeDelay.timeDelay.n_rows, timeDelay.timeDelay.n_cols,
                arma::fill::none);
@@ -34,7 +36,7 @@ TEST(SaftTimeDelayParamTest, Correct) {
 
 TEST(SaftApply, Correct) {
   const auto saftParams = saft::SaftDelayParams::make();
-  const auto timeDelay = saftParams.computeSaftTimeDelay(769, 2450);
+  const auto timeDelay = saft::computeSaftTimeDelay(saftParams, 769, 2450);
 
   const arma::mat rf(2500, 1000, arma::fill::randn);
   const auto [rf_saft, rf_saft_cf] =
@@ -42,3 +44,5 @@ TEST(SaftApply, Correct) {
   // rf_saft_cf.save("rf_saft_cf.bin", arma::raw_binary);
   // TODO write tests
 }
+
+// NOLINTEND(*-magic-numbers,*-constant-array-index,*-global-variables,*-goto)

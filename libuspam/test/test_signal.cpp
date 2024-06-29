@@ -4,7 +4,7 @@
 
 #include "uspam/signal.hpp"
 
-// NOLINTBEGIN(*-magic-numbers,*-constant-array-index)
+// NOLINTBEGIN(*-numbers,*-constant-array-index,*-global-variables,*-goto)
 
 TEST(InterpTest, NormalOperation) {
   std::array x{0.5, 1.5, 2.5};
@@ -425,4 +425,4 @@ TEST(HilbertTest, CorrectOdd1) {
   }
 }
 
-// NOLINTEND(*-magic-numbers,*-constant-array-index)
+// NOLINTEND(*-numbers,*-constant-array-index,*-global-variables,*-goto)

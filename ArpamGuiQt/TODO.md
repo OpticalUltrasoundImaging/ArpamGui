@@ -8,6 +8,8 @@
 **Processing**
 [x] Impl SAFT
 [] Impl arrival time normalization (flattening)
+[] Add beamformed RF data to BScan data structure
+[] Impl FWHM in AScan display
 [] Draw ROI, compute FWHM inside
 
 **Done**
