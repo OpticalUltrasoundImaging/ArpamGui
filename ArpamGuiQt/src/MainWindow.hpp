@@ -28,13 +28,10 @@ public slots:
   // Log error message to a text box on screen
   void logError(QString message);
 
-  void toggleFullScreen();
-
 protected:
   // Support dropping file
   void dragEnterEvent(QDragEnterEvent *event) override;
   void dropEvent(QDropEvent *event) override;
-  void keyPressEvent(QKeyEvent *event) override;
 
 private:
   void closeEvent(QCloseEvent *event) override;

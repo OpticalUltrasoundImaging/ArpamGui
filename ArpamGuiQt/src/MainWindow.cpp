@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <qdockwidget.h>
+#include <qkeysequence.h>
 #include <qnamespace.h>
 #include <qsizepolicy.h>
 #include <uspam/defer.h>
@@ -78,6 +79,10 @@ MainWindow::MainWindow(QWidget *parent)
 
   m_viewMenu->addAction(m_coregDisplay->actionToggleUSCanvas());
   m_viewMenu->addAction(m_coregDisplay->actionToggleAScanPlot());
+
+  m_viewMenu->addSeparator();
+
+  m_viewMenu->addMenu(m_coregDisplay->cursorMenu());
 
   m_viewMenu->addSeparator();
 
@@ -178,6 +183,18 @@ MainWindow::MainWindow(QWidget *parent)
     dock->setWidget(m_AScanPlot);
   }
 
+  auto *fullscreenAction = new QAction("Full Screen");
+  fullscreenAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_F));
+  fullscreenAction->setCheckable(true);
+  connect(fullscreenAction, &QAction::triggered, [this](bool checked) {
+    if (checked) {
+      this->setWindowState(Qt::WindowFullScreen);
+    } else {
+      this->setWindowState(Qt::WindowMaximized);
+    }
+  });
+  m_viewMenu->addAction(fullscreenAction);
+
   // // Exit button
   // {
   //   auto *dock = new QDockWidget("Exit", this);
@@ -196,13 +213,6 @@ MainWindow::MainWindow(QWidget *parent)
   //   layout->addWidget(closeBtn);
   //   connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
   //   closeBtn->setObjectName("closeButton");
-
-  //   auto *toggleFullscreenBtn = new QPushButton("Toggle Fullscreen");
-  //   layout->addWidget(toggleFullscreenBtn);
-  //   connect(toggleFullscreenBtn, &QPushButton::clicked, this,
-  //           &MainWindow::toggleFullScreen);
-  //   toggleFullscreenBtn->setObjectName("toggleFullscreenButton");
-  // }
 
   // End dock config
 
@@ -249,58 +259,6 @@ void MainWindow::dropEvent(QDropEvent *event) {
   }
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
-  const auto KeyNextFrame = Qt::Key_Period;
-  const auto KeyPrevFrame = Qt::Key_Comma;
-  const auto KeyPlayPause = Qt::Key_Space;
-
-  if (event->modifiers().testFlag(Qt::ControlModifier)) {
-    // Control modifier
-    switch (event->key()) {
-    case Qt::Key_F:
-      toggleFullScreen();
-      break;
-    default:
-      QMainWindow::keyPressEvent(event);
-    }
-
-  } else {
-    // No modifier
-    switch (event->key()) {
-
-    case KeyNextFrame:
-      m_frameController->nextFrame();
-      break;
-    case KeyPrevFrame:
-      m_frameController->prevFrame();
-      break;
-    case KeyPlayPause:
-      m_frameController->togglePlayPause();
-      break;
-
-      /* Hotkeys to trigger cursor modes */
-    case Qt::Key_D:
-      m_coregDisplay->actionDefault()->trigger();
-      break;
-    case Qt::Key_P:
-      m_coregDisplay->actionPan()->trigger();
-      break;
-    case Qt::Key_L:
-      m_coregDisplay->actionLine()->trigger();
-      break;
-    case Qt::Key_R:
-      m_coregDisplay->actionLabelRect()->trigger();
-      break;
-    case Qt::Key_F:
-      m_coregDisplay->actionLabelFan()->trigger();
-      break;
-
-    default:
-      QMainWindow::keyPressEvent(event);
-    }
-  }
-}
-
 void MainWindow::closeEvent(QCloseEvent *event) {
   // Stop the worker thread
   if (workerThread.isRunning()) {
@@ -313,12 +271,4 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 
 void MainWindow::logError(QString message) {
   textEdit->appendPlainText(message);
-}
-
-void MainWindow::toggleFullScreen() {
-  if (this->isFullScreen()) {
-    this->setWindowState(Qt::WindowMaximized);
-  } else {
-    this->setWindowState(Qt::WindowFullScreen);
-  }
 }

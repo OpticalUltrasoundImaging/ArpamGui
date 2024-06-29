@@ -5,7 +5,9 @@
 #include "Annotation/AnnotationView.hpp"
 #include "Canvas.hpp"
 #include <QLabel>
+#include <QMenu>
 #include <QTableView>
+#include <QToolBar>
 #include <QWidget>
 
 class CoregDisplay : public QWidget {
@@ -17,8 +19,11 @@ public:
 
   explicit CoregDisplay(AScanPlot *ascanPlot, QWidget *parent = nullptr);
 
-  auto annotationView() { return m_annoView; }
-  auto model() { return m_model; }
+  [[nodiscard]] auto annotationView() const { return m_annoView; }
+  [[nodiscard]] auto model() const { return m_model; }
+
+  [[nodiscard]] auto cursorToolbar() const { return m_cursorToolbar; }
+  [[nodiscard]] auto cursorMenu() const { return m_cursorMenu; }
 
   [[nodiscard]] auto actionDefault() const { return actCursorDefault; }
   [[nodiscard]] auto actionSelectAScan() const { return actCursorSelectAScan; }
@@ -87,6 +92,9 @@ private:
   /*
    * Cursor Actions
    */
+  QToolBar *m_cursorToolbar;
+  QMenu *m_cursorMenu;
+
   // Action to use default cursor
   QAction *actCursorDefault;
   // Action to use cursor to select AScan for plot

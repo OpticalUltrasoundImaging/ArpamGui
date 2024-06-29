@@ -4,10 +4,15 @@
 #include <QAction>
 #include <QBoxLayout>
 #include <QHBoxLayout>
+#include <QKeySequence>
+#include <QMenu>
 #include <QPushButton>
+#include <QSizePolicy>
 #include <QTableView>
+#include <Qt>
 #include <array>
-#include <qsizepolicy.h>
+#include <qkeysequence.h>
+#include <qnamespace.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -19,6 +24,8 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
 
       m_model(new annotation::AnnotationModel),
       m_annoView(new annotation::AnnotationView),
+
+      m_cursorToolbar(new QToolBar(this)), m_cursorMenu(new QMenu(this)),
 
       actResetZoom(new QAction(QIcon(), "Reset zoom")),
       actCursorDefault(new QAction(QIcon(), "Default")),
@@ -108,21 +115,40 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
   auto *vlayout = new QVBoxLayout;
   this->setLayout(vlayout);
 
-  // Toolbar
+  // Toolbar and context menu
   {
-    auto *toolbar = new QToolBar("Cursor type");
-    vlayout->addWidget(toolbar);
+    vlayout->addWidget(m_cursorToolbar);
 
     // toolbar->addSeparator();
     // toolbar->addAction(actCursorUndo);
 
-    toolbar->addSeparator();
-    toolbar->addAction(actCursorDefault);
-    toolbar->addAction(actCursorSelectAScan);
-    toolbar->addAction(actCursorPan);
-    toolbar->addAction(actCursorLine);
-    toolbar->addAction(actCursorLabelRect);
-    toolbar->addAction(actCursorLabelFan);
+    m_cursorMenu->setTitle("Cursor mode");
+
+    m_cursorToolbar->addSeparator();
+
+    actCursorDefault->setShortcut(QKeySequence(Qt::ALT | Qt::Key_D));
+    m_cursorToolbar->addAction(actCursorDefault);
+    m_cursorMenu->addAction(actCursorDefault);
+
+    actCursorSelectAScan->setShortcut(QKeySequence(Qt::ALT | Qt::Key_A));
+    m_cursorToolbar->addAction(actCursorSelectAScan);
+    m_cursorMenu->addAction(actCursorSelectAScan);
+
+    actCursorPan->setShortcut(QKeySequence(Qt::ALT | Qt::Key_P));
+    m_cursorToolbar->addAction(actCursorPan);
+    m_cursorMenu->addAction(actCursorPan);
+
+    actCursorLine->setShortcut(QKeySequence(Qt::ALT | Qt::Key_L));
+    m_cursorToolbar->addAction(actCursorLine);
+    m_cursorMenu->addAction(actCursorLine);
+
+    actCursorLabelRect->setShortcut(QKeySequence(Qt::ALT | Qt::Key_R));
+    m_cursorToolbar->addAction(actCursorLabelRect);
+    m_cursorMenu->addAction(actCursorLabelRect);
+
+    actCursorLabelFan->setShortcut(QKeySequence(Qt::ALT | Qt::Key_F));
+    m_cursorToolbar->addAction(actCursorLabelFan);
+    m_cursorMenu->addAction(actCursorLabelFan);
 
     // Add stretchable spacer
     // toolbar->addSeparator();
@@ -130,11 +156,11 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
       auto *emptyStretchable = new QWidget;
       emptyStretchable->setSizePolicy(QSizePolicy::Expanding,
                                       QSizePolicy::Preferred);
-      toolbar->addWidget(emptyStretchable);
+      m_cursorToolbar->addWidget(emptyStretchable);
     }
-    toolbar->addAction(actResetZoom);
-    toolbar->addAction(actToggleUSCanvas);
-    toolbar->addAction(actToggleAScanPlot);
+    m_cursorToolbar->addAction(actResetZoom);
+    m_cursorToolbar->addAction(actToggleUSCanvas);
+    m_cursorToolbar->addAction(actToggleAScanPlot);
   }
 
   // Image Canvas
