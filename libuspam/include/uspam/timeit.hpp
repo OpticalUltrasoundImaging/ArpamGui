@@ -28,11 +28,12 @@ template <bool PrintStdOut = false> struct TimeIt {
   TimeIt(TimeIt &&) = delete;
   TimeIt &operator=(const TimeIt &) = delete;
   TimeIt &operator=(TimeIt &&) = delete;
-  float get_ms() const {
-    using namespace std::chrono;
+  [[nodiscard]] float get_ms() const {
+    using namespace std::chrono; // NOLINT(*-namespace)
     const auto elapsed = clock::now() - start;
     const auto nano = duration_cast<nanoseconds>(elapsed).count();
-    return static_cast<float>(nano) / 1.0e6;
+    constexpr float fct_nano2mili = 1.0e-6;
+    return static_cast<float>(nano) / fct_nano2mili;
   }
   ~TimeIt() {
     if constexpr (PrintStdOut) {
@@ -52,7 +53,7 @@ auto nanos = bench("Func name", n_runs, [&]() { Func(); }, true);
 template <typename Func>
 auto bench(const std::string &name, const int runs, const Func &func,
            bool write_to_file = false) {
-  using namespace std::chrono;
+  using namespace std::chrono; // NOLINT(*-namespace)
   using clock = high_resolution_clock;
 
   // Time it and collect data
@@ -66,7 +67,7 @@ auto bench(const std::string &name, const int runs, const Func &func,
   // Compute statistics
   const auto getMean = [](const std::vector<int64_t> &data) {
     const double sum = std::accumulate(data.begin(), data.end(), 0.0);
-    return sum / data.size();
+    return sum / static_cast<double>(data.size());
   };
 
   const auto calculateStdDev = [](const std::vector<int64_t> &data,
@@ -74,10 +75,11 @@ auto bench(const std::string &name, const int runs, const Func &func,
     const double sq_sum = std::accumulate(
         data.begin(), data.end(), 0.0, [mean](double acc, int64_t val) {
           // Accumulate the squared differences
-          return acc + (val - mean) * (val - mean);
+          const auto v = static_cast<double>(val);
+          return acc + (v - mean) * (v - mean);
         });
     // Square root of average squared deviation
-    return std::sqrt(sq_sum / data.size());
+    return std::sqrt(sq_sum / static_cast<double>(data.size()));
   };
 
   const double mean = getMean(nanos);
@@ -86,6 +88,7 @@ auto bench(const std::string &name, const int runs, const Func &func,
   // Select best unit to display based on mean
   std::string unit;
   double scale{};
+  // NOLINTBEGIN
   if (mean < 1000.0) { // nanoseconds
     unit = "ns";
     scale = 1.0;
@@ -96,6 +99,7 @@ auto bench(const std::string &name, const int runs, const Func &func,
     unit = "ms";
     scale = 1e6;
   }
+  // NOLINTEND
 
   // Print message
   std::cout << name << " " << std::fixed << std::setprecision(2) << mean / scale
@@ -105,6 +109,7 @@ auto bench(const std::string &name, const int runs, const Func &func,
   if (write_to_file) {
     std::ofstream fs(name, std::ios::binary);
     if (fs.is_open()) {
+      // NOLINTNEXTLINE
       fs.write((char *)nanos.data(), nanos.size() * sizeof(int64_t));
     }
   }

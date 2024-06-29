@@ -50,7 +50,8 @@ struct SaftDelayParams {
     return saftParams;
   }
 
-  auto computeSaftTimeDelay(int zStart = -1, int zEnd = -1) const {
+  [[nodiscard]] auto computeSaftTimeDelay(int zStart = -1,
+                                          int zEnd = -1) const {
     // [pts] z start and end points of SAFT.
     // By default start = (half focal distance), end = (1.5x focal distance)
     const auto &p = *this;

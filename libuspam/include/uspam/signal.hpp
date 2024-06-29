@@ -49,8 +49,8 @@ be between 0 and ``fs/2``. Default is 2.
 @return Eigen::ArrayXd The filter coefficients of the FIR filter, as a 1-D array
 of length numtaps
 */
-auto firwin2(int numtaps, const std::span<const double> freq,
-             const std::span<const double> gain, int nfreqs = 0, double fs = 2)
+auto firwin2(int numtaps, std::span<const double> freq,
+             std::span<const double> gain, int nfreqs = 0, double fs = 2)
     -> arma::vec;
 
 /**

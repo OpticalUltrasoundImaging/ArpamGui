@@ -15,7 +15,7 @@ template <typename T>
 auto makeRectangular(const arma::Mat<T> &mat, int width = 640,
                      int height = 1000) {
   // Create a cv::mat that uses the same data
-  // NOLINTNEXTLINT
+  // NOLINTNEXTLINE(*-casting)
   cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
   cv::resize(cv_mat, cv_mat, {width, height});
   cv_mat.convertTo(cv_mat, CV_8U, 255.0);
@@ -25,6 +25,7 @@ auto makeRectangular(const arma::Mat<T> &mat, int width = 640,
 
 template <typename T>
 auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
+  // NOLINTNEXTLINE(*-casting)
   cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
 
   const int r = std::min(cv_mat.rows, cv_mat.cols);

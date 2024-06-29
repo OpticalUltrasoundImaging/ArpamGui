@@ -31,6 +31,7 @@ void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
       const auto *inptr = input.colptr(col);
       auto *outptr = output.colptr(col);
       for (int i = 0; i < input.n_rows; ++i) {
+        // NOLINTNEXTLINE(*-pointer-arithmetic)
         outptr[i] = static_cast<Tout>(inptr[i]);
       }
     }
@@ -38,6 +39,7 @@ void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
 }
 
 // Function to convert matrix using OpenCV's cv::parallel_for_
+// With scaline by alpha and beta like cv::Mat::convertTo
 template <typename Tin, typename Tout>
 void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
                        const Tout alpha = 1, const Tout beta = 0) {
@@ -47,6 +49,7 @@ void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
       const auto *inptr = input.colptr(col);
       auto *outptr = output.colptr(col);
       for (int i = 0; i < input.n_rows; ++i) {
+        // NOLINTNEXTLINE(*-pointer-arithmetic)
         outptr[i] = cv::saturate_cast<Tout>(inptr[i]) * alpha + beta;
       }
     }
@@ -140,6 +143,7 @@ public:
 
     if constexpr (std::is_same_v<T, TypeInBin>) {
       // type stored in bin is the same type as the buffer give. Use directly
+      // NOLINTNEXTLINE(*-reinterpret-cast)
       return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
 
     } else {

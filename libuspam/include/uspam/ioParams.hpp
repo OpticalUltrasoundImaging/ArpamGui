@@ -52,6 +52,7 @@ public:
 
   // Serialize to JSON
   [[nodiscard]] rapidjson::Document serializeToDoc() const;
+  // NOLINTNEXTLINE(*-nodiscard)
   bool serializeToFile(const fs::path &path) const;
 
   // Deserialize from JSON
