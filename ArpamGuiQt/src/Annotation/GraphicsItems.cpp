@@ -16,12 +16,19 @@ void LineItem::setLine(const QLineF &line) {
     prepareGeometryChange();
     m_line = line;
 
-    textItem()->setPos(line.center() + QPointF{10, 10});
+    auto pos = std::max(line.p1(), line.p2(),
+                        [](const QPointF &left, const QPointF &right) {
+                          return left.x() < right.x();
+                        });
+    textItem()->setPos(pos);
   }
 }
 
 QRectF LineItem::boundingRect() const {
-  return QRectF(m_line.p1(), m_line.p2()).normalized();
+  auto rect = QRectF(m_line.p1(), m_line.p2()).normalized();
+  constexpr double textWidth = 20; // Add space for text on the right side
+  rect.setWidth(rect.width() + textWidth);
+  return rect;
 }
 
 void LineItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
