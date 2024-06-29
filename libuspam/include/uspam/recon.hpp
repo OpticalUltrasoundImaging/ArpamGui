@@ -110,24 +110,39 @@ auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
 // rf contains the RF signal, and results are saved to rfLog
 template <Floating T>
 void reconOneScan(const ReconParams2 &params, io::PAUSpair<T> &rf,
-                  io::PAUSpair<uint8_t> &rfLog, bool flip) {
-  reconOneScan<T>(params.PA, rf.PA, rfLog.PA, flip);
-  reconOneScan<T>(params.US, rf.US, rfLog.US, flip);
+                  io::PAUSpair<T> &rfBeamformed, io::PAUSpair<uint8_t> &rfLog,
+                  bool flip) {
+  reconOneScan<T>(params.PA, rf.PA, rfBeamformed.PA, rfLog.PA, flip);
+  reconOneScan<T>(params.US, rf.US, rfBeamformed.US, rfLog.US, flip);
 }
 
-// Similar to the above, but returns rfLog in a new buffer.
+enum class Beamformer { NONE, SAFT };
+
 template <Floating T>
-[[nodiscard]] auto reconOneScan(const ReconParams2 &params, io::PAUSpair<T> &rf,
-                                bool flip) -> io::PAUSpair<uint8_t> {
-  auto rfLog = io::PAUSpair<uint8_t>::zeros_like(rf);
-  reconOneScan<T>(params, rf, rfLog, flip);
-  return rfLog;
+void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
+              Beamformer beamformer) {
+  switch (beamformer) {
+  case Beamformer::SAFT: {
+    const auto saftParams = uspam::saft::SaftDelayParams<T>::make();
+    const auto timeDelay = uspam::saft::computeSaftTimeDelay<T>(saftParams);
+    const auto [rfSaft, rfSaftCF] =
+        uspam::saft::apply_saft<T, T>(timeDelay, rf);
+
+    rfBeamformed = rfSaftCF;
+
+  } break;
+
+  case Beamformer::NONE:
+  default:
+    rfBeamformed = rf; // Copy
+  }
 }
 
 // FIR filter + Envelope detection + log compression for one
 template <Floating T>
 void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
-                  arma::Mat<T> &rfEnv, arma::Mat<uint8_t> &rfLog, bool flip) {
+                  arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
+                  arma::Mat<uint8_t> &rfLog, bool flip) {
   if (flip) {
     // Do flip
     imutil::fliplr_inplace(rf);
@@ -156,19 +171,13 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
     rfEnv.set_size(rf.n_rows, rf.n_cols);
   }
 
-  if (params.saft) {
-    const auto saftParams = uspam::saft::SaftDelayParams<T>::make();
-    const auto timeDelay = uspam::saft::computeSaftTimeDelay<T>(saftParams);
-    const auto [rfSaft, rfSaftCF] =
-        uspam::saft::apply_saft<T, T>(timeDelay, rf);
+  Beamformer beamformer = params.saft ? Beamformer::SAFT : Beamformer::NONE;
+  beamform(rf, rfBeamformed, beamformer);
 
-    recon<T>(rfSaftCF, kernel, rfEnv);
-  } else {
-
-    recon<T>(rf, kernel, rfEnv);
-  }
+  recon<T>(rfBeamformed, kernel, rfEnv);
 
   constexpr float fct_mV2V = 1.0F / 1000;
+  rfLog.set_size(rf.n_rows, rf.n_cols);
   logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
                  params.desiredDynamicRange);
 }

@@ -297,6 +297,6 @@ void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {
 
 void FrameController::plotCurrentBScan() {
   // Display images
-  m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->USradial_img,
+  m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->US.radial_img,
                          m_data->fct);
 }

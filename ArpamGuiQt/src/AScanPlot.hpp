@@ -16,7 +16,16 @@ class AScanPlot : public QWidget {
 public:
   using FloatType = double;
 
-  enum PlotType { RFRaw, RFEnvUS, RFEnvPA, RFLogUS, RFLogPA, Size };
+  enum PlotType {
+    RFRaw,
+    RFBeamformedUS,
+    RFBeamformedPA,
+    RFEnvUS,
+    RFEnvPA,
+    RFLogUS,
+    RFLogPA,
+    Size
+  };
   inline static const std::array<QString, Size> PlotTypeStr{
       "RF Raw", "RF Env US", "RF Env PA", "RF Log US", "RF Log PA"};
 

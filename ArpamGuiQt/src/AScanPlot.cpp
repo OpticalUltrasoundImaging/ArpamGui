@@ -2,6 +2,7 @@
 #include <QBrush>
 #include <QButtonGroup>
 #include <QColor>
+#include <QGridLayout>
 #include <QPen>
 #include <QRadioButton>
 #include <QSplitter>
@@ -119,7 +120,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
      * Plot selector
      */
     {
-      auto *layout = new QVBoxLayout(this);
+      auto *layout = new QGridLayout(this);
 
       auto *w = new QWidget;
       w->setLayout(layout);
@@ -130,24 +131,34 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       group->setExclusive(true);
 
       // Create radio buttons for each enum value
-      auto *radioRFRaw = new QRadioButton("RF Raw");
+      auto *radioRFRaw = new QRadioButton("RF Raw (PA + US)");
+      auto *radioRFBeamformedUS = new QRadioButton("RF Beamformed US");
+      auto *radioRFBeamformedPA = new QRadioButton("RF Beamformed PA");
       auto *radioRFEnvUS = new QRadioButton("RF Env US");
       auto *radioRFEnvPA = new QRadioButton("RF Env PA");
       auto *radioRFLogUS = new QRadioButton("RF Log US");
       auto *radioRFLogPA = new QRadioButton("RF Log PA");
 
       // Add buttons to the layout and button group
-      layout->addWidget(radioRFRaw);
-      layout->addWidget(radioRFEnvUS);
-      layout->addWidget(radioRFEnvPA);
-      layout->addWidget(radioRFLogUS);
-      layout->addWidget(radioRFLogPA);
+      layout->addWidget(radioRFRaw, 0, 0);
+
+      layout->addWidget(radioRFBeamformedPA, 1, 0);
+      layout->addWidget(radioRFEnvPA, 2, 0);
+      layout->addWidget(radioRFLogPA, 3, 0);
+
+      layout->addWidget(radioRFBeamformedUS, 1, 1);
+      layout->addWidget(radioRFEnvUS, 2, 1);
+      layout->addWidget(radioRFLogUS, 3, 1);
 
       group->addButton(radioRFRaw, static_cast<int>(PlotType::RFRaw));
-      group->addButton(radioRFEnvUS, static_cast<int>(PlotType::RFEnvUS));
       group->addButton(radioRFEnvPA, static_cast<int>(PlotType::RFEnvPA));
-      group->addButton(radioRFLogUS, static_cast<int>(PlotType::RFLogUS));
+      group->addButton(radioRFEnvUS, static_cast<int>(PlotType::RFEnvUS));
+      group->addButton(radioRFBeamformedPA,
+                       static_cast<int>(PlotType::RFBeamformedPA));
+      group->addButton(radioRFBeamformedUS,
+                       static_cast<int>(PlotType::RFBeamformedUS));
       group->addButton(radioRFLogPA, static_cast<int>(PlotType::RFLogPA));
+      group->addButton(radioRFLogUS, static_cast<int>(PlotType::RFLogUS));
 
       // Connect the button group's signal to a lambda function
       connect(group, &QButtonGroup::idClicked, [this](int id) {
@@ -248,9 +259,44 @@ void AScanPlot::plotCurrentAScan() {
     plot(y);
   } break;
 
+  case PlotType::RFBeamformedPA: {
+    // PA rfEnv
+    const auto &rf = m_data->PA.rfBeamformed;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y);
+  } break;
+
+  case PlotType::RFBeamformedUS: {
+    // US rfEnv
+    const auto &rf = m_data->US.rfBeamformed;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y);
+  } break;
+
+  case PlotType::RFEnvPA: {
+    // PA rfEnv
+    const auto &rf = m_data->PA.rfEnv;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y, true);
+  } break;
+  case PlotType::RFEnvUS: {
+    // US rfEnv
+    const auto &rf = m_data->US.rfEnv;
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
+    plot(y, true);
+  } break;
+
   case PlotType::RFLogPA: {
     // US rfLog
-    const auto &rf = m_data->rfLog.PA;
+    const auto &rf = m_data->PA.rfLog;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
@@ -259,29 +305,13 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFLogUS: {
     // US rfLog
-    const auto &rf = m_data->rfLog.US;
+    const auto &rf = m_data->US.rfLog;
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y, false, 0, 256);
   } break;
 
-  case PlotType::RFEnvPA: {
-    // PA rfEnv
-    const auto &rf = m_data->rfEnv.PA;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    plot(y, true);
-  } break;
-  case PlotType::RFEnvUS: {
-    // US rfEnv
-    const auto &rf = m_data->rfEnv.US;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    plot(y, true);
-  } break;
   case Size:
     // NOOP
     break;

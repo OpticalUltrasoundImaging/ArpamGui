@@ -33,6 +33,17 @@ struct PerformanceMetrics {
   }
 };
 
+template <uspam::Floating T> struct BScanData_ {
+  arma::Mat<T> rf;
+  arma::Mat<T> rfBeamformed;
+  arma::Mat<T> rfEnv;
+  arma::Mat<uint8_t> rfLog;
+
+  // Images
+  cv::Mat radial;
+  QImage radial_img;
+};
+
 /**
  * Contains all the data for one BScan
  * From RF to Image
@@ -40,20 +51,14 @@ struct PerformanceMetrics {
  * For initialization, only PAUSpair need to be explicitly allocated since
  * `rf` will be overwritten, and cv::Mat and QImage have default constructors
  */
-template <uspam::Floating FloatType> struct BScanData {
+template <uspam::Floating T> struct BScanData {
   // RF data
-  arma::Mat<FloatType> rf;
-  uspam::io::PAUSpair<FloatType> rfPair;
-  uspam::io::PAUSpair<FloatType> rfEnv;
-  uspam::io::PAUSpair<uint8_t> rfLog;
+  arma::Mat<T> rf;
 
-  // Images
-  cv::Mat USradial;   // CV_8U1C
-  cv::Mat PAradial;   // CV_8U1C
+  BScanData_<T> PA;
+  BScanData_<T> US;
+
   cv::Mat PAUSradial; // CV_8U3C
-
-  QImage USradial_img;
-  QImage PAradial_img;
   QImage PAUSradial_img;
 
   // depth [m] of one radial pixel
@@ -61,10 +66,6 @@ template <uspam::Floating FloatType> struct BScanData {
 
   // Frame idx
   int frameIdx{};
-
-  BScanData(const uspam::io::IOParams &ioparams, int alinesPerBscan)
-      : rfPair(ioparams.allocateSplitPair<FloatType>(alinesPerBscan)),
-        rfLog(uspam::io::PAUSpair<uint8_t>::empty_like(rfPair)) {}
 };
 
 /**
