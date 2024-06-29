@@ -40,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 
       m_fileMenu(menuBar()->addMenu(tr("&File"))),
       m_viewMenu(menuBar()->addMenu(tr("&View"))),
+      m_helpMenu(menuBar()->addMenu(tr("&Help"))),
 
       worker(new DataProcWorker),
 
@@ -51,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
                                             m_AScanPlot, m_coregDisplay))
 
 {
+  menuBar()->addMenu(m_frameController->frameMenu());
+
   // Enable QStatusBar at the bottom of the MainWindow
   statusBar();
 
@@ -77,8 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
    * Setup GUI
    */
 
-  m_viewMenu->addAction(m_coregDisplay->actionToggleUSCanvas());
-  m_viewMenu->addAction(m_coregDisplay->actionToggleAScanPlot());
+  m_viewMenu->addMenu(m_coregDisplay->viewMenu());
 
   m_viewMenu->addSeparator();
 

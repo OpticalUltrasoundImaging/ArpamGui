@@ -25,19 +25,20 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
       m_model(new annotation::AnnotationModel),
       m_annoView(new annotation::AnnotationView),
 
-      m_cursorToolbar(new QToolBar(this)), m_cursorMenu(new QMenu(this)),
+      m_cursorToolbar(new QToolBar(this)),
+      m_cursorMenu(new QMenu("Cursor mode", this)),
 
-      actResetZoom(new QAction(QIcon(), "Reset zoom")),
-      actCursorDefault(new QAction(QIcon(), "Default")),
-      actCursorSelectAScan(new QAction(QIcon(), "Select AScan")),
-      actCursorPan(new QAction(QIcon(), "Pan")),
-      actCursorUndo(new QAction(QIcon(), "Undo")),
-      actCursorLine(new QAction(QIcon(), "Line")),
-      actCursorLabelRect(new QAction(QIcon(), "Rect")),
-      actCursorLabelFan(new QAction(QIcon(), "Fan")),
+      actCursorDefault(new QAction("Default")),
+      actCursorSelectAScan(new QAction("Select AScan")),
+      actCursorPan(new QAction("Pan")), actCursorUndo(new QAction("Undo")),
+      actCursorLine(new QAction("Line")),
+      actCursorLabelRect(new QAction("Rect")),
+      actCursorLabelFan(new QAction("Fan")),
 
-      actToggleUSCanvas(new QAction(QIcon(), "Toggle US")),
-      actToggleAScanPlot(new QAction(QIcon(), "Toggle AScan"))
+      m_viewMenu(new QMenu("Frame Display")),
+      actResetZoom(new QAction("Reset Zoom")),
+      actShowUSCanvas(new QAction("Show US")),
+      actShowAScanPlot(new QAction("Show AScan"))
 
 {
   // Connect annotation model to canvas
@@ -56,12 +57,6 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
           &CoregDisplay::AScanSelected);
   connect(m_canvasUS, &Canvas::AScanSelected, this,
           &CoregDisplay::AScanSelected);
-
-  // Connection actions
-  connect(actResetZoom, &QAction::triggered, this, [this] {
-    m_canvasPAUS->scaleToSize();
-    m_canvasUS->scaleToSize();
-  });
 
   /*
    *  Connect cursor actions
@@ -102,12 +97,24 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
   defer { actCursorDefault->trigger(); };
 
   /*
-   *  Connect cursor actions
+   * Connect view actions
    */
-  connect(actToggleUSCanvas, &QAction::triggered,
-          [this] { m_canvasUS->setVisible(!m_canvasUS->isVisible()); });
-  connect(actToggleAScanPlot, &QAction::triggered,
-          [this] { m_AScanPlot->setVisible(!m_AScanPlot->isVisible()); });
+  actResetZoom->setShortcut({Qt::CTRL | Qt::Key_R});
+  connect(actResetZoom, &QAction::triggered, this, [this] {
+    m_canvasPAUS->scaleToSize();
+    m_canvasUS->scaleToSize();
+  });
+  m_viewMenu->addAction(actResetZoom);
+
+  actShowUSCanvas->setCheckable(true);
+  connect(actShowUSCanvas, &QAction::triggered,
+          [this](bool checked) { m_canvasUS->setVisible(checked); });
+  m_viewMenu->addAction(actShowUSCanvas);
+
+  actShowAScanPlot->setCheckable(true);
+  connect(actShowAScanPlot, &QAction::triggered,
+          [this](bool checked) { m_AScanPlot->setVisible(checked); });
+  m_viewMenu->addAction(actShowAScanPlot);
 
   /*
    * Setup UI
@@ -159,8 +166,8 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
       m_cursorToolbar->addWidget(emptyStretchable);
     }
     m_cursorToolbar->addAction(actResetZoom);
-    m_cursorToolbar->addAction(actToggleUSCanvas);
-    m_cursorToolbar->addAction(actToggleAScanPlot);
+    m_cursorToolbar->addAction(actShowUSCanvas);
+    m_cursorToolbar->addAction(actShowAScanPlot);
   }
 
   // Image Canvas
@@ -181,8 +188,10 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
     // hlayout->addWidget(m_AScanPlot);
   }
 
-  // By default don't show the US canvas
+  // By default don't show the US canvas and show AScan
+  actShowUSCanvas->setChecked(false);
   m_canvasUS->hide();
+  actShowAScanPlot->setChecked(true);
 }
 
 void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,

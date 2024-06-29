@@ -24,18 +24,7 @@ public:
 
   [[nodiscard]] auto cursorToolbar() const { return m_cursorToolbar; }
   [[nodiscard]] auto cursorMenu() const { return m_cursorMenu; }
-
-  [[nodiscard]] auto actionDefault() const { return actCursorDefault; }
-  [[nodiscard]] auto actionSelectAScan() const { return actCursorSelectAScan; }
-  [[nodiscard]] auto actionPan() const { return actCursorPan; }
-  [[nodiscard]] auto actionLine() const { return actCursorLine; }
-  [[nodiscard]] auto actionLabelRect() const { return actCursorLabelRect; }
-  [[nodiscard]] auto actionLabelFan() const { return actCursorLabelFan; }
-
-  [[nodiscard]] auto actionToggleUSCanvas() const { return actToggleUSCanvas; }
-  [[nodiscard]] auto actionToggleAScanPlot() const {
-    return actToggleAScanPlot;
-  }
+  [[nodiscard]] auto viewMenu() const { return m_viewMenu; }
 
 signals:
   void message(const QString &msg);
@@ -86,9 +75,6 @@ private:
   // AnnotationView *m_annoView;
   AnnotationView *m_annoView;
 
-  // Reset image zoom
-  QAction *actResetZoom;
-
   /*
    * Cursor Actions
    */
@@ -113,6 +99,10 @@ private:
   /*
    * Canvas View Actions
    */
-  QAction *actToggleUSCanvas;
-  QAction *actToggleAScanPlot;
+  // Menu that holds the view actions
+  QMenu *m_viewMenu;
+  // Reset image zoom
+  QAction *actResetZoom;
+  QAction *actShowUSCanvas;
+  QAction *actShowAScanPlot;
 };

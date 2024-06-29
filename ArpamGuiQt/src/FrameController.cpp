@@ -6,18 +6,22 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QHBoxLayout>
+#include <QKeySequence>
 #include <QLabel>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QSpinBox>
 #include <QToolTip>
 #include <QVBoxLayout>
+#include <Qt>
 #include <cassert>
 #include <chrono>
 #include <filesystem>
 #include <memory>
 #include <numeric>
+#include <qkeysequence.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <string>
@@ -27,11 +31,20 @@ FrameController::FrameController(ReconParamsController *paramsController,
                                  DataProcWorker *worker, AScanPlot *ascanPlot,
                                  CoregDisplay *coregDisplay, QWidget *parent)
     : QWidget(parent), m_reconParams(paramsController), m_worker(worker),
+
       m_coregDisplay(coregDisplay), m_AScanPlot(ascanPlot),
       m_btnPlayPause(new QPushButton("Play", this)),
-      m_actOpenFileSelectDialog(new QAction(QIcon{}, "Open binfile")) {
+
+      m_menu(new QMenu("Frames", this)),
+      m_actOpenFileSelectDialog(new QAction("Open binfile")),
+      m_actPlayPause(new QAction("Play/Pause")),
+      m_actNextFrame(new QAction("Next Frame")),
+      m_actPrevFrame(new QAction("Prev Frame"))
+
+{
 
   // Actions
+  m_actOpenFileSelectDialog->setShortcut({Qt::CTRL | Qt::Key_O});
   connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
           &FrameController::openFileSelectDialog);
 
@@ -53,28 +66,10 @@ FrameController::FrameController(ReconParamsController *paramsController,
     auto *hlayout = new QHBoxLayout;
     vlayout->addLayout(hlayout);
 
-    // Frame num label and spinbox
-    // {
-    //   auto *frameNumLabel = new QLabel;
-    //   frameNumLabel->setText("Frame:");
-    //   hlayout->addWidget(frameNumLabel);
-
-    //   // SpinBox to display frame num
-    //   m_frameNumSpinBox = new QSpinBox;
-    //   hlayout->addWidget(m_frameNumSpinBox);
-    //   m_frameNumSpinBox->setDisabled(true);
-    //   connect(m_frameNumSpinBox, &QSpinBox::editingFinished, this, [&] {
-    //     auto val = m_frameNumSpinBox->value();
-    //     emit sigFrameNumUpdated(val);
-    //     updatePlayingState(false);
-    //   });
-    // }
-
     // Slider to select frame num in the sequence
     {
       m_frameSlider = new QSlider(Qt::Horizontal);
       hlayout->addWidget(m_frameSlider);
-      m_frameSlider->setDisabled(true);
       m_frameSlider->setTickPosition(QSlider::TickPosition::TicksBelow);
 
       connect(m_frameSlider, &QSlider::sliderPressed, this, [&] {
@@ -93,14 +88,34 @@ FrameController::FrameController(ReconParamsController *paramsController,
               [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
     }
 
-    // Play/pause button
+    // Play/pause action and button
     {
-      hlayout->addWidget(m_btnPlayPause);
-      m_btnPlayPause->setDisabled(true);
+      m_actPlayPause->setCheckable(true);
+      m_actPlayPause->setShortcut({Qt::Key_Space});
+      connect(m_actPlayPause, &QAction::triggered,
+              [this](bool checked) { updatePlayingState(!m_isPlaying); });
+      m_menu->addAction(m_actPlayPause);
 
-      connect(m_btnPlayPause, &QPushButton::clicked, this,
-              [&] { updatePlayingState(!m_isPlaying); });
+      hlayout->addWidget(m_btnPlayPause);
+      connect(m_btnPlayPause, &QPushButton::clicked, m_actPlayPause,
+              &QAction::trigger);
     }
+
+    // Frame navigation actions
+    {
+      m_actPrevFrame->setShortcut({Qt::Key_Comma});
+      connect(m_actPrevFrame, &QAction::triggered, [this]() { prevFrame(); });
+      m_menu->addAction(m_actPrevFrame);
+
+      m_actNextFrame->setShortcut({Qt::Key_Period});
+      connect(m_actNextFrame, &QAction::triggered, [this]() { nextFrame(); });
+      m_menu->addAction(m_actNextFrame);
+    }
+
+    // Before a binfile is loaded, disable frame control
+    m_frameSlider->setDisabled(true);
+    m_btnPlayPause->setDisabled(true);
+    m_menu->setDisabled(true);
   }
 
   // Connections
@@ -226,12 +241,10 @@ void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   m_frameSlider->setMinimum(0);
   m_frameSlider->setMaximum(maxFrameNum - 1);
-  // m_frameNumSpinBox->setMinimum(0);
-  // m_frameNumSpinBox->setMaximum(maxFrameNum - 1);
 
   m_btnPlayPause->setEnabled(true);
-  // m_frameNumSpinBox->setEnabled(true);
   m_frameSlider->setEnabled(true);
+  m_menu->setEnabled(true);
 }
 
 void FrameController::updatePlayingState(bool playing) {

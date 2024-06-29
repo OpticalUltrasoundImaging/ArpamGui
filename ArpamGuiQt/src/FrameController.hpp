@@ -6,6 +6,7 @@
 #include "ReconParamsController.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
 #include <QAction>
+#include <QMenu>
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
@@ -22,6 +23,8 @@ public:
                            DataProcWorker *worker, AScanPlot *ascanPlot,
                            CoregDisplay *coregDisplay,
                            QWidget *parent = nullptr);
+
+  [[nodiscard]] auto frameMenu() const { return m_menu; }
 
 public slots:
   // Open file select dialog
@@ -68,12 +71,17 @@ private:
   // Ptr to the AScanPlot to control 2D plotting
   AScanPlot *m_AScanPlot;
 
+  // UI elements
   QPushButton *m_btnPlayPause;
-  QAction *m_actOpenFileSelectDialog;
-
-  // QSpinBox *m_frameNumSpinBox;
   QSlider *m_frameSlider;
   bool m_isPlaying{false};
+
+  // Actions
+  QMenu *m_menu;
+  QAction *m_actOpenFileSelectDialog;
+  QAction *m_actPlayPause;
+  QAction *m_actNextFrame;
+  QAction *m_actPrevFrame;
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here
