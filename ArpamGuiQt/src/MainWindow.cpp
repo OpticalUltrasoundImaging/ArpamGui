@@ -133,6 +133,7 @@ MainWindow::MainWindow(QWidget *parent)
       // dock->setFeatures(dock->features() ^
       // (QDockWidget::DockWidgetClosable));
       this->addDockWidget(Qt::LeftDockWidgetArea, dock);
+      dock->toggleViewAction()->setShortcut({Qt::CTRL | Qt::SHIFT | Qt::Key_P});
       m_viewMenu->addAction(dock->toggleViewAction());
       resizeDocks({dock}, {dock->sizeHint().width()},
                   Qt::Orientation::Horizontal);
@@ -164,6 +165,7 @@ MainWindow::MainWindow(QWidget *parent)
     {
       auto *dock = new QDockWidget("Annotations", this);
       this->addDockWidget(Qt::LeftDockWidgetArea, dock);
+      dock->toggleViewAction()->setShortcut({Qt::CTRL | Qt::SHIFT | Qt::Key_L});
       m_viewMenu->addAction(dock->toggleViewAction());
 
       // Tabify annotation view and ReconParamsController
@@ -180,6 +182,7 @@ MainWindow::MainWindow(QWidget *parent)
   {
     auto *dock = new QDockWidget("AScan Plot", this);
     this->addDockWidget(Qt::RightDockWidgetArea, dock);
+    dock->toggleViewAction()->setShortcut({Qt::CTRL | Qt::SHIFT | Qt::Key_A});
     m_viewMenu->addAction(dock->toggleViewAction());
 
     dock->setWidget(m_AScanPlot);
@@ -196,25 +199,6 @@ MainWindow::MainWindow(QWidget *parent)
     }
   });
   m_viewMenu->addAction(fullscreenAction);
-
-  // // Exit button
-  // {
-  //   auto *dock = new QDockWidget("Exit", this);
-  //   // dock->setFeatures(dock->features() ^
-  //   (QDockWidget::DockWidgetClosable));
-  //   this->addDockWidget(Qt::TopDockWidgetArea, dock);
-  //   m_viewMenu->addAction(dock->toggleViewAction());
-
-  //   auto *w = new QWidget;
-  //   auto *layout = new QVBoxLayout;
-  //   // dockLayout->addLayout(layout);
-  //   w->setLayout(layout);
-  //   dock->setWidget(w);
-
-  //   auto *closeBtn = new QPushButton("Close");
-  //   layout->addWidget(closeBtn);
-  //   connect(closeBtn, &QPushButton::clicked, this, &QMainWindow::close);
-  //   closeBtn->setObjectName("closeButton");
 
   // End dock config
 
