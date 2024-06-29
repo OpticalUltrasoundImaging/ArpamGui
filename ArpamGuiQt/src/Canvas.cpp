@@ -212,6 +212,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       const auto color = Qt::green;
       m_currItem = new annotation::LineItem(Annotation(line, color, ""));
       m_currItem->updateScaleFactor(m_scaleFactor);
+      m_currItem->setPenStyle(Qt::PenStyle::DashLine);
       m_scene->addItem(m_currItem);
 
       // Emit

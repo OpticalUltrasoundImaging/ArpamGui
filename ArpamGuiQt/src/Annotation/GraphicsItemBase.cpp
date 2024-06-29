@@ -1,4 +1,5 @@
 #include "Annotation/GraphicsItemBase.hpp"
+#include <Qt>
 
 namespace annotation {
 
@@ -39,6 +40,8 @@ void GraphicsItemBase::updateScaleFactor(double scaleFactor) {
 auto GraphicsItemBase::pen() const -> QPen {
   QPen pen(color());
   pen.setWidthF(m_penWidth);
+  pen.setCapStyle(Qt::PenCapStyle::RoundCap);
+  pen.setStyle(m_penStyle);
   return pen;
 }
 

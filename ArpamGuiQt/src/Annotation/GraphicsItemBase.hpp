@@ -44,6 +44,9 @@ public:
   // Pen for drawing the shape outline
   [[nodiscard]] auto pen() const -> QPen;
 
+  [[nodiscard]] auto penStyle() const { return m_penStyle; }
+  void setPenStyle(Qt::PenStyle style) { m_penStyle = style; }
+
   [[nodiscard]] auto text() const { return m_textGraphic->text(); }
   void setText(const QString &text) { m_textGraphic->setText(text); }
 
@@ -59,6 +62,7 @@ private:
   QGraphicsSimpleTextItem *m_textGraphic{}; // Child item
   QColor m_color;
   double m_penWidth{PEN_WIDTH_BASE};
+  Qt::PenStyle m_penStyle{Qt::PenStyle::SolidLine};
   bool m_inHover{false};
 };
 
