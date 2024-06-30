@@ -11,6 +11,81 @@
 #include <span>
 #include <type_traits>
 
+struct FWHM {
+  int peakIdx;
+  int lowerIdx;
+  int upperIdx;
+};
+
+template <typename T> auto calcFWHM(const QVector<T> &x, const QVector<T> &y) {
+  double maxY = *std::max_element(y.constBegin(), y.constEnd());
+  int peakIndex =
+      std::distance(y.constBegin(), std::find(y.begin(), y.end(), maxY));
+  const double halfMax = maxY / 2.0;
+
+  int lowerIndex = peakIndex;
+  int upperIndex = peakIndex;
+
+  // Search for half max crossing points
+  while (lowerIndex > 0 && y[lowerIndex] > halfMax) {
+    lowerIndex--;
+  }
+
+  while (upperIndex < y.size() && y[upperIndex] > halfMax) {
+    upperIndex++;
+  }
+
+  return FWHM{peakIndex, lowerIndex, upperIndex};
+}
+
+class AScanFWHMTracers {
+public:
+  explicit AScanFWHMTracers(QCustomPlot *customPlot)
+      : customPlot(customPlot), peakTracer(new QCPItemTracer(customPlot)),
+        lineLower(new QCPItemLine(customPlot)),
+        lineUpper(new QCPItemLine(customPlot))
+
+  {
+    peakTracer->setInterpolating(true);
+    peakTracer->setStyle(QCPItemTracer::tsCircle);
+    peakTracer->setPen(QPen(Qt::red));
+    peakTracer->setBrush(Qt::red);
+
+    lineLower->setPen(QPen(Qt::blue));
+    lineUpper->setPen(QPen(Qt::blue));
+  }
+
+  template <typename T>
+  void updateData(const QVector<T> &x, const QVector<T> &y, int graphIdx = 0) {
+    const auto fwhm = calcFWHM<T>(x, y);
+    const auto lowerX = x[fwhm.lowerIdx];
+    const auto upperX = x[fwhm.upperIdx];
+
+    const auto halfMax = y[fwhm.peakIdx] / 2;
+
+    peakTracer->setGraph(customPlot->graph(graphIdx));
+    peakTracer->setGraphKey(x[fwhm.peakIdx]);
+
+    lineLower->start->setCoords(lowerX, 0);
+    lineLower->end->setCoords(lowerX, halfMax);
+
+    lineUpper->start->setCoords(upperX, 0);
+    lineUpper->end->setCoords(upperX, halfMax);
+  }
+
+  void toggle() {
+    lineLower->setVisible(!lineLower->visible());
+    lineUpper->setVisible(!lineUpper->visible());
+    peakTracer->setVisible(!peakTracer->visible());
+  }
+
+private:
+  QCustomPlot *customPlot;
+  QCPItemTracer *peakTracer;
+  QCPItemLine *lineLower;
+  QCPItemLine *lineUpper;
+};
+
 class AScanPlot : public QWidget {
   Q_OBJECT
 public:
@@ -34,43 +109,13 @@ public:
 
   auto getPlot() { return customPlot; }
 
-  void plot(std::span<const FloatType> x, std::span<const FloatType> y);
+  void plot(const QVector<FloatType> &x, const QVector<FloatType> &y,
+            bool autoScaleY = false, FloatType yMin = -1.0,
+            FloatType yMax = 1.0);
 
   template <typename T>
   void plot(std::span<const T> y, bool autoScaleY = false,
-            FloatType yMin = -1.0, FloatType yMax = 1.0) {
-    ensureX(y.size());
-
-    // Ensure m_y size
-    if (y.size() != m_y.size()) {
-      m_y.resize(y.size());
-    }
-
-    if constexpr (std::is_same_v<T, FloatType>) {
-      std::copy(y.begin(), y.end(), m_y.data());
-    } else {
-      for (int i = 0; i < y.size(); ++i) {
-        m_y[i] = static_cast<FloatType>(y[i]);
-      }
-    }
-
-    // replot
-    customPlot->graph(0)->setData(m_x, m_y, true);
-    customPlot->xAxis->setRange(m_x.front(), m_x.back());
-    if (autoScaleY) {
-      yMin = 99999;
-      yMax = 0;
-      for (int i = 0; i < m_y.size(); ++i) {
-        yMin = std::min(yMin, m_y[i]);
-        yMax = std::max(yMax, m_y[i]);
-      }
-
-      customPlot->yAxis->setRange(yMin, yMax);
-    } else {
-      customPlot->yAxis->setRange(yMin, yMax);
-    }
-    customPlot->replot();
-  }
+            FloatType yMin = -1.0, FloatType yMax = 1.0);
 
 public slots:
 
@@ -102,4 +147,7 @@ private:
   int m_AScanPlotIdx{};        // Corrected for flip and rotation
 
   PlotType m_type{PlotType::RFRaw};
+
+  // FWHM markers
+  AScanFWHMTracers m_FWHMtracers;
 };

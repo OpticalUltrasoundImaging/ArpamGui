@@ -11,6 +11,7 @@
 [] Add beamformed RF data to BScan data structure
 [] Impl FWHM in AScan display
 [] Draw ROI, compute FWHM inside
+[] Add vectorization report for clang/MSVC, try to vectorize lib
 
 **Done**
 [x] Hotkeys to support selecting frame tools (Default [D], Line [L], Rect [R], etc.)
