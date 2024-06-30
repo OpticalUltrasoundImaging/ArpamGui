@@ -46,6 +46,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     styleAxis(customPlot->yAxis);
     styleAxis(customPlot->yAxis2);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 100)));
 
     // create graph and assign data to it:
@@ -67,6 +68,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->yAxis2->setTickLabels(false);
 
     // Set ticks to point outwards
+    // NOLINTBEGIN(*-magic-numbers)
     customPlot->xAxis->setTickLength(0, 5);
     customPlot->xAxis->setSubTickLength(0, 3);
     customPlot->yAxis->setTickLength(0, 5);
@@ -76,6 +78,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->xAxis2->setSubTickLength(0, 0);
     customPlot->yAxis2->setTickLength(0, 0);
     customPlot->yAxis2->setSubTickLength(0, 0);
+    // NOLINTEND(*-magic-numbers)
 
     // generate some data
     {
@@ -96,7 +99,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->setInteraction(QCP::iSelectItems, true);
     customPlot->setInteraction(QCP::iSelectPlottables, true);
 
-    customPlot->setMinimumHeight(200);
+    customPlot->setMinimumHeight(200); // NOLINT(*-magic-numbers)
   }
 
   // UI
@@ -205,7 +208,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
 
   this->setSizePolicy(QSizePolicy::MinimumExpanding,
                       QSizePolicy::MinimumExpanding);
-  this->setMinimumSize(QSize{500, 500});
+  this->setMinimumSize(QSize{500, 500}); // NOLINT(*-magic-numbers)
 }
 
 void AScanPlot::showPointToolTip(QMouseEvent *event) {
@@ -256,7 +259,7 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y,
   customPlot->graph(0)->setData(x, y, true);
   customPlot->xAxis->setRange(x.front(), x.back());
   if (autoScaleY) {
-    const auto [min, max] = std::minmax_element(m_y.cbegin(), m_y.cend());
+    const auto [min, max] = std::minmax_element(x.cbegin(), y.cend());
     yMin = *min;
     yMax = *max;
   }
@@ -349,7 +352,8 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
-    plot(y, false, 0, 256);
+    plot(y, false, 0, 256); // NOLINT(*-magic-numbers)
+
   } break;
 
   case PlotType::RFLogUS: {
@@ -358,7 +362,7 @@ void AScanPlot::plotCurrentAScan() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    plot(y, false, 0, 256);
+    plot(y, false, 0, 256); // NOLINT(*-magic-numbers)
   } break;
 
   case Size:

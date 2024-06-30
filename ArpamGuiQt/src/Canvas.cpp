@@ -72,7 +72,8 @@ void Canvas::setModel(AnnotationModel *model) {
             contextMenu.addAction(&deleteAction);
 
             // Item under cursor
-            if (const auto rowIdx = m_graphicsItems.indexOf(itemAt(pos));
+            if (const int rowIdx =
+                    static_cast<int>(m_graphicsItems.indexOf(itemAt(pos)));
                 rowIdx >= 0) {
 
               connect(&deleteAction, &QAction::triggered,
@@ -250,7 +251,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 
       // Convert mouse pos to angle
       m_cursor.angleOffset = 0;
-      m_cursor.lastAngle = 180.0; // NOLINT(*-magic-number)
+      m_cursor.lastAngle = 180.0; // NOLINT(*-magic-numbers)
       const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
 
       m_currItem = new annotation::FanItem(
@@ -291,11 +292,9 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       break;
 
     case (CursorMode::SelectAScan): {
-      // TODO
       const auto [idx, line] = m_cursor.selectAScan(m_Pixmap.rect());
 
       // Move ALine graphics here in canvas
-
       if (auto *lineItem = dynamic_cast<annotation::LineItem *>(m_currItem);
           lineItem != nullptr) [[likely]] {
         lineItem->setLine(line);
@@ -320,6 +319,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         const auto line = m_cursor.line();
         const auto dist = computeDistance_mm(line.p1(), line.p2());
         item->setLine(line);
+        // NOLINTNEXTLINE(*-magic-numbers)
         item->setText(QString("%1 mm").arg(dist, 5, 'f', 2));
       }
 
