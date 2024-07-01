@@ -1,7 +1,6 @@
 #include "FrameController.hpp"
 #include "AScanPlot.hpp"
 #include "CoregDisplay.hpp"
-#include "datetime.hpp"
 #include "strConvUtils.hpp"
 #include <QDebug>
 #include <QFileDialog>
@@ -17,11 +16,8 @@
 #include <QVBoxLayout>
 #include <Qt>
 #include <cassert>
-#include <chrono>
 #include <filesystem>
 #include <memory>
-#include <numeric>
-#include <qkeysequence.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <string>

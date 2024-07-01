@@ -6,7 +6,6 @@
 #include <QStyle>
 #include <QStyleHints>
 #include <QtWidgets>
-#include <ctime>
 #include <fftconv.hpp>
 #include <fftw3.h>
 #include <fstream>

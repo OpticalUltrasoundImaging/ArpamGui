@@ -4,14 +4,16 @@
 #include "DataProcWorker.hpp"
 #include "FrameController.hpp"
 #include "ReconParamsController.hpp"
-#include "strConvUtils.hpp"
 #include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include <QIcon>
+#include <QKeySequence>
 #include <QLabel>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QScrollArea>
+#include <QSizePolicy>
 #include <QSlider>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -19,13 +21,7 @@
 #include <Qt>
 #include <QtDebug>
 #include <QtLogging>
-#include <filesystem>
 #include <opencv2/opencv.hpp>
-#include <qdockwidget.h>
-#include <qkeysequence.h>
-#include <qmessagebox.h>
-#include <qnamespace.h>
-#include <qsizepolicy.h>
 #include <uspam/defer.h>
 #include <utility>
 

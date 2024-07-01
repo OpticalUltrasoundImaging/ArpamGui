@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Annotation/Annotation.hpp"
 #include <QAbstractListModel>
 #include <QColor>
@@ -11,11 +12,8 @@
 #include <QVariant>
 #include <Qt>
 #include <array>
-#include <cmath>
-#include <filesystem>
 #include <functional>
 #include <rapidjson/document.h>
-#include <utility>
 
 namespace annotation {
 

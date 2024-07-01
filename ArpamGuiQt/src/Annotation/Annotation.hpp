@@ -1,4 +1,5 @@
 #pragma once
+
 #include "geometryUtils.hpp"
 #include <QColor>
 #include <QLineF>
@@ -105,6 +106,7 @@ public:
   }
 
   static Type typeFromString(const QString &type) {
+    // NOLINTNEXTLINE(*-auto)
     const auto it = std::find(TypeToString.cbegin(), TypeToString.cend(), type);
     if (it != TypeToString.cend()) {
       return static_cast<Type>(std::distance(TypeToString.cbegin(), it));

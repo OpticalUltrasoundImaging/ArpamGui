@@ -16,10 +16,10 @@
 class ReconParamsController : public QWidget {
   Q_OBJECT
 public:
-  uspam::recon::ReconParams2 params;
-  uspam::io::IOParams ioparams;
+  uspam::recon::ReconParams2 params; // NOLINT(*non-private*)
+  uspam::io::IOParams ioparams; // NOLINT(*non-private*)
 
-  ReconParamsController(QWidget *parent = nullptr);
+  explicit ReconParamsController(QWidget *parent = nullptr);
 
 public slots:
   void resetParams();

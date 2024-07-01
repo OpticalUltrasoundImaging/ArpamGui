@@ -2,7 +2,6 @@
 
 #include "Annotation/AnnotationModel.hpp"
 #include "Annotation/GraphicsItemBase.hpp"
-#include "Annotation/GraphicsItems.hpp"
 #include "CanvasCursorState.hpp"
 #include "CanvasOverlay.hpp"
 #include "CanvasTicks.hpp"

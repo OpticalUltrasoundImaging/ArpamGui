@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Annotation/AnnotationModel.hpp"
-#include "geometryUtils.hpp"
+#include "Annotation/Annotation.hpp"
 #include <QColor>
 #include <QGraphicsItem>
 #include <QGraphicsSimpleTextItem>
 #include <QPen>
 #include <QPointF>
 #include <Qt>
-#include <utility>
 
 namespace annotation {
 

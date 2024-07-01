@@ -1,4 +1,5 @@
 #include "Annotation/GraphicsItemBase.hpp"
+#include <QFont>
 #include <Qt>
 
 namespace annotation {

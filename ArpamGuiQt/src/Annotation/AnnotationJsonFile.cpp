@@ -6,7 +6,6 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/rapidjson.h>
 #include <uspam/json.hpp>
-#include <utility>
 
 namespace annotation {
 

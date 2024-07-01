@@ -1,7 +1,6 @@
 #pragma once
 
 #include "uspam/beamformer/SAFT.hpp"
-#include <concepts>
 #include <type_traits>
 
 namespace uspam::beamformer {

@@ -34,6 +34,7 @@ template <Floating FloatType> struct SaftDelayParams {
   FloatType angleLight; // [rad] illumination angle
 
   // [mm] spatial step size
+  // NOLINTNEXTLINE(*-magic-numbers)
   [[nodiscard]] FloatType dr() const { return vs * dt * 1e3; }
 
   static auto make() {

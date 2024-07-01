@@ -3,8 +3,6 @@
 #include <complex>
 #include <cstdlib>
 #include <fftw3.h>
-#include <iostream>
-#include <mutex>
 #include <span>
 #include <type_traits>
 #include <unordered_map>

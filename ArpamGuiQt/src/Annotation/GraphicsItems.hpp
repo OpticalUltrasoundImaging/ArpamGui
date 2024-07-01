@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Annotation/Annotation.hpp"
 #include "Annotation/GraphicsItemBase.hpp"
 #include <QGraphicsSimpleTextItem>
 #include <QLineF>
@@ -8,8 +9,6 @@
 #include <QPen>
 #include <QPolygon>
 #include <QRectF>
-#include <concepts>
-#include <type_traits>
 
 namespace annotation {
 

@@ -1,12 +1,7 @@
 #include "Annotation/AnnotationModel.hpp"
-#include "jsonUtils.hpp"
-#include "uspam/json.hpp"
 #include <QAbstractItemModel>
 #include <Qt>
 #include <cassert>
-#include <filesystem>
-#include <fstream>
-#include <qabstractitemmodel.h>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <utility>
@@ -98,14 +93,16 @@ bool AnnotationModel::removeRows(int row, int count,
 }
 
 void AnnotationModel::addAnnotation(const Annotation &annotation) {
-  beginInsertRows(QModelIndex(), m_annotations.size(), m_annotations.size());
+  beginInsertRows(QModelIndex(), static_cast<int>(m_annotations.size()),
+                  static_cast<int>(m_annotations.size()));
   m_annotations.append(annotation);
   endInsertRows();
 }
 
 void AnnotationModel::clear() {
   if (size() > 0) {
-    beginRemoveRows(QModelIndex(), 0, m_annotations.size() - 1);
+    beginRemoveRows(QModelIndex(), 0,
+                    static_cast<int>(m_annotations.size()) - 1);
     m_annotations.clear();
     endRemoveRows();
   }
@@ -134,7 +131,7 @@ void AnnotationModel::setAnnotations(QList<Annotation> annotations) {
   clear();
 
   if (!annotations.empty()) {
-    beginInsertRows(QModelIndex{}, 0, annotations.size() - 1);
+    beginInsertRows(QModelIndex{}, 0, static_cast<int>(annotations.size()) - 1);
     m_annotations = std::move(annotations);
     endInsertRows();
   }

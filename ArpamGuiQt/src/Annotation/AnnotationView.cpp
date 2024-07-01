@@ -1,5 +1,4 @@
 #include "Annotation/AnnotationView.hpp"
-#include "Annotation/Annotation.hpp"
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QMenu>

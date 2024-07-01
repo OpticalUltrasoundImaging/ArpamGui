@@ -25,10 +25,10 @@ namespace geometry {
 
 // Arc
 [[nodiscard]] inline auto rad2deg(double rad) {
-  return rad * 180.0 / std::numbers::pi;
+  return rad * 180.0 / std::numbers::pi; // NOLINT(*-magic-numbers)
 }
 [[nodiscard]] inline auto deg2rad(double deg) {
-  return deg / 180.0 * std::numbers::pi;
+  return deg / 180.0 * std::numbers::pi; // NOLINT(*-magic-numbers)
 }
 
 // Calculate the angle (in degrees) of a point with respect to a rect
@@ -37,7 +37,7 @@ namespace geometry {
   // The angle computed by atan2 uses signs to determine the quadrant.
   // y axis is flipped
   const auto angle = rad2deg(atan2(center.y() - pos.y(), pos.x() - center.x()));
-  return (angle < 0) ? 360.0 + angle : angle;
+  return (angle < 0) ? 360.0 + angle : angle; // NOLINT(*-magic-numbers)
 }
 
 // Calculate the position on the circle's circumference given a bounding rect
