@@ -62,6 +62,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
 
     // NOLINTNEXTLINE(*-magic-numbers)
     customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 100)));
+    customPlot->legend->setVisible(true);
 
     // create graph and assign data to it:
     customPlot->addGraph();
@@ -94,6 +95,14 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->yAxis2->setSubTickLength(0, 0);
     // NOLINTEND(*-magic-numbers)
 
+    // Interaction
+    customPlot->setInteraction(QCP::iRangeZoom, true);
+    customPlot->setInteraction(QCP::iRangeDrag, true);
+    customPlot->setInteraction(QCP::iSelectItems, true);
+    customPlot->setInteraction(QCP::iSelectPlottables, true);
+
+    customPlot->setMinimumHeight(200); // NOLINT(*-magic-numbers)
+
     // generate some data
     {
       constexpr int N = 201;
@@ -107,14 +116,6 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       }
       plot(x, y);
     }
-
-    // Interaction
-    customPlot->setInteraction(QCP::iRangeZoom, true);
-    customPlot->setInteraction(QCP::iRangeDrag, true);
-    customPlot->setInteraction(QCP::iSelectItems, true);
-    customPlot->setInteraction(QCP::iSelectPlottables, true);
-
-    customPlot->setMinimumHeight(200); // NOLINT(*-magic-numbers)
   }
 
   // UI
@@ -285,6 +286,7 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y) {
   // FWHM width in X
   const auto width = fwhm.width();
 
+  // FWHM label
   if (!m_plotMeta.xUnit.isEmpty()) {
     const auto xWidth = width * m_plotMeta.xScaler;
     m_FWHMLabel->setText(QString("FWHM: %1 samples, %2 %3")
@@ -295,6 +297,9 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y) {
   } else {
     m_FWHMLabel->setText(QString("FWHM: %1 samples").arg(width));
   }
+
+  // Title
+  customPlot->graph(0)->setName(m_plotMeta.name);
 
   // replot
   customPlot->graph(0)->setData(x, y, true);
@@ -355,6 +360,7 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
+    m_plotMeta.name = "Raw RF";
     plot(y);
   } break;
 
@@ -364,9 +370,9 @@ void AScanPlot::plotCurrentAScan() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    PlotMeta meta;
-    meta.xScaler = MM_PER_PIXEL_PA;
-    meta.xUnit = "mm";
+    m_plotMeta.xScaler = MM_PER_PIXEL_PA;
+    m_plotMeta.xUnit = "mm";
+    m_plotMeta.name = "Beamformed RF (PA)";
     plot(y);
   } break;
 
@@ -378,6 +384,7 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_US;
     m_plotMeta.xUnit = "mm";
+    m_plotMeta.name = "Beamformed RF (US)";
     plot(y);
   } break;
 
@@ -389,6 +396,7 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_PA;
     m_plotMeta.xUnit = "mm";
+    m_plotMeta.name = "RF Envelope (PA)";
     plot(y);
   } break;
   case PlotType::RFEnvUS: {
@@ -399,6 +407,7 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_US;
     m_plotMeta.xUnit = "mm";
+    m_plotMeta.name = "RF Envelope (US)";
     plot(y);
   } break;
 
@@ -413,6 +422,7 @@ void AScanPlot::plotCurrentAScan() {
     m_plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
     m_plotMeta.xScaler = MM_PER_PIXEL_PA;
     m_plotMeta.xUnit = "mm";
+    m_plotMeta.name = "RF Log (PA)";
     plot(y);
   } break;
 
@@ -427,6 +437,7 @@ void AScanPlot::plotCurrentAScan() {
     m_plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
     m_plotMeta.xScaler = MM_PER_PIXEL_US;
     m_plotMeta.xUnit = "mm";
+    m_plotMeta.name = "RF Log (US)";
     plot(y);
   } break;
 

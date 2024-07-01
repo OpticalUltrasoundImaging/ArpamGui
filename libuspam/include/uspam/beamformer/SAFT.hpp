@@ -1,4 +1,6 @@
 #pragma once
+
+#include "uspam/beamformer/common.hpp"
 #include <armadillo>
 #include <cmath>
 #include <numbers>
@@ -6,9 +8,7 @@
 #include <uspam/fft.hpp>
 #include <uspam/signal.hpp>
 
-namespace uspam::saft {
-
-inline double deg2rad(double deg) { return deg * std::numbers::pi / 180.0; }
+namespace uspam::beamformer {
 
 template <Floating FloatType> struct TimeDelay {
   arma::Mat<FloatType> timeDelay;
@@ -186,4 +186,4 @@ auto apply_saft(const TimeDelay<FloatType> &timeDelay,
   return std::tuple(rf_saft, rf_saft_cf);
 }
 
-} // namespace uspam::saft
+} // namespace uspam::beamformer

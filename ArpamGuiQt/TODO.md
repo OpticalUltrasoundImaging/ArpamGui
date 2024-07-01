@@ -13,6 +13,9 @@
 [] Draw ROI, compute FWHM inside
 [] Add vectorization report for clang/MSVC, try to vectorize lib
 
+**Visualization**
+[] Add subplot for Frequency spectrum
+
 **Done**
 [x] Hotkeys to support selecting frame tools (Default [D], Line [L], Rect [R], etc.)
 [x] Hotkey [Ctrl-F] for fullscreen

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uspam/beamformer/beamformer.hpp"
 #include <armadillo>
 #include <filesystem>
 #include <rapidjson/document.h>
@@ -8,6 +9,8 @@
 namespace uspam::recon {
 namespace fs = std::filesystem;
 
+using beamformer::BeamformerType;
+
 struct ReconParams {
   std::vector<double> filterFreq;
   std::vector<double> filterGain;
@@ -15,7 +18,8 @@ struct ReconParams {
   int rotateOffset;
   float noiseFloor_mV;
   float desiredDynamicRange;
-  bool saft;
+
+  BeamformerType beamformerType;
 
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;
@@ -36,8 +40,9 @@ struct ReconParams2 {
                    25,
                    9.0F,
                    35.0F,
-                   true};
-    ReconParams US{{0, 0.1, 0.3, 1}, {0, 1, 1, 0}, 500, 25, 6.0F, 48.0F, false};
+                   BeamformerType::SAFT_CF};
+    ReconParams US{{0, 0.1, 0.3, 1},    {0, 1, 1, 0}, 500, 25, 6.0F, 48.0F,
+                   BeamformerType::NONE};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)

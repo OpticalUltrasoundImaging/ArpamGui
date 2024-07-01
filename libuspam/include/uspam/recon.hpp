@@ -1,7 +1,8 @@
 #pragma once
 
 #include "fftconv.hpp"
-#include "uspam/SAFT.hpp"
+#include "uspam/beamformer/SAFT.hpp"
+#include "uspam/beamformer/beamformer.hpp"
 #include "uspam/fft.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
@@ -116,28 +117,6 @@ void reconOneScan(const ReconParams2 &params, io::PAUSpair<T> &rf,
   reconOneScan<T>(params.US, rf.US, rfBeamformed.US, rfLog.US, flip);
 }
 
-enum class Beamformer { NONE, SAFT };
-
-template <Floating T>
-void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
-              Beamformer beamformer) {
-  switch (beamformer) {
-  case Beamformer::SAFT: {
-    const auto saftParams = uspam::saft::SaftDelayParams<T>::make();
-    const auto timeDelay = uspam::saft::computeSaftTimeDelay<T>(saftParams);
-    const auto [rfSaft, rfSaftCF] =
-        uspam::saft::apply_saft<T, T>(timeDelay, rf);
-
-    rfBeamformed = rfSaftCF;
-
-  } break;
-
-  case Beamformer::NONE:
-  default:
-    rfBeamformed = rf; // Copy
-  }
-}
-
 // FIR filter + Envelope detection + log compression for one
 template <Floating T>
 void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
@@ -171,8 +150,7 @@ void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
     rfEnv.set_size(rf.n_rows, rf.n_cols);
   }
 
-  Beamformer beamformer = params.saft ? Beamformer::SAFT : Beamformer::NONE;
-  beamform(rf, rfBeamformed, beamformer);
+  beamform(rf, rfBeamformed, params.beamformerType);
 
   recon<T>(rfBeamformed, kernel, rfEnv);
 

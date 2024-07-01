@@ -68,6 +68,8 @@ public:
       "RF Raw", "RF Env US", "RF Env PA", "RF Log US", "RF Log PA"};
 
   struct PlotMeta {
+    QString name;
+
     bool autoScaleY{false};
     FloatType yMin{-1.0};
     FloatType yMax{1.0};
@@ -105,15 +107,12 @@ private:
   void ensureX(int size);
 
   ReconParamsController *m_reconParams;
+  std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
 
   QCustomPlot *customPlot;
   PlotMeta m_plotMeta;
-  ;
-
   QVector<FloatType> m_x;
   QVector<FloatType> m_y;
-
-  std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
 
   int m_AScanPlotIdx_canvas{}; // Received from canvas, not corrected for flip
                                // and rotation

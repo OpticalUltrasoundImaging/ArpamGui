@@ -1,4 +1,4 @@
-#include "uspam/SAFT.hpp"
+#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/signal.hpp"
 #include <armadillo>
 #include <cmath>
@@ -7,10 +7,10 @@
 
 // NOLINTBEGIN(*-magic-numbers,*-constant-array-index,*-global-variables,*-goto)
 
-namespace saft = uspam::saft;
+namespace beamformer = uspam::beamformer;
 
 TEST(SaftTimeDelayParamTest, Correct) {
-  saft::SaftDelayParams saftParams{};
+  beamformer::SaftDelayParams<double> saftParams{};
   saftParams.rt = 6.2;
   saftParams.vs = 1.5e3;
   saftParams.dt = 1.0 / 180e6;
@@ -18,9 +18,10 @@ TEST(SaftTimeDelayParamTest, Correct) {
   saftParams.f = 15.0;
   saftParams.d = 8.5;
   saftParams.angle = std::asin(8.5 / (2 * 15.0));
-  saftParams.angleLight = saft::deg2rad(5);
+  saftParams.angleLight = beamformer::deg2rad(5);
 
-  const auto timeDelay = saft::computeSaftTimeDelay(saftParams, 769, 2450);
+  const auto timeDelay =
+      beamformer::computeSaftTimeDelay(saftParams, 769, 2450);
 
   arma::mat gt(timeDelay.timeDelay.n_rows, timeDelay.timeDelay.n_cols,
                arma::fill::none);
@@ -35,12 +36,13 @@ TEST(SaftTimeDelayParamTest, Correct) {
 }
 
 TEST(SaftApply, Correct) {
-  const auto saftParams = saft::SaftDelayParams::make();
-  const auto timeDelay = saft::computeSaftTimeDelay(saftParams, 769, 2450);
+  const auto saftParams = beamformer::SaftDelayParams<double>::make();
+  const auto timeDelay =
+      beamformer::computeSaftTimeDelay(saftParams, 769, 2450);
 
   const arma::mat rf(2500, 1000, arma::fill::randn);
   const auto [rf_saft, rf_saft_cf] =
-      saft::apply_saft<double, double>(timeDelay, rf);
+      beamformer::apply_saft<double, double>(timeDelay, rf);
   // rf_saft_cf.save("rf_saft_cf.bin", arma::raw_binary);
   // TODO write tests
 }

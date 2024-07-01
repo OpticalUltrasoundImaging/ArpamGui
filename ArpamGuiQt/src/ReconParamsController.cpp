@@ -1,13 +1,16 @@
 #include "ReconParamsController.hpp"
+#include "uspam/beamformer/beamformer.hpp"
 #include "uspam/reconParams.hpp"
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QIntValidator>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSpinBox>
 #include <QValidator>
-#include <qnamespace.h>
+#include <QVariant>
+#include <Qt>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -189,23 +192,35 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
     }
 
+    // Beamformer
     {
-      // auto *label = new QLabel("SAFT");
-      // label->setToolTip(help_DynamicRange);
-      // layout->addWidget(label, row, 1);
+      auto *label = new QLabel("Beamformer");
+      label->setToolTip(help_DynamicRange);
+      layout->addWidget(label, row, 1);
+      using uspam::beamformer::BeamformerType;
 
-      auto *checkbox = new QCheckBox("SAFT");
-      layout->addWidget(checkbox, row++, 2);
+      auto *cbox = new QComboBox;
+      layout->addWidget(cbox, row++, 2);
+      cbox->addItem("None", QVariant::fromValue(BeamformerType::NONE));
+      cbox->addItem("SAFT", QVariant::fromValue(BeamformerType::SAFT));
+      cbox->addItem("SAFT CF", QVariant::fromValue(BeamformerType::SAFT_CF));
 
-      checkbox->setChecked(p.saft);
-      connect(checkbox, &QCheckBox::checkStateChanged,
-              [&](Qt::CheckState state) {
-                p.saft = state != Qt::CheckState::Unchecked;
-                this->_paramsUpdatedInternal();
-              });
+      QObject::connect(
+          cbox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          [&, cbox](int index) {
+            p.beamformerType =
+                qvariant_cast<BeamformerType>(cbox->itemData(index));
+            this->_paramsUpdatedInternal();
+          });
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, checkbox, &p] { checkbox->setChecked(p.saft); });
+      updateGuiFromParamsCallbacks.emplace_back([this, cbox, &p] {
+        for (int i = 0; i < cbox->count(); ++i) {
+          if (qvariant_cast<BeamformerType>(cbox->itemData(i)) ==
+              p.beamformerType) {
+            cbox->setCurrentIndex(i);
+          }
+        }
+      });
     }
     return gb;
   };
