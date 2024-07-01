@@ -7,9 +7,9 @@
 
 **Processing**
 [x] Impl SAFT
+[x] Impl FWHM in AScan display
+[x] Add beamformed RF data to BScan data structure
 [] Impl arrival time normalization (flattening)
-[] Add beamformed RF data to BScan data structure
-[] Impl FWHM in AScan display
 [] Draw ROI, compute FWHM inside
 [] Add vectorization report for clang/MSVC, try to vectorize lib
 
