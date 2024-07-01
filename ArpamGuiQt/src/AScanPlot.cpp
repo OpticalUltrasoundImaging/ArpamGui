@@ -5,19 +5,17 @@
 #include <QFrame>
 #include <QGridLayout>
 #include <QPen>
+#include <QPushButton>
 #include <QRadioButton>
+#include <QSizePolicy>
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QVector>
+#include <Qt>
 #include <algorithm>
 #include <cmath>
 #include <numbers>
-#include <qboxlayout.h>
 #include <qcustomplot.h>
-#include <qnamespace.h>
-#include <qpushbutton.h>
-#include <qsizepolicy.h>
-#include <qwidget.h>
 #include <span>
 #include <uspam/reconParams.hpp>
 
