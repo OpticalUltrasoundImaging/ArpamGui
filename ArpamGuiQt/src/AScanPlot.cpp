@@ -107,11 +107,12 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
         x[i] = i * fct;        // x goes from 0 to 2pi
         y[i] = std::sin(x[i]); // plot sine wave
       }
-      plot(x, y, {});
+      plot(x, y);
     }
 
     // Interaction
-    // customPlot->setInteraction(QCP::iRangeZoom, true);
+    customPlot->setInteraction(QCP::iRangeZoom, true);
+    customPlot->setInteraction(QCP::iRangeDrag, true);
     customPlot->setInteraction(QCP::iSelectItems, true);
     customPlot->setInteraction(QCP::iSelectPlottables, true);
 
@@ -145,6 +146,17 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       auto *layout = new QVBoxLayout;
       w->setLayout(layout);
       w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum);
+
+      {
+        auto *btn = new QPushButton("Reset zoom");
+        layout->addWidget(btn);
+
+        connect(btn, &QPushButton::clicked, [this] {
+          customPlot->xAxis->setRange(m_plotMeta.xMin, m_plotMeta.xMax);
+          customPlot->yAxis->setRange(m_plotMeta.yMin, m_plotMeta.yMax);
+          customPlot->replot();
+        });
+      }
 
       // Plot controls
       {
@@ -247,8 +259,7 @@ void AScanPlot::ensureX(int size) {
   }
 }
 
-template <typename T>
-void AScanPlot::plot(std::span<const T> y, const PlotMeta &meta) {
+template <typename T> void AScanPlot::plot(std::span<const T> y) {
   ensureX(y.size());
 
   // Ensure m_y size
@@ -265,11 +276,10 @@ void AScanPlot::plot(std::span<const T> y, const PlotMeta &meta) {
   }
 
   // replot
-  plot(m_x, m_y, meta);
+  plot(m_x, m_y);
 }
 
-void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y,
-                     const PlotMeta &meta) {
+void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y) {
   assert(x.size() == y.size());
 
   // Compute FWHM
@@ -277,12 +287,12 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y,
   // FWHM width in X
   const auto width = fwhm.width();
 
-  if (!meta.xUnit.isEmpty()) {
-    const auto xWidth = width * meta.xScaler;
+  if (!m_plotMeta.xUnit.isEmpty()) {
+    const auto xWidth = width * m_plotMeta.xScaler;
     m_FWHMLabel->setText(QString("FWHM: %1 samples, %2 %3")
                              .arg(width)
                              .arg(xWidth)
-                             .arg(meta.xUnit));
+                             .arg(m_plotMeta.xUnit));
 
   } else {
     m_FWHMLabel->setText(QString("FWHM: %1 samples").arg(width));
@@ -290,14 +300,16 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y,
 
   // replot
   customPlot->graph(0)->setData(x, y, true);
-  customPlot->xAxis->setRange(x.front(), x.back());
+  m_plotMeta.xMin = x.front();
+  m_plotMeta.xMax = x.back();
+  customPlot->xAxis->setRange(m_plotMeta.xMin, m_plotMeta.xMax);
 
-  if (meta.autoScaleY) {
+  if (m_plotMeta.autoScaleY) {
     const auto [min, max] = std::minmax_element(x.cbegin(), y.cend());
-    customPlot->yAxis->setRange(*min, *max);
-  } else {
-    customPlot->yAxis->setRange(meta.yMin, meta.yMax);
+    m_plotMeta.yMin = *min;
+    m_plotMeta.yMax = *max;
   }
+  customPlot->yAxis->setRange(m_plotMeta.yMin, m_plotMeta.yMax);
 
   customPlot->replot();
 }
@@ -335,6 +347,9 @@ void AScanPlot::plotCurrentAScan() {
    * Plot AScan
    */
 
+  // Reset meta
+  m_plotMeta = PlotMeta{};
+
   switch (m_type) {
   case PlotType::RFRaw: {
     // Original RF
@@ -342,7 +357,7 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
-    plot(y, {});
+    plot(y);
   } break;
 
   case PlotType::RFBeamformedPA: {
@@ -354,7 +369,7 @@ void AScanPlot::plotCurrentAScan() {
     PlotMeta meta;
     meta.xScaler = MM_PER_PIXEL_PA;
     meta.xUnit = "mm";
-    plot(y, meta);
+    plot(y);
   } break;
 
   case PlotType::RFBeamformedUS: {
@@ -363,10 +378,9 @@ void AScanPlot::plotCurrentAScan() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    PlotMeta meta;
-    meta.xScaler = MM_PER_PIXEL_US;
-    meta.xUnit = "mm";
-    plot(y, meta);
+    m_plotMeta.xScaler = MM_PER_PIXEL_US;
+    m_plotMeta.xUnit = "mm";
+    plot(y);
   } break;
 
   case PlotType::RFEnvPA: {
@@ -375,10 +389,9 @@ void AScanPlot::plotCurrentAScan() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    PlotMeta meta;
-    meta.xScaler = MM_PER_PIXEL_PA;
-    meta.xUnit = "mm";
-    plot(y, meta);
+    m_plotMeta.xScaler = MM_PER_PIXEL_PA;
+    m_plotMeta.xUnit = "mm";
+    plot(y);
   } break;
   case PlotType::RFEnvUS: {
     // US rfEnv
@@ -386,10 +399,9 @@ void AScanPlot::plotCurrentAScan() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    PlotMeta meta;
-    meta.xScaler = MM_PER_PIXEL_US;
-    meta.xUnit = "mm";
-    plot(y, meta);
+    m_plotMeta.xScaler = MM_PER_PIXEL_US;
+    m_plotMeta.xUnit = "mm";
+    plot(y);
   } break;
 
   case PlotType::RFLogPA: {
@@ -398,13 +410,12 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
-    PlotMeta meta;
-    meta.autoScaleY = false;
-    meta.yMax = 0;
-    meta.yMax = 256; // NOLINT(*-magic-numbers)
-    meta.xScaler = MM_PER_PIXEL_PA;
-    meta.xUnit = "mm";
-    plot(y, meta);
+    m_plotMeta.autoScaleY = false;
+    m_plotMeta.yMax = 0;
+    m_plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
+    m_plotMeta.xScaler = MM_PER_PIXEL_PA;
+    m_plotMeta.xUnit = "mm";
+    plot(y);
   } break;
 
   case PlotType::RFLogUS: {
@@ -413,13 +424,12 @@ void AScanPlot::plotCurrentAScan() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    PlotMeta meta;
-    meta.autoScaleY = false;
-    meta.yMax = 0;
-    meta.yMax = 256; // NOLINT(*-magic-numbers)
-    meta.xScaler = MM_PER_PIXEL_US;
-    meta.xUnit = "mm";
-    plot(y, meta);
+    m_plotMeta.autoScaleY = false;
+    m_plotMeta.yMax = 0;
+    m_plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
+    m_plotMeta.xScaler = MM_PER_PIXEL_US;
+    m_plotMeta.xUnit = "mm";
+    plot(y);
   } break;
 
   case Size:

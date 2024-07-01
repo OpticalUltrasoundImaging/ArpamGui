@@ -72,6 +72,9 @@ public:
     FloatType yMin{-1.0};
     FloatType yMax{1.0};
 
+    FloatType xMin{0};
+    FloatType xMax{0};
+
     FloatType xScaler{1.0};
     QString xUnit{}; // If xUnit is not empty, use xScaler
   };
@@ -81,10 +84,9 @@ public:
 
   auto getPlot() { return customPlot; }
 
-  void plot(const QVector<FloatType> &x, const QVector<FloatType> &y,
-            const PlotMeta &meta);
+  void plot(const QVector<FloatType> &x, const QVector<FloatType> &y);
 
-  template <typename T> void plot(std::span<const T> y, const PlotMeta &meta);
+  template <typename T> void plot(std::span<const T> y);
 
 public slots:
 
@@ -105,6 +107,8 @@ private:
   ReconParamsController *m_reconParams;
 
   QCustomPlot *customPlot;
+  PlotMeta m_plotMeta;
+  ;
 
   QVector<FloatType> m_x;
   QVector<FloatType> m_y;
