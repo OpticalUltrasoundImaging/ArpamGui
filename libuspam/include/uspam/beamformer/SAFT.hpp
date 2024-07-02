@@ -59,7 +59,7 @@ template <Floating FloatType>
                                         int zStart = -1, int zEnd = -1) {
   // [pts] z start and end points of SAFT.
   // By default start = (half focal distance), end = (1.5x focal distance)
-  const auto pi = std::numbers::pi_v<FloatType>;
+  constexpr auto pi = std::numbers::pi_v<FloatType>;
 
   if (zStart < 0) {
     zStart = static_cast<int>(std::round((p.f * 0.25) / p.dr()));
@@ -78,11 +78,9 @@ template <Floating FloatType>
 
   for (int j = 1; j < max_saft_lines; ++j) {
     // relative position to the transducer center dr2 and ang2
+    const auto ang1 = j * p.da;
 
     for (int i = zStart; i < zEnd; ++i) {
-
-      const auto ang1 = j * p.da;
-
       const auto dr1 = i * p.dr();
       const auto r = p.rt + i * p.dr();
 
@@ -107,11 +105,11 @@ template <Floating FloatType>
           std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
 
       if (dr3 <= p.f && ang3 <= p.angle) {
-        timeDelay(i - zStart, j) = (abs(p.f - dr1) - dr3) / p.dr();
-        nLines(i - zStart) += 1;
+        timeDelay.at(i - zStart, j) = (abs(p.f - dr1) - dr3) / p.dr();
+        nLines.at(i - zStart) += 1;
       } else if ((pi - ang3) <= p.angle) {
-        timeDelay(i - zStart, j) = (dr3 - abs(p.f - dr1)) / p.dr();
-        nLines(i - zStart) += 1;
+        timeDelay.at(i - zStart, j) = (dr3 - abs(p.f - dr1)) / p.dr();
+        nLines.at(i - zStart) += 1;
       }
     }
   }
@@ -127,35 +125,34 @@ auto apply_saft(const TimeDelay<FloatType> &timeDelay,
 
   arma::Mat<RfType> rf_saft = rf; // copy
   arma::Mat<uint8_t> n_saft(rf.n_rows, rf.n_cols, arma::fill::ones);
-
   arma::Mat<FloatType> CF_denom = arma::square(rf);
 
   for (int j = 0; j < nScans; ++j) {
     for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
       for (int dj_saft = 0;
-           dj_saft < timeDelay.saftLines(iz - timeDelay.zStart); ++dj_saft) {
+           dj_saft < timeDelay.saftLines.at(iz - timeDelay.zStart); ++dj_saft) {
 
         const int iz_delayed = static_cast<int>(std::round(
-            iz + timeDelay.timeDelay(iz - timeDelay.zStart, dj_saft)));
+            iz + timeDelay.timeDelay.at(iz - timeDelay.zStart, dj_saft)));
 
         if (iz_delayed >= nPts) {
           continue;
         }
 
-        const auto val = rf(iz_delayed, j);
+        const auto val = rf.at(iz_delayed, j);
 
         {
           const auto j_saft = (j - dj_saft + nScans) % nScans;
-          rf_saft(iz, j_saft) += val;
-          CF_denom(iz, j_saft) += val * val;
-          n_saft(iz, j_saft) += 1;
+          rf_saft.at(iz, j_saft) += val;
+          CF_denom.at(iz, j_saft) += val * val;
+          n_saft.at(iz, j_saft) += 1;
         }
 
         {
           const auto j_saft = (j + dj_saft + nScans) % nScans;
-          rf_saft(iz, j_saft) += val;
-          CF_denom(iz, j_saft) += val * val;
-          n_saft(iz, j_saft) += 1;
+          rf_saft.at(iz, j_saft) += val;
+          CF_denom.at(iz, j_saft) += val * val;
+          n_saft.at(iz, j_saft) += 1;
         }
       }
     }
@@ -170,19 +167,21 @@ auto apply_saft(const TimeDelay<FloatType> &timeDelay,
 
   for (int col = 0; col < rf_saft.n_cols; ++col) {
     for (int row = 0; row < rf_saft.n_rows; ++row) {
-      const auto nom = rf_saft(row, col) * rf_saft(row, col);
-      const auto denom = CF_denom(row, col) * n_saft(row, col);
+      const auto nom = rf_saft.at(row, col) * rf_saft.at(row, col);
+      const auto denom = CF_denom.at(row, col) * n_saft.at(row, col);
 
       if (denom != 0) {
-        CF(row, col) = nom / denom;
+        CF.at(row, col) = nom / denom;
       } else {
-        CF(row, col) = 1;
+        CF.at(row, col) = 1;
       }
 
-      rf_saft_cf(row, col) =
-          rf_saft(row, col) * CF(row, col) / n_saft(row, col);
+      rf_saft_cf.at(row, col) =
+          rf_saft.at(row, col) * CF.at(row, col) / n_saft.at(row, col);
     }
   }
+
+  rf_saft = rf_saft / n_saft;
 
   return std::tuple(rf_saft, rf_saft_cf);
 }
