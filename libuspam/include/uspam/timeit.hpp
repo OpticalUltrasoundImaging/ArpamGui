@@ -33,7 +33,7 @@ template <bool PrintStdOut = false> struct TimeIt {
     const auto elapsed = clock::now() - start;
     const auto nano = duration_cast<nanoseconds>(elapsed).count();
     constexpr float fct_nano2mili = 1.0e-6;
-    return static_cast<float>(nano) / fct_nano2mili;
+    return static_cast<float>(nano) * fct_nano2mili;
   }
   ~TimeIt() {
     if constexpr (PrintStdOut) {
