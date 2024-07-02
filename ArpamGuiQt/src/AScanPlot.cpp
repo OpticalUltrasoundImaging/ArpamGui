@@ -22,6 +22,15 @@
 #include <span>
 #include <uspam/reconParams.hpp>
 
+void setupAxis(QCPAxis *axis, const QString &label = {}, bool tickLabels = true,
+               int tickInside = 0, int tickOutside = 0, int subTickInside = 0,
+               int subTickOutside = 0) {
+  axis->setLabel(label);
+  axis->setTickLabels(tickLabels);
+  axis->setTickLength(tickInside, tickOutside);
+  axis->setSubTickLength(subTickInside, subTickOutside);
+}
+
 template <typename T>
 FWHM<T> AScanFWHMTracers::updateData(const QVector<T> &x, const QVector<T> &y,
                                      int graphIdx) {
@@ -71,10 +80,6 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->addGraph();
     customPlot->graph(0)->setPen(QPen(Qt::green));
 
-    // give the axes some labels:
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-
     // Remove grid
     customPlot->xAxis->grid()->setVisible(false);
     customPlot->yAxis->grid()->setVisible(false);
@@ -82,20 +87,12 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     // Add top and right axis to have top and left border
     customPlot->xAxis2->setVisible(true);
     customPlot->yAxis2->setVisible(true);
-    customPlot->xAxis2->setTickLabels(false);
-    customPlot->yAxis2->setTickLabels(false);
 
-    // Set ticks to point outwards
     // NOLINTBEGIN(*-magic-numbers)
-    customPlot->xAxis->setTickLength(0, 5);
-    customPlot->xAxis->setSubTickLength(0, 3);
-    customPlot->yAxis->setTickLength(0, 5);
-    customPlot->yAxis->setSubTickLength(0, 3);
-
-    customPlot->xAxis2->setTickLength(0, 0);
-    customPlot->xAxis2->setSubTickLength(0, 0);
-    customPlot->yAxis2->setTickLength(0, 0);
-    customPlot->yAxis2->setSubTickLength(0, 0);
+    setupAxis(customPlot->xAxis, tr("Samples"), true, 0, 5, 0, 3);
+    setupAxis(customPlot->yAxis, tr("Signal (V)"), true, 0, 5, 0, 3);
+    setupAxis(customPlot->xAxis2, {}, false);
+    setupAxis(customPlot->yAxis2, {}, false);
     // NOLINTEND(*-magic-numbers)
 
     // Interaction
