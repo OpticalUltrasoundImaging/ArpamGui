@@ -77,6 +77,8 @@ qt_add_executable(${EXE_NAME}
     src/CanvasOverlay.cpp
     src/CoregDisplay.hpp
     src/CoregDisplay.cpp
+    src/CustomPlot.hpp
+    src/CustomPlot.cpp
     src/DataProcWorker.hpp
     src/DataProcWorker.cpp
     src/ReconParamsController.hpp

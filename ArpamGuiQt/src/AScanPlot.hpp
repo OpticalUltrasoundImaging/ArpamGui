@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CustomPlot.hpp"
 #include "DataProcWorker.hpp"
 #include "Metrics/FWHM.hpp"
 #include <QMouseEvent>
@@ -109,7 +110,7 @@ private:
   ReconParamsController *m_reconParams;
   std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
 
-  QCustomPlot *customPlot;
+  CustomPlot *customPlot;
   PlotMeta m_plotMeta;
   QVector<FloatType> m_x;
   QVector<FloatType> m_y;

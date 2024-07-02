@@ -6,7 +6,8 @@
 [] Model and JSON is a little finicky
 
 **Processing**
-[x] Impl SAFT
+[x] Impl SAFT (works for PA, need to tune for US)
+[] Expose SAFT parameters in GUI
 [x] Impl FWHM in AScan display
 [x] Add beamformed RF data to BScan data structure
 [] Impl arrival time normalization (flattening)
@@ -14,6 +15,7 @@
 [] Add vectorization report for clang/MSVC, try to vectorize lib
 
 **Visualization**
+[] Add mouse hover crosshair for AScan plot
 [] Add subplot for Frequency spectrum
 
 **Done**

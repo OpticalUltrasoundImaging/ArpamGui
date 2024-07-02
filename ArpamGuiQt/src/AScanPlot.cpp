@@ -2,13 +2,16 @@
 #include <QBrush>
 #include <QButtonGroup>
 #include <QColor>
+#include <QCursor>
 #include <QFrame>
 #include <QGridLayout>
+#include <QMouseEvent>
 #include <QPen>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSizePolicy>
 #include <QSplitter>
+#include <QToolTip>
 #include <QVBoxLayout>
 #include <QVector>
 #include <Qt>
@@ -36,7 +39,7 @@ FWHM<T> AScanFWHMTracers::updateData(const QVector<T> &x, const QVector<T> &y,
 }
 
 AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
-    : QWidget(parent), m_reconParams(reconParams), customPlot(new QCustomPlot),
+    : QWidget(parent), m_reconParams(reconParams), customPlot(new CustomPlot),
       m_FWHMtracers(customPlot), m_FWHMLabel(new QLabel) {
 
   /*
@@ -101,6 +104,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->setInteraction(QCP::iSelectItems, true);
     customPlot->setInteraction(QCP::iSelectPlottables, true);
 
+    // Set minimum size
     customPlot->setMinimumHeight(200); // NOLINT(*-magic-numbers)
 
     // generate some data
