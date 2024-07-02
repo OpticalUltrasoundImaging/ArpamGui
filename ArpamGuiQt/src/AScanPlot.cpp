@@ -89,8 +89,10 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->yAxis2->setVisible(true);
 
     // NOLINTBEGIN(*-magic-numbers)
-    setupAxis(customPlot->xAxis, tr("Samples"), true, 0, 5, 0, 3);
-    setupAxis(customPlot->yAxis, tr("Signal (V)"), true, 0, 5, 0, 3);
+    setupAxis(customPlot->xAxis, "Samples", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+    setupAxis(customPlot->yAxis, "Signal (V)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
     setupAxis(customPlot->xAxis2, {}, false);
     setupAxis(customPlot->yAxis2, {}, false);
     // NOLINTEND(*-magic-numbers)
@@ -304,10 +306,15 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y) {
 
   // replot
   customPlot->graph(0)->setData(x, y, true);
+
+  // x range
   m_plotMeta.xMin = x.front();
   m_plotMeta.xMax = x.back();
   customPlot->xAxis->setRange(m_plotMeta.xMin, m_plotMeta.xMax);
+  customPlot->xAxis2->setRange(m_plotMeta.xMin * m_plotMeta.xScaler,
+                               m_plotMeta.xMax * m_plotMeta.xScaler);
 
+  // y range
   if (m_plotMeta.autoScaleY) {
     const auto [min, max] = std::minmax_element(x.cbegin(), y.cend());
     m_plotMeta.yMin = *min;
@@ -361,84 +368,110 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
+    setupAxis(customPlot->xAxis2, {}, false);
+
     m_plotMeta.name = "Raw RF";
     plot(y);
   } break;
 
   case PlotType::RFBeamformedPA: {
     // PA rfEnv
-    const auto &rf = m_data->PA.rfBeamformed;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_PA;
     m_plotMeta.xUnit = "mm";
     m_plotMeta.name = "Beamformed RF (PA)";
+
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+
+    const auto &rf = m_data->PA.rfBeamformed;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y);
   } break;
 
   case PlotType::RFBeamformedUS: {
     // US rfEnv
-    const auto &rf = m_data->US.rfBeamformed;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_US;
     m_plotMeta.xUnit = "mm";
     m_plotMeta.name = "Beamformed RF (US)";
+
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+
+    const auto &rf = m_data->US.rfBeamformed;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y);
   } break;
 
   case PlotType::RFEnvPA: {
     // PA rfEnv
-    const auto &rf = m_data->PA.rfEnv;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_PA;
     m_plotMeta.xUnit = "mm";
     m_plotMeta.name = "RF Envelope (PA)";
+
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+
+    const auto &rf = m_data->PA.rfEnv;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y);
   } break;
   case PlotType::RFEnvUS: {
     // US rfEnv
-    const auto &rf = m_data->US.rfEnv;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.xScaler = MM_PER_PIXEL_US;
     m_plotMeta.xUnit = "mm";
     m_plotMeta.name = "RF Envelope (US)";
+
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+
+    const auto &rf = m_data->US.rfEnv;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y);
   } break;
 
   case PlotType::RFLogPA: {
     // US rfLog
-    const auto &rf = m_data->PA.rfLog;
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal");
     m_plotMeta.autoScaleY = false;
     m_plotMeta.yMax = 0;
     m_plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
     m_plotMeta.xScaler = MM_PER_PIXEL_PA;
     m_plotMeta.xUnit = "mm";
     m_plotMeta.name = "RF Log (PA)";
+
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
+    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+
+    const auto &rf = m_data->PA.rfLog;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y);
   } break;
 
   case PlotType::RFLogUS: {
     // US rfLog
-    const auto &rf = m_data->US.rfLog;
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal");
-    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     m_plotMeta.autoScaleY = false;
     m_plotMeta.yMax = 0;
     m_plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
     m_plotMeta.xScaler = MM_PER_PIXEL_US;
     m_plotMeta.xUnit = "mm";
     m_plotMeta.name = "RF Log (US)";
+
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal");
+    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
+              SUBTICK_LENGTH);
+
+    const auto &rf = m_data->US.rfLog;
+    const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
     plot(y);
   } break;
 
