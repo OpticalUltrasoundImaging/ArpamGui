@@ -145,7 +145,9 @@ template <uspam::Floating T>
 void procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
              bool flip) {
 
-  uspam::recon::reconOneScan<T>(params, data.rf, data.rfBeamformed, data.rfEnv,
+  beamform(data.rf, data.rfBeamformed, params.beamformerType);
+
+  uspam::recon::reconOneScan<T>(params, data.rfBeamformed, data.rfEnv,
                                 data.rfLog, flip);
 
   data.radial = uspam::imutil::makeRadial(data.rfLog);
