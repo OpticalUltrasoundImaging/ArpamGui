@@ -16,19 +16,29 @@ namespace fs = std::filesystem;
 
 struct PerformanceMetrics {
   float fileloader_ms{};
-  float splitRfPAUS_ms{};
-  float reconUSPA_ms{};
+
+  float splitRf_ms{};
+
+  float beamform_ms{};
+
+  float recon_ms{};
+
+  float imageConversion_ms{};
+
   float makeOverlay_ms{};
+
   float writeImages_ms{};
 
   // Template function to handle the common formatting
   template <typename Stream>
   friend Stream &operator<<(Stream &stream, const PerformanceMetrics &pm) {
-    stream << "fileloader " << static_cast<int>(pm.fileloader_ms) << ", "
-           << "splitRfPAUS " << static_cast<int>(pm.splitRfPAUS_ms) << ", "
-           << "reconUSPA " << static_cast<int>(pm.reconUSPA_ms) << ", "
-           << "makeOverlay " << static_cast<int>(pm.makeOverlay_ms) << ", "
-           << "writeImages " << static_cast<int>(pm.writeImages_ms);
+    stream << "fileloader " << static_cast<int>(pm.fileloader_ms)
+           << ", splitRf " << static_cast<int>(pm.splitRf_ms) << ", beamform "
+           << static_cast<int>(pm.beamform_ms) << ", recon "
+           << static_cast<int>(pm.recon_ms) << ", imageConversion "
+           << static_cast<int>(pm.imageConversion_ms) << ", makeOverlay "
+           << static_cast<int>(pm.makeOverlay_ms) << ", writeImages "
+           << static_cast<int>(pm.writeImages_ms);
     return stream;
   }
 };

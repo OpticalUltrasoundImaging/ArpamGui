@@ -141,17 +141,33 @@ void DataProcWorker::saveParamsToFile() {
 namespace {
 
 template <uspam::Floating T>
-
-void procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
+auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
              bool flip) {
 
-  beamform(data.rf, data.rfBeamformed, params.beamformerType);
+  float beamform_ms{};
+  float recon_ms{};
+  float imageConversion_ms{};
+  {
+    uspam::TimeIt timeit;
+    beamform(data.rf, data.rfBeamformed, params.beamformerType);
+    beamform_ms = timeit.get_ms();
+  }
 
-  uspam::recon::reconOneScan<T>(params, data.rfBeamformed, data.rfEnv,
-                                data.rfLog, flip);
+  {
+    uspam::TimeIt timeit;
+    uspam::recon::reconOneScan<T>(params, data.rfBeamformed, data.rfEnv,
+                                  data.rfLog, flip);
+    recon_ms = timeit.get_ms();
+  }
 
-  data.radial = uspam::imutil::makeRadial(data.rfLog);
-  data.radial_img = cvMatToQImage(data.radial);
+  {
+    uspam::TimeIt timeit;
+    data.radial = uspam::imutil::makeRadial(data.rfLog);
+    data.radial_img = cvMatToQImage(data.radial);
+    imageConversion_ms = timeit.get_ms();
+  }
+
+  return std::tuple{beamform_ms, recon_ms, imageConversion_ms};
 }
 
 class ImageWriteTask : public QRunnable {
@@ -192,7 +208,7 @@ void DataProcWorker::processCurrentFrame() {
       const uspam::TimeIt timeit;
       m_ioparams.splitRfPAUS_sub(m_data->rf, background_aline, m_data->PA.rf,
                                  m_data->US.rf);
-      perfMetrics.splitRfPAUS_ms = timeit.get_ms();
+      perfMetrics.splitRf_ms = timeit.get_ms();
     }
 
     return std::tuple(m_params.PA, m_params.US);
@@ -202,24 +218,43 @@ void DataProcWorker::processCurrentFrame() {
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
-    const uspam::TimeIt timeit;
+    auto a1 = std::async(std::launch::async, procOne<FloatType>,
+                         std::ref(paramsPA), std::ref(m_data->PA), flip);
 
-    const auto a1 = std::async(std::launch::async, procOne<FloatType>,
-                               std::ref(paramsPA), std::ref(m_data->PA), flip);
+    auto a2 = std::async(std::launch::async, procOne<FloatType>,
+                         std::ref(paramsUS), std::ref(m_data->US), flip);
 
-    const auto a2 = std::async(std::launch::async, procOne<FloatType>,
-                               std::ref(paramsUS), std::ref(m_data->US), flip);
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] = a1.get();
+      perfMetrics.beamform_ms = beamform_ms;
+      perfMetrics.recon_ms = recon_ms;
+      perfMetrics.imageConversion_ms = imageConversion_ms;
+    }
 
-    a1.wait();
-    a2.wait();
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] = a2.get();
+      perfMetrics.beamform_ms += beamform_ms;
+      perfMetrics.recon_ms += recon_ms;
+      perfMetrics.imageConversion_ms += imageConversion_ms;
+    }
 
-    perfMetrics.reconUSPA_ms = timeit.get_ms();
   } else {
-    const uspam::TimeIt timeit;
-    procOne<FloatType>(paramsPA, m_data->PA, flip);
-    procOne<FloatType>(paramsUS, m_data->US, flip);
 
-    perfMetrics.reconUSPA_ms = timeit.get_ms();
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] =
+          procOne<FloatType>(paramsPA, m_data->PA, flip);
+      perfMetrics.beamform_ms = beamform_ms;
+      perfMetrics.recon_ms = recon_ms;
+      perfMetrics.imageConversion_ms = imageConversion_ms;
+    }
+
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] =
+          procOne<FloatType>(paramsUS, m_data->US, flip);
+      perfMetrics.beamform_ms += beamform_ms;
+      perfMetrics.recon_ms += recon_ms;
+      perfMetrics.imageConversion_ms += imageConversion_ms;
+    }
   }
 
   // Compute scalebar scalar

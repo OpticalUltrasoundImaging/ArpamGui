@@ -37,8 +37,7 @@ template <bool PrintStdOut = false> struct TimeIt {
   }
   ~TimeIt() {
     if constexpr (PrintStdOut) {
-      const auto ms = get_ms();
-      std::cout << name << " " << ms << " ms\n";
+      std::cout << name << " " << get_ms() << " ms\n";
     }
   }
   std::string name;
