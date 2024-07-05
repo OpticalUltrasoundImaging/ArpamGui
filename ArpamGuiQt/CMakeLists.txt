@@ -110,12 +110,21 @@ target_include_directories(${EXE_NAME} PRIVATE
     ${QCUSTOMPLOT_INCLUDE_DIR}
 )
 
+find_package(FFTW3 CONFIG REQUIRED)
+find_package(FFTW3f CONFIG REQUIRED)
+
+# Debug information
+message(STATUS "FFTW Include Directories: ${FFTW_INCLUDE_DIRS}")
+message(STATUS "FFTW Libraries: ${FFTW_LIBRARIES}")
+
 target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
     Qt::Widgets
     Qt::Gui
     Qt::PrintSupport
     ${QCUSTOMPLOT_LIBRARY}
+    FFTW3::fftw3
+    FFTW3::fftw3f
     #Vulkan::Vulkan
 )
 

@@ -14,6 +14,10 @@ void recon_device(const thrust::device_vector<double> &device_in,
                   thrust::device_vector<double> &device_out, int batchSize,
                   int size, int kernelSize, cudaStream_t stream = nullptr);
 
+void reconOneScan_device(const recon::ReconParams &params,
+                         arma::Mat<double> &rf, arma::Mat<double> &rfLog,
+                         bool flip, cudaStream_t stream);
+
 // CUDA FIR filter + Envelope detection + log compression
 void reconOneScan_device(const recon::ReconParams2 &params,
                          io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,

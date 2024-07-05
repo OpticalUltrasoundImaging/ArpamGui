@@ -9,6 +9,7 @@
     "glfw3",
     "armadillo",
     "fftconv",
+    "tbb",
     {
       "name": "opencv4",
       "features": ["contrib", "dnn", "png", "vulkan", "tbb", "png", "world"]

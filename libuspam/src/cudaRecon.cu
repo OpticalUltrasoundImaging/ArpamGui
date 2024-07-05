@@ -27,64 +27,58 @@ void recon_device(const thrust::device_vector<double> &device_in,
                kernelSize, stream);
 }
 
-void reconOneScan_device(const recon::ReconParams2 &params,
-                         io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,
+void reconOneScan_device(const recon::ReconParams &params,
+                         arma::Mat<double> &rf, arma::Mat<double> &rfLog,
                          bool flip, cudaStream_t stream) {
 
   if (flip) {
     // Do flip
-    imutil::fliplr_inplace(rf.PA);
-    imutil::fliplr_inplace(rf.US);
+    imutil::fliplr_inplace(rf);
+    imutil::fliplr_inplace(rf);
 
     // Do rotate
-    const auto rotate_offset = params.alineRotationOffset;
-    rf.PA = arma::shift(rf.PA, rotate_offset, 1);
-    rf.US = arma::shift(rf.US, rotate_offset, 1);
+    const auto rotate_offset = params.rotateOffset;
+    rf = arma::shift(rf, rotate_offset, 1);
   }
 
   // compute filter kernels and move to device
-  const auto kernelPA =
-      signal::firwin2(95, params.filterFreqPA, params.filterGainPA);
-  const auto kernelUS =
-      signal::firwin2(95, params.filterFreqUS, params.filterGainUS);
+  const auto kernel = signal::firwin2(95, params.filterFreq, params.filterGain);
 
-  thrust::device_vector<double> kernelPA_device(kernelPA.size());
-  thrust::device_vector<double> kernelUS_device(kernelUS.size());
-  copy_async_host2device(kernelPA_device, kernelPA, stream);
-  copy_async_host2device(kernelUS_device, kernelUS, stream);
+  thrust::device_vector<double> kernel_device(kernel.size());
+  copy_async_host2device(kernel_device, kernel, stream);
 
   // Move RF to device
-  thrust::device_vector<double> rf_PA;
+  thrust::device_vector<double> rf_device;
   thrust::device_vector<double> rf_US;
-  copy_async_host2device(rf_PA, rf.PA, stream);
-  copy_async_host2device(rf_US, rf.US, stream);
+  copy_async_host2device(rf_device, rf, stream);
 
   // allocate result device buffer
-  thrust::device_vector<double> rf_env_PA(rf_PA.size());
-  thrust::device_vector<double> rf_env_US(rf_US.size());
-  thrust::device_vector<double> rf_log_PA(rf_PA.size());
-  thrust::device_vector<double> rf_log_US(rf_US.size());
+  thrust::device_vector<double> rf_env(rf_device.size());
+  thrust::device_vector<double> rf_log(rf_device.size());
 
   // Wait for copies to finish
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
 
   // recon
-  recon_device(rf_PA, kernelPA_device, rf_env_PA, rf.PA.n_cols, rf.PA.n_rows,
-               kernelPA_device.size(), stream);
-  recon_device(rf_US, kernelUS_device, rf_env_US, rf.US.n_cols, rf.US.n_rows,
-               kernelUS_device.size(), stream);
+  recon_device(rf_device, kernel_device, rf_env, rf.n_cols, rf.n_rows,
+               kernel_device.size(), stream);
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
 
-  logCompress_device(rf_env_PA, rf_log_PA, params.noiseFloorPA,
-                     params.desiredDynamicRangePA);
-  logCompress_device(rf_env_US, rf_log_US, params.noiseFloorUS,
-                     params.desiredDynamicRangeUS);
+  logCompress_device(rf_env, rf_log, params.noiseFloor_mV,
+                     params.desiredDynamicRange);
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
 
   // Copy result to host
-  copy_async_device2host(rfLog.PA, rf_log_PA, stream);
-  copy_async_device2host(rfLog.US, rf_log_US, stream);
+  copy_async_device2host(rfLog, rf_log, stream);
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
+}
+
+void reconOneScan_device(const recon::ReconParams2 &params,
+                         io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,
+                         bool flip, cudaStream_t stream) {
+
+  reconOneScan_device(params.PA, rf.PA, rfLog.PA, flip, stream);
+  reconOneScan_device(params.US, rf.US, rfLog.US, flip, stream);
 }
 
 } // namespace uspam::cuda

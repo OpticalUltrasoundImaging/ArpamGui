@@ -27,8 +27,13 @@ auto aboutString() -> QString {
 
   ss << "OpenCV: " << cv::getVersionString() << "\n";
 
+#if defined(_WIN32) || defined(_WIN64)
+// Temp fix for Windows 
+// https://github.com/microsoft/vcpkg/issues/39719
+#else
   // NOLINTNEXTLINE(*-pointer-decay)
   ss << "FFTW3: " << fftw_version << "\n";
+#endif
 
   ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 

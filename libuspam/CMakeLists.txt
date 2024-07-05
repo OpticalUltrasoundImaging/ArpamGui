@@ -4,6 +4,7 @@ project(libuspam LANGUAGES CXX)
 find_package(Armadillo CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
+find_package(TBB CONFIG REQUIRED)
 
 find_package(FFTW3 CONFIG REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
@@ -28,6 +29,8 @@ target_link_libraries(${LIB_NAME} PUBLIC
     armadillo
     FFTW3::fftw3
     FFTW3::fftw3f
+    TBB::tbb
+    TBB::tbbmalloc
     opencv_world
     rapidjson
 )
