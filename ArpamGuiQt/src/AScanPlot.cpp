@@ -189,6 +189,18 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
           });
           hlayout->addWidget(btn);
         }
+
+        {
+          // Button to show/hide legend
+          auto *btn = new QPushButton("Show Legend");
+          btn->setCheckable(true);
+          btn->setChecked(true); // Show by default
+          connect(btn, &QPushButton::clicked, [this](bool checked) {
+            customPlot->legend->setVisible(checked);
+            customPlot->replot();
+          });
+          hlayout->addWidget(btn);
+        }
       }
 
       {
