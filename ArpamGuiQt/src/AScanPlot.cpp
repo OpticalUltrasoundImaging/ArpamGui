@@ -5,6 +5,7 @@
 #include <QCursor>
 #include <QFrame>
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QPen>
 #include <QPushButton>
@@ -161,29 +162,47 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       w->setLayout(layout);
       w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum);
 
+      // Horizontal control buttons
       {
-        auto *btn = new QPushButton("Reset zoom");
-        layout->addWidget(btn);
+        auto *hlayout = new QHBoxLayout;
+        layout->addLayout(hlayout);
 
-        connect(btn, &QPushButton::clicked, [this] {
-          customPlot->xAxis->setRange(m_plotMeta.xMin, m_plotMeta.xMax);
-          customPlot->yAxis->setRange(m_plotMeta.yMin, m_plotMeta.yMax);
-          customPlot->replot();
-        });
+        {
+          auto *btn = new QPushButton("Reset zoom");
+          hlayout->addWidget(btn);
+
+          connect(btn, &QPushButton::clicked, [this] {
+            customPlot->xAxis->setRange(m_plotMeta.xMin, m_plotMeta.xMax);
+            customPlot->yAxis->setRange(m_plotMeta.yMin, m_plotMeta.yMax);
+            customPlot->replot();
+          });
+        }
+
+        {
+          // Button to show/hide FWHM display on the plot
+          auto *btn = new QPushButton("Show FWHM");
+          btn->setCheckable(true);
+          btn->setChecked(true); // Show by default
+          connect(btn, &QPushButton::clicked, [this](bool checked) {
+            m_FWHMtracers.toggle();
+            customPlot->replot();
+          });
+          hlayout->addWidget(btn);
+        }
+
+        {
+          // Button to show/hide legend
+          auto *btn = new QPushButton("Show Legend");
+          btn->setCheckable(true);
+          btn->setChecked(true); // Show by default
+          connect(btn, &QPushButton::clicked, [this](bool checked) {
+            customPlot->legend->setVisible(checked);
+            customPlot->replot();
+          });
+          hlayout->addWidget(btn);
+        }
       }
 
-      // Plot controls
-      {
-        // Button to show/hide FWHM display on the plot
-        auto *btn = new QPushButton("Show FWHM");
-        btn->setCheckable(true);
-        btn->setChecked(true); // Show by default
-        connect(btn, &QPushButton::clicked, [this](bool checked) {
-          m_FWHMtracers.toggle();
-          customPlot->replot();
-        });
-        layout->addWidget(btn);
-      }
       {
         // FWHM label element
         layout->addWidget(m_FWHMLabel);

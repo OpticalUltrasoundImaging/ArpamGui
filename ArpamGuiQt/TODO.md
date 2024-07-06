@@ -15,6 +15,7 @@
 [] Add vectorization report for clang/MSVC, try to vectorize lib
 
 **Visualization**
+[x] Add button to show/hide AScan legend
 [] Add mouse hover crosshair for AScan plot
 [] Add subplot for Frequency spectrum
 
