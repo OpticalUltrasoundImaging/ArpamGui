@@ -17,6 +17,7 @@
 **Visualization**
 [] Add mouse hover crosshair for AScan plot
 [] Add subplot for Frequency spectrum
+[] Add button to show/hide AScan legend
 
 **Done**
 [x] Hotkeys to support selecting frame tools (Default [D], Line [L], Rect [R], etc.)
