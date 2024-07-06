@@ -48,13 +48,25 @@ FWHM<T> AScanFWHMTracers::updateData(const QVector<T> &x, const QVector<T> &y,
 }
 
 AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
-    : QWidget(parent), m_reconParams(reconParams), customPlot(new CustomPlot),
+    : QWidget(parent), m_reconParams(reconParams), customPlot(new QCustomPlot),
       m_FWHMtracers(customPlot), m_FWHMLabel(new QLabel) {
 
   /*
    * Setup the customPlot
    */
   {
+    // Interaction
+    customPlot->setMouseTracking(true);
+    // This line fails on MSVC for some reason
+    // connect(customPlot, &QCustomPlot::mouseMove, this,
+    //         [this](QMouseEvent *event) {
+    //           const auto x =
+    //           customPlot->xAxis->pixelToCoord(event->pos().x()); const auto y
+    //           = customPlot->yAxis->pixelToCoord(event->pos().y());
+
+    //           const auto txt = QString("%1 , %2").arg(x).arg(y, 6, 'f', 4);
+    //           QToolTip::showText(QCursor::pos(), txt);
+    //         });
 
     // Set dark background color
     customPlot->setBackground(QColor(0, 0, 0)); // Black
