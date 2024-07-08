@@ -26,7 +26,7 @@
 #include <uspam/reconParams.hpp>
 
 AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
-    : QWidget(parent), m_reconParams(reconParams), customPlot(new QCustomPlot),
+    : QWidget(parent), m_reconParams(reconParams), customPlot(new CustomPlot),
       m_FWHMtracers(customPlot), m_FWHMLabel(new QLabel),
       m_freqSpectrum(new FreqSpectrum)
 
@@ -36,65 +36,8 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
    * Setup the AScan customPlot
    */
   {
-    // Interaction
-    customPlot->setMouseTracking(true);
-    // This line fails on MSVC for some reason
-    // connect(customPlot, &QCustomPlot::mouseMove, this,
-    //         [this](QMouseEvent *event) {
-    //           const auto x =
-    //           customPlot->xAxis->pixelToCoord(event->pos().x()); const auto y
-    //           = customPlot->yAxis->pixelToCoord(event->pos().y());
-
-    //           const auto txt = QString("%1 , %2").arg(x).arg(y, 6, 'f', 4);
-    //           QToolTip::showText(QCursor::pos(), txt);
-    //         });
-
-    // Set dark background color
-    customPlot->setBackground(QColor(0, 0, 0)); // Black
-
-    // Customize plot appearance
-    const auto styleAxis = [](QCPAxis *axis) {
-      axis->setBasePen(QPen(Qt::white));
-      axis->setTickPen(QPen(Qt::white));
-      axis->setSubTickPen(QPen(Qt::white));
-      axis->setTickLabelColor(Qt::white);
-      axis->setLabelColor(Qt::white);
-    };
-    styleAxis(customPlot->xAxis);
-    styleAxis(customPlot->xAxis2);
-    styleAxis(customPlot->yAxis);
-    styleAxis(customPlot->yAxis2);
-
-    // NOLINTNEXTLINE(*-magic-numbers)
-    customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 100)));
-    customPlot->legend->setVisible(true);
-
-    // create graph and assign data to it:
-    customPlot->addGraph();
-    customPlot->graph(0)->setPen(QPen(Qt::green));
-
-    // Remove grid
-    customPlot->xAxis->grid()->setVisible(false);
-    customPlot->yAxis->grid()->setVisible(false);
-
-    // Add top and right axis to have top and left border
-    customPlot->xAxis2->setVisible(true);
-    customPlot->yAxis2->setVisible(true);
-
-    // NOLINTBEGIN(*-magic-numbers)
-    setupAxis(customPlot->xAxis, "Samples", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
-    setupAxis(customPlot->yAxis, "Signal (V)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
-    setupAxis(customPlot->xAxis2, {}, false);
-    setupAxis(customPlot->yAxis2, {}, false);
-    // NOLINTEND(*-magic-numbers)
-
-    // Interaction
-    customPlot->setInteraction(QCP::iRangeZoom, true);
-    customPlot->setInteraction(QCP::iRangeDrag, true);
-    customPlot->setInteraction(QCP::iSelectItems, true);
-    customPlot->setInteraction(QCP::iSelectPlottables, true);
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
 
     // Set minimum size
     customPlot->setMinimumHeight(200); // NOLINT(*-magic-numbers)
@@ -126,8 +69,6 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     /*
      * Plot
      */
-    customPlot->setSizePolicy(QSizePolicy::MinimumExpanding,
-                              QSizePolicy::MinimumExpanding);
     splitter->addWidget(customPlot);
     splitter->setStretchFactor(0, 1);
 
@@ -385,7 +326,8 @@ void AScanPlot::plotCurrentAScan() {
     const std::span y{rf.colptr(m_AScanPlotIdx), rf.n_rows};
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
-    setupAxis(customPlot->xAxis2, {}, false);
+    customPlot->xAxis2->setLabel("");
+    customPlot->xAxis2->setTickLabels(false);
 
     m_plotMeta.name = "Raw RF";
     plot(y);
@@ -399,8 +341,8 @@ void AScanPlot::plotCurrentAScan() {
 
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
-    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
 
     const auto &rf = m_data->PA.rfBeamformed;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -415,8 +357,8 @@ void AScanPlot::plotCurrentAScan() {
 
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
-    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
 
     const auto &rf = m_data->US.rfBeamformed;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -431,8 +373,8 @@ void AScanPlot::plotCurrentAScan() {
 
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
-    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
 
     const auto &rf = m_data->PA.rfEnv;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -446,8 +388,8 @@ void AScanPlot::plotCurrentAScan() {
 
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
-    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
 
     const auto &rf = m_data->US.rfEnv;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -465,8 +407,8 @@ void AScanPlot::plotCurrentAScan() {
 
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
-    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
 
     const auto &rf = m_data->PA.rfLog;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -484,8 +426,8 @@ void AScanPlot::plotCurrentAScan() {
 
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal");
-    setupAxis(customPlot->xAxis2, "Depth (mm)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
 
     const auto &rf = m_data->US.rfLog;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "uspam/fft.hpp"
+#include <CustomPlot.hpp>
 #include <DataProcWorker.hpp>
 #include <QVector>
 #include <QWidget>
@@ -11,9 +12,6 @@
 class FreqSpectrum : public QWidget {
   Q_OBJECT
 public:
-  static constexpr int TICK_LENGTH = 5;
-  static constexpr int SUBTICK_LENGTH = 3;
-
   explicit FreqSpectrum(QWidget *parent = nullptr);
 
   // Plot the FFT of the data
@@ -22,5 +20,5 @@ public:
   void setData(const QVector<double> &data, double Fs_MHz = 1.0);
 
 private:
-  QCustomPlot *customPlot;
+  CustomPlot *customPlot;
 };

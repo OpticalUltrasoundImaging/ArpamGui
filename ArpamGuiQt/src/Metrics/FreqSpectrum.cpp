@@ -9,54 +9,14 @@
 #include <tuple>
 #include <type_traits>
 
-FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new QCustomPlot) {
+FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new CustomPlot) {
 
   /*
    * Setup the AScan customPlot
    */
   {
-    // Set dark background color
-    customPlot->setBackground(QColor(0, 0, 0)); // Black
-
-    // Customize plot appearance
-    const auto styleAxis = [](QCPAxis *axis) {
-      axis->setBasePen(QPen(Qt::white));
-      axis->setTickPen(QPen(Qt::white));
-      axis->setSubTickPen(QPen(Qt::white));
-      axis->setTickLabelColor(Qt::white);
-      axis->setLabelColor(Qt::white);
-    };
-    styleAxis(customPlot->xAxis);
-    styleAxis(customPlot->xAxis2);
-    styleAxis(customPlot->yAxis);
-    styleAxis(customPlot->yAxis2);
-
-    // Setup plot
-    customPlot->addGraph();
-    customPlot->graph(0)->setPen(QPen(Qt::green));
-
-    // Remove grid
-    customPlot->xAxis->grid()->setVisible(false);
-    customPlot->yAxis->grid()->setVisible(false);
-
-    // Add top and right axis to have top and left border
-    customPlot->xAxis2->setVisible(true);
-    customPlot->yAxis2->setVisible(true);
-
-    // NOLINTBEGIN(*-magic-numbers)
-    setupAxis(customPlot->xAxis, "Frequency (MHz)", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
-    setupAxis(customPlot->yAxis, "Magnitude", true, 0, TICK_LENGTH, 0,
-              SUBTICK_LENGTH);
-    setupAxis(customPlot->xAxis2, {}, false);
-    setupAxis(customPlot->yAxis2, {}, false);
-    // NOLINTEND(*-magic-numbers)
-
-    // Interaction
-    customPlot->setInteraction(QCP::iRangeZoom, true);
-    customPlot->setInteraction(QCP::iRangeDrag, true);
-    customPlot->setInteraction(QCP::iSelectItems, true);
-    customPlot->setInteraction(QCP::iSelectPlottables, true);
+    customPlot->xAxis->setLabel("Frequency (MHz)");
+    customPlot->yAxis->setLabel("Magnitude");
   }
 
   /*

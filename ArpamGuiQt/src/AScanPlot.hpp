@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CustomPlot.hpp"
 #include "DataProcWorker.hpp"
 #include "Metrics/FWHM.hpp"
 #include "Metrics/FWHMTracer.hpp"
@@ -17,8 +18,6 @@ class AScanPlot : public QWidget {
   Q_OBJECT
 public:
   using FloatType = double;
-  static constexpr int TICK_LENGTH = 5;
-  static constexpr int SUBTICK_LENGTH = 3;
 
   static constexpr FloatType MM_PER_PIXEL_PA = (1500.0 * 1000) / (180e6);
   static constexpr FloatType MM_PER_PIXEL_US = (1500.0 / 2 * 1000) / (180e6);
@@ -78,7 +77,7 @@ private:
   ReconParamsController *m_reconParams;
   std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
 
-  QCustomPlot *customPlot;
+  CustomPlot *customPlot;
   PlotMeta m_plotMeta;
   QVector<FloatType> m_x;
   QVector<FloatType> m_y;
