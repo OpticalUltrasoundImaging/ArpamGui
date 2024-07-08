@@ -2,6 +2,7 @@
 
 #include "DataProcWorker.hpp"
 #include "Metrics/FWHM.hpp"
+#include "Metrics/FWHMTracer.hpp"
 #include <QMouseEvent>
 #include <QString>
 #include <QVector>
@@ -10,40 +11,6 @@
 #include <memory>
 #include <qcustomplot.h>
 #include <span>
-
-class AScanFWHMTracers {
-public:
-  explicit AScanFWHMTracers(QCustomPlot *customPlot)
-      : customPlot(customPlot), peakTracer(new QCPItemTracer(customPlot)),
-        lineLower(new QCPItemLine(customPlot)),
-        lineUpper(new QCPItemLine(customPlot)) {
-    peakTracer->setInterpolating(true);
-    peakTracer->setStyle(QCPItemTracer::tsCircle);
-    peakTracer->setPen(QPen(Qt::red));
-    peakTracer->setBrush(Qt::red);
-
-    const auto LineColor = Qt::blue;
-    const auto pen = QPen(LineColor);
-    lineLower->setPen(pen);
-    lineUpper->setPen(pen);
-  }
-
-  template <typename T>
-  FWHM<T> updateData(const QVector<T> &x, const QVector<T> &y,
-                     int graphIdx = 0);
-
-  void toggle() {
-    peakTracer->setVisible(!peakTracer->visible());
-    lineLower->setVisible(!lineLower->visible());
-    lineUpper->setVisible(!lineUpper->visible());
-  }
-
-private:
-  QCustomPlot *customPlot;
-  QCPItemTracer *peakTracer;
-  QCPItemLine *lineLower;
-  QCPItemLine *lineUpper;
-};
 
 class AScanPlot : public QWidget {
   Q_OBJECT
@@ -122,6 +89,6 @@ private:
   PlotType m_type{PlotType::RFRaw};
 
   // FWHM markers
-  AScanFWHMTracers m_FWHMtracers;
+  FWHMTracers m_FWHMtracers;
   QLabel *m_FWHMLabel;
 };

@@ -32,22 +32,6 @@ void setupAxis(QCPAxis *axis, const QString &label = {}, bool tickLabels = true,
   axis->setSubTickLength(subTickInside, subTickOutside);
 }
 
-template <typename T>
-FWHM<T> AScanFWHMTracers::updateData(const QVector<T> &x, const QVector<T> &y,
-                                     int graphIdx) {
-  const auto fwhm = calcFWHM<T>(x, y);
-
-  peakTracer->setGraph(customPlot->graph(graphIdx));
-  peakTracer->setGraphKey(x[fwhm.peakIdx]);
-
-  lineLower->start->setCoords(fwhm.lowerX, 0);
-  lineLower->end->setCoords(fwhm.lowerX, y[fwhm.lowerIdx]);
-
-  lineUpper->start->setCoords(fwhm.upperX, 0);
-  lineUpper->end->setCoords(fwhm.upperX, y[fwhm.upperIdx]);
-  return fwhm;
-}
-
 AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     : QWidget(parent), m_reconParams(reconParams), customPlot(new QCustomPlot),
       m_FWHMtracers(customPlot), m_FWHMLabel(new QLabel) {

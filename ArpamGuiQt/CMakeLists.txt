@@ -83,6 +83,7 @@ qt_add_executable(${EXE_NAME}
     src/ReconParamsController.cpp
     src/FrameController.hpp
     src/FrameController.cpp
+    src/Metrics/FWHMTracer.hpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
