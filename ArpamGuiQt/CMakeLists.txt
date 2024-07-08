@@ -56,6 +56,8 @@ qt_add_executable(${EXE_NAME}
     src/About.cpp
     src/Canvas.hpp
     src/Canvas.cpp
+    src/CustomPlot.hpp
+    src/CustomPlot.cpp
     src/AScanPlot.hpp
     src/AScanPlot.cpp
     src/Annotation/Annotation.hpp
@@ -83,6 +85,9 @@ qt_add_executable(${EXE_NAME}
     src/ReconParamsController.cpp
     src/FrameController.hpp
     src/FrameController.cpp
+    src/Metrics/FWHMTracer.hpp
+    src/Metrics/FreqSpectrum.hpp
+    src/Metrics/FreqSpectrum.cpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )

@@ -188,7 +188,7 @@ template <Floating T> struct engine_r2c_1d {
     fftw::free<T>(complex.data());
   }
 
-  inline void execute() const { fftw::execute(plan); }
+  inline void execute() const { fftw::execute<T>(plan); }
 };
 
 template <Floating T> struct engine_c2r_1d {
@@ -219,31 +219,29 @@ template <Floating T> struct engine_c2r_1d {
   inline void execute() const { fftw::execute<T>(plan); }
 };
 
-template <typename T> struct fftw_engine_half_cx_1d {
+template <typename T> struct engine_half_cx_1d {
   std::span<T> real;
   std::span<fftw::Complex<T>> complex;
   fftw::Plan<T> plan_f;
   fftw::Plan<T> plan_b;
 
   static auto get(size_t n) -> auto & {
-    const auto cache = get_cached<size_t, fftw_engine_half_cx_1d>;
+    const auto cache = get_cached<size_t, engine_half_cx_1d>;
     return *cache(n);
   }
 
-  explicit fftw_engine_half_cx_1d(size_t n)
+  explicit engine_half_cx_1d(size_t n)
       : real(fftw::alloc_real<T>(n), n),
         complex(fftw::alloc_complex<T>(n / 2 + 1), n / 2 + 1),
         plan_f(fftw::plan_dft_r2c_1d(static_cast<int>(n), real.data(),
                                      complex.data(), FFTW_ESTIMATE)),
         plan_b(fftw::plan_dft_c2r_1d(static_cast<int>(n), complex.data(),
                                      real.data(), FFTW_ESTIMATE)) {}
-  fftw_engine_half_cx_1d(const fftw_engine_half_cx_1d &) = default;
-  auto operator=(const fftw_engine_half_cx_1d &) -> fftw_engine_half_cx_1d & =
-                                                        default;
-  fftw_engine_half_cx_1d(fftw_engine_half_cx_1d &&) = delete;
-  auto
-  operator=(fftw_engine_half_cx_1d &&) -> fftw_engine_half_cx_1d & = delete;
-  ~fftw_engine_half_cx_1d() {
+  engine_half_cx_1d(const engine_half_cx_1d &) = default;
+  auto operator=(const engine_half_cx_1d &) -> engine_half_cx_1d & = default;
+  engine_half_cx_1d(engine_half_cx_1d &&) = delete;
+  auto operator=(engine_half_cx_1d &&) -> engine_half_cx_1d & = delete;
+  ~engine_half_cx_1d() {
     fftw::destroy_plan<T>(plan_f);
     fftw::destroy_plan<T>(plan_b);
     fftw::free<T>(real.data());
@@ -254,28 +252,28 @@ template <typename T> struct fftw_engine_half_cx_1d {
   inline void execute_c2r() const { fftw::execute<T>(plan_b); }
 };
 
-template <typename T> struct fftw_engine_1d {
+template <typename T> struct engine_1d {
   std::span<fftw::Complex<T>> in;
   std::span<fftw::Complex<T>> out;
   fftw::Plan<T> plan_f;
   fftw::Plan<T> plan_b;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached<size_t, fftw_engine_1d>;
+    thread_local static auto cache = get_cached<size_t, engine_1d>;
     return *cache(n);
   }
 
-  explicit fftw_engine_1d(size_t n)
+  explicit engine_1d(size_t n)
       : in(fftw::alloc_complex<T>(n), n), out(fftw::alloc_complex<T>(n), n),
         plan_f(fftw::plan_dft_1d<T>(static_cast<int>(n), in.data(), out.data(),
                                     FFTW_FORWARD, FFTW_ESTIMATE)),
         plan_b(fftw::plan_dft_1d<T>(static_cast<int>(n), out.data(), in.data(),
                                     FFTW_BACKWARD, FFTW_ESTIMATE)) {}
-  fftw_engine_1d(const fftw_engine_1d &) = default;
-  auto operator=(const fftw_engine_1d &) -> fftw_engine_1d & = default;
-  fftw_engine_1d(fftw_engine_1d &&) = delete;
-  auto operator=(fftw_engine_1d &&) -> fftw_engine_1d & = delete;
-  ~fftw_engine_1d() {
+  engine_1d(const engine_1d &) = default;
+  auto operator=(const engine_1d &) -> engine_1d & = default;
+  engine_1d(engine_1d &&) = delete;
+  auto operator=(engine_1d &&) -> engine_1d & = delete;
+  ~engine_1d() {
     fftw::destroy_plan<T>(plan_f);
     fftw::destroy_plan<T>(plan_b);
     fftw::free<T>(in.data());
