@@ -46,7 +46,7 @@ FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new QCustomPlot) {
     // NOLINTBEGIN(*-magic-numbers)
     setupAxis(customPlot->xAxis, "Frequency (MHz)", true, 0, TICK_LENGTH, 0,
               SUBTICK_LENGTH);
-    setupAxis(customPlot->yAxis, "Energy", true, 0, TICK_LENGTH, 0,
+    setupAxis(customPlot->yAxis, "Magnitude", true, 0, TICK_LENGTH, 0,
               SUBTICK_LENGTH);
     setupAxis(customPlot->xAxis2, {}, false);
     setupAxis(customPlot->yAxis2, {}, false);
