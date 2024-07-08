@@ -59,7 +59,7 @@ auto firwin2(int numtaps, std::span<const double> freq,
 template <Floating T>
 void hilbert_abs(const std::span<const T> x, const std::span<T> env) {
   const auto n = x.size();
-  auto &engine = fft::fftw_engine_1d<T>::get(n);
+  auto &engine = fft::engine_1d<T>::get(n);
 
   // Copy input to real buffer
   // NOLINTBEGIN(*-pointer-arithmetic, *-magic-numbers)
@@ -120,7 +120,7 @@ Optimized internally to use r2c transforms.
 template <Floating T>
 void hilbert_abs_r2c(const std::span<const T> x, const std::span<T> env) {
   const auto n = x.size();
-  auto &engine = fft::fftw_engine_half_cx_1d<T>::get(n);
+  auto &engine = fft::engine_half_cx_1d<T>::get(n);
 
   // Copy input to real buffer
   // NOLINTBEGIN(*-pointer-arithmetic)

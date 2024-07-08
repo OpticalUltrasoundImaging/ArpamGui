@@ -3,6 +3,7 @@
 #include "DataProcWorker.hpp"
 #include "Metrics/FWHM.hpp"
 #include "Metrics/FWHMTracer.hpp"
+#include "Metrics/FreqSpectrum.hpp"
 #include <QMouseEvent>
 #include <QString>
 #include <QVector>
@@ -91,4 +92,7 @@ private:
   // FWHM markers
   FWHMTracers m_FWHMtracers;
   QLabel *m_FWHMLabel;
+
+  // Freq plot
+  FreqSpectrum *m_freqSpectrum;
 };

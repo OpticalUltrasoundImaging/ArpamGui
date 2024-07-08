@@ -84,6 +84,8 @@ qt_add_executable(${EXE_NAME}
     src/FrameController.hpp
     src/FrameController.cpp
     src/Metrics/FWHMTracer.hpp
+    src/Metrics/FreqSpectrum.hpp
+    src/Metrics/FreqSpectrum.cpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )

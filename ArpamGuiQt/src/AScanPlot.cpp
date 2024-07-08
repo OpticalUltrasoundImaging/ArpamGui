@@ -1,4 +1,6 @@
 #include "AScanPlot.hpp"
+#include "Metrics/FreqSpectrum.hpp"
+#include "PlotCommon.hpp"
 #include <QBrush>
 #include <QButtonGroup>
 #include <QColor>
@@ -23,21 +25,15 @@
 #include <span>
 #include <uspam/reconParams.hpp>
 
-void setupAxis(QCPAxis *axis, const QString &label = {}, bool tickLabels = true,
-               int tickInside = 0, int tickOutside = 0, int subTickInside = 0,
-               int subTickOutside = 0) {
-  axis->setLabel(label);
-  axis->setTickLabels(tickLabels);
-  axis->setTickLength(tickInside, tickOutside);
-  axis->setSubTickLength(subTickInside, subTickOutside);
-}
-
 AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     : QWidget(parent), m_reconParams(reconParams), customPlot(new QCustomPlot),
-      m_FWHMtracers(customPlot), m_FWHMLabel(new QLabel) {
+      m_FWHMtracers(customPlot), m_FWHMLabel(new QLabel),
+      m_freqSpectrum(new FreqSpectrum)
+
+{
 
   /*
-   * Setup the customPlot
+   * Setup the AScan customPlot
    */
   {
     // Interaction
@@ -249,6 +245,8 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       }
     }
 
+    splitter->addWidget(m_freqSpectrum);
+
     // Stretchable spacer
     splitter->addWidget(new QWidget);
 
@@ -331,13 +329,17 @@ void AScanPlot::plot(const QVector<FloatType> &x, const QVector<FloatType> &y) {
 
   // y range
   if (m_plotMeta.autoScaleY) {
-    const auto [min, max] = std::minmax_element(x.cbegin(), y.cend());
+    const auto [min, max] = std::minmax_element(y.cbegin(), y.cend());
     m_plotMeta.yMin = *min;
     m_plotMeta.yMax = *max;
   }
   customPlot->yAxis->setRange(m_plotMeta.yMin, m_plotMeta.yMax);
 
   customPlot->replot();
+
+  // Update freq spectrum from ALine
+  constexpr double Fs_MHz = 180;
+  m_freqSpectrum->setData(y, Fs_MHz);
 }
 
 void AScanPlot::plotCurrentAScan() {
