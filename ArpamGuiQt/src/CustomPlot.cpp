@@ -1,14 +1,18 @@
 #include "CustomPlot.hpp"
+#include "Metrics/FWHMTracer.hpp"
 #include "PlotCommon.hpp"
+#include <QAction>
 #include <qcustomplot.h>
+#include <qnamespace.h>
 
-CustomPlot::CustomPlot(QWidget *parent) : QCustomPlot(parent) {
-  auto *customPlot = this;
+CustomPlot::CustomPlot(QWidget *parent)
+    : QCustomPlot(parent), m_FWHMtracers(new FWHMTracers(this)),
+      m_FWHMLabel(new QLabel) {
 
   // Appearance
   {
     // Set dark background color
-    customPlot->setBackground(QColor(0, 0, 0)); // Black
+    setBackground(QColor(0, 0, 0)); // Black
 
     // Style axis
     const auto styleAxis = [](QCPAxis *axis) {
@@ -18,27 +22,27 @@ CustomPlot::CustomPlot(QWidget *parent) : QCustomPlot(parent) {
       axis->setTickLabelColor(Qt::white);
       axis->setLabelColor(Qt::white);
     };
-    styleAxis(customPlot->xAxis);
-    styleAxis(customPlot->xAxis2);
-    styleAxis(customPlot->yAxis);
-    styleAxis(customPlot->yAxis2);
+    styleAxis(xAxis);
+    styleAxis(xAxis2);
+    styleAxis(yAxis);
+    styleAxis(yAxis2);
 
-    customPlot->xAxis2->setVisible(true);
-    customPlot->yAxis2->setVisible(true);
+    xAxis2->setVisible(true);
+    yAxis2->setVisible(true);
 
     // customPlot->xAxis->grid()->setVisible(false);
     // customPlot->yAxis->grid()->setVisible(false);
 
     // NOLINTBEGIN(*-magic-numbers)
-    customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 100)));
-    customPlot->legend->setVisible(true);
+    legend->setBrush(QBrush(QColor(255, 255, 255, 100)));
+    legend->setVisible(true);
 
-    setupAxis(customPlot->xAxis, {}, true, 0, TICK_LENGTH, 0, SUBTICK_LENGTH);
-    setupAxis(customPlot->yAxis, {}, true, 0, TICK_LENGTH, 0, SUBTICK_LENGTH);
-    setupAxis(customPlot->xAxis2, {}, false);
-    setupAxis(customPlot->yAxis2, {}, false);
+    setupAxis(xAxis, {}, true, 0, TICK_LENGTH, 0, SUBTICK_LENGTH);
+    setupAxis(yAxis, {}, true, 0, TICK_LENGTH, 0, SUBTICK_LENGTH);
+    setupAxis(xAxis2, {}, false);
+    setupAxis(yAxis2, {}, false);
 
-    customPlot->setMinimumHeight(200);
+    setMinimumHeight(200);
     // NOLINTEND(*-magic-numbers)
   }
 
@@ -57,18 +61,109 @@ CustomPlot::CustomPlot(QWidget *parent) : QCustomPlot(parent) {
     //           4); QToolTip::showText(QCursor::pos(), txt);
     //         });
 
-    customPlot->setInteraction(QCP::iRangeZoom, true);
-    customPlot->setInteraction(QCP::iRangeDrag, true);
-    customPlot->setInteraction(QCP::iSelectItems, true);
-    customPlot->setInteraction(QCP::iSelectPlottables, true);
-
-    customPlot->setSizePolicy(QSizePolicy::MinimumExpanding,
-                              QSizePolicy::MinimumExpanding);
+    setInteraction(QCP::iRangeZoom, true);
+    setInteraction(QCP::iRangeDrag, true);
+    setInteraction(QCP::iSelectItems, true);
+    setInteraction(QCP::iSelectPlottables, true);
+    setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
   }
+
+  /*
+   *Actions
+   */
+
+  // Reset Zoom
+  {
+    m_actResetZoom = new QAction("Reset Zoom");
+    connect(m_actResetZoom, &QAction::triggered, [this] {
+      xAxis->setRange(m_meta.xMin, m_meta.xMax);
+      yAxis->setRange(m_meta.yMin, m_meta.yMax);
+      replot();
+    });
+    addAction(m_actResetZoom);
+  }
+
+  // Show FWHM
+  {
+    m_actShowFWHM = new QAction("Show FWHM");
+    m_actShowFWHM->setCheckable(true);
+    m_actShowFWHM->setChecked(true);
+    connect(m_actShowFWHM, &QAction::triggered, [this](bool checked) {
+      m_FWHMtracers->toggle();
+      replot();
+    });
+    addAction(m_actShowFWHM);
+  }
+
+  // Show Legend
+  {
+    m_actShowLegend = new QAction("Show Legend");
+    m_actShowLegend->setCheckable(true);
+    m_actShowLegend->setChecked(true);
+    connect(m_actShowLegend, &QAction::triggered, [this](bool checked) {
+      legend->setVisible(checked);
+      replot();
+    });
+    addAction(m_actShowLegend);
+  }
+
+  setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
 
   // Add graph 0
   {
-    customPlot->addGraph();
-    customPlot->graph(0)->setPen(QPen(Qt::green));
+    addGraph();
+    graph(0)->setPen(QPen(Qt::green));
+  }
+}
+
+void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
+                      const CustomPlot::PlotMeta &meta) {
+  assert(x.size() == y.size());
+  m_meta = meta;
+
+  // Compute FWHM
+  const auto fwhm = m_FWHMtracers->updateData(x, y);
+  // FWHM width in X
+  const auto width = fwhm.width();
+
+  // FWHM label
+  if (!meta.xUnit.isEmpty()) {
+    const auto xWidth = width * meta.xScaler;
+    m_FWHMLabel->setText(QString("FWHM: %1 samples, %2 %3")
+                             .arg(width)
+                             .arg(xWidth)
+                             .arg(meta.xUnit));
+
+  } else {
+    m_FWHMLabel->setText(QString("FWHM: %1 samples").arg(width));
+  }
+
+  // Title
+  graph(0)->setName(meta.name);
+
+  // replot
+  graph(0)->setData(x, y, true);
+
+  // x range
+  m_meta.xMin = x.front();
+  m_meta.xMax = x.back();
+  xAxis->setRange(m_meta.xMin, m_meta.xMax);
+  xAxis2->setRange(m_meta.xMin * m_meta.xScaler, m_meta.xMax * m_meta.xScaler);
+
+  // y range
+  if (m_meta.autoScaleY) {
+    const auto [min, max] = std::minmax_element(y.cbegin(), y.cend());
+    m_meta.yMin = *min;
+    m_meta.yMax = *max;
+  }
+  yAxis->setRange(m_meta.yMin, m_meta.yMax);
+
+  replot();
+}
+
+void CustomPlot::ensureX(int size) {
+  if (m_x.size() != size) {
+    m_x.resize(size);
+    std::iota(m_x.begin(), m_x.end(), 0);
   }
 }

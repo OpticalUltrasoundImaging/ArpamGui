@@ -19,6 +19,8 @@ FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new CustomPlot) {
     customPlot->yAxis->setLabel("Magnitude");
   }
 
+  customPlot->actShowFWHM()->toggle();
+
   /*
    * UI
    */
@@ -80,13 +82,11 @@ void FreqSpectrum::setData(std::span<const T> data, const double Fs_MHz) {
 
   const auto [freq, sp] = dbfft<T, double>(data, Fs_MHz);
 
-  customPlot->graph(0)->setData(freq, sp, true);
+  CustomPlot::PlotMeta meta;
+  meta.autoScaleY = true;
+  customPlot->plot(freq, sp, meta);
 
-  customPlot->xAxis->setRange(0, freq.back());
   customPlot->xAxis->ticker()->setTickCount(10);
-
-  const auto [min, max] = std::minmax_element(sp.cbegin(), sp.cend());
-  customPlot->yAxis->setRange(0, *max);
 
   customPlot->replot();
 }
