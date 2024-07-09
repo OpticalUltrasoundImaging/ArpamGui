@@ -25,7 +25,7 @@ target_include_directories(${LIB_NAME} PUBLIC
     include
     ${FFTCONV_INCLUDE_DIRS}
 )
-target_link_libraries(${LIB_NAME} PUBLIC
+target_link_libraries(${LIB_NAME} PRIVATE
     armadillo
     FFTW3::fftw3
     FFTW3::fftw3f
@@ -48,8 +48,6 @@ endif()
 # Optionally find CUDA
 include(CheckLanguage)
 check_language(CUDA)
-
-message("check_language(CUDA): CMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}")
 
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
@@ -120,8 +118,7 @@ if (CMAKE_CUDA_COMPILER)
 endif()
 
 
-target_link_libraries(test_libuspam
-    PRIVATE
+target_link_libraries(test_libuspam PRIVATE
     libuspam
     armadillo
     GTest::gtest
