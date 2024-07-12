@@ -24,24 +24,10 @@
       "platform": "!x64",
       "features": ["threads"]
     },
-    {
-      "name": "cuda",
-      "platform": "x64"
-    },
-    {
-      "name": "itk",
-      "platform": "x64",
-      "features": ["cuda", "cufftw", "opencv", "tbb"]
-    },
-    {
-      "name": "itk",
-      "platform": "!x64",
-      "features": ["opencv", "tbb"]
-    },
     "qcustomplot",
     "gtest",
     "cli11",
     "indicators"
   ],
-  "builtin-baseline": "fc6345e114c2e2c4f9714037340ccb08326b3e8c"
+  "builtin-baseline": "b65dbc0b65120b4b197180f5965838560fbc5b33"
 }

@@ -28,8 +28,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_C_FLAGS": "/arch:AVX2 /EHsc /Qvec-report:2",
-        "CMAKE_CXX_FLAGS": "/arch:AVX2 /EHsc /Qvec-report:2"
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2"
       }
     },
     {
@@ -52,9 +52,7 @@
       "description": "A Clang specific Ninja Multi-Config configuration",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_CXX_FLAGS": "-Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize",
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--format-style=file"
+        "CMAKE_CXX_COMPILER": "clang++"
       }
     },
     {
@@ -66,64 +64,126 @@
   ],
   "buildPresets": [
     {
-      "name": "Win64 Release",
+      "name": "win64-release",
+      "displayName": "Win64 Release",
       "configurePreset": "win64",
       "configuration": "Release"
     },
     {
-      "name": "Win64 RelWithDebInfo",
+      "name": "win64-relwithdebinfo",
+      "displayName": "Win64 RelWithDebInfo",
       "configurePreset": "win64",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "Win64 Debug",
+      "name": "win64-debug",
+      "displayName": "Win64 Debug",
       "configurePreset": "win64",
       "configuration": "Debug"
     },
     {
-      "name": "Ninja Debug",
+      "name": "ninja-debug",
+      "displayName": "Ninja Debug",
       "configurePreset": "ninja-multi",
       "configuration": "Debug"
     },
     {
-      "name": "Ninja RelWithDebInfo",
+      "name": "ninja-relwithdebinfo",
+      "displayName": "Ninja RelWithDebInfo",
       "configurePreset": "ninja-multi",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "Ninja Release",
+      "name": "ninja-release",
+      "displayName": "Ninja Release",
       "configurePreset": "ninja-multi",
       "configuration": "Release"
     },
     {
-      "name": "Clang Debug",
+      "name": "clang-debug",
+      "displayName": "Clang Debug",
       "configurePreset": "clang-multi",
       "configuration": "Debug"
     },
     {
-      "name": "Clang RelWithDebInfo",
+      "name": "clang-relwithdebinfo",
+      "displayName": "Clang RelWithDebInfo",
       "configurePreset": "clang-multi",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "Clang Release",
+      "name": "clang-release",
+      "displayName": "Clang Release",
       "configurePreset": "clang-multi",
       "configuration": "Release"
     },
     {
-      "name": "CL Debug",
+      "name": "cl-debug",
+      "displayName": "CL Debug",
       "configurePreset": "cl-multi",
       "configuration": "Debug"
     },
     {
-      "name": "CL Relwithdebinfo",
+      "name": "cl-relwithdebinfo",
+      "displayName": "CL RelWithDebInfo",
       "configurePreset": "cl-multi",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "CL Release",
+      "name": "cl-release",
+      "displayName": "CL Release",
       "configurePreset": "cl-multi",
       "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-win64-debug",
+      "displayName": "Test (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "win64"
+    },
+    {
+      "name": "test-win64-release",
+      "displayName": "Test (Release)",
+      "configuration": "Release",
+      "configurePreset": "win64"
+    },
+    {
+      "name": "test-ninja-debug",
+      "displayName": "Test (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "ninja-multi"
+    },
+    {
+      "name": "test-ninja-release",
+      "displayName": "Test (Release)",
+      "configuration": "Release",
+      "configurePreset": "ninja-multi"
+    },
+    {
+      "name": "test-clang-debug",
+      "displayName": "Test (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "clang-multi"
+    },
+    {
+      "name": "test-clang-release",
+      "displayName": "Test (Release)",
+      "configuration": "Release",
+      "configurePreset": "clang-multi"
+    },
+    {
+      "name": "test-cl-debug",
+      "displayName": "Test (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "cl-multi"
+    },
+    {
+      "name": "test-cl-release",
+      "displayName": "Test (Release)",
+      "configuration": "Release",
+      "configurePreset": "cl-multi"
     }
   ]
 }
