@@ -45,6 +45,7 @@ struct PerformanceMetrics {
 
 template <uspam::Floating T> struct BScanData_ {
   arma::Mat<T> rf;
+  arma::Mat<T> rfFilt;
   arma::Mat<T> rfBeamformed;
   arma::Mat<T> rfEnv;
   arma::Mat<uint8_t> rfLog;
