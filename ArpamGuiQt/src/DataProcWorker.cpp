@@ -207,7 +207,7 @@ auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
     // Apply filter and envelope
     const cv::Range range(0, static_cast<int>(rf.n_cols));
     for (int i = range.start; i < range.end; ++i) {
-      const auto _rf = rf.unsafe_col(i);
+      const auto _rf = rfBeamformed.unsafe_col(i);
       auto _filt = rfFilt.unsafe_col(i);
       auto _env = rfEnv.unsafe_col(i);
       fftconv::oaconvolve_fftw_same<T>(_rf, kernel, _filt);
