@@ -39,15 +39,15 @@
       "generator": "Visual Studio 17 2022"
     },
     {
-      "name": "ninja-multi",
+      "name": "ninja",
       "inherits": "base",
       "displayName": "Ninja Multi-Config",
       "description": "A generic Ninja Multi-Config configuration",
       "generator": "Ninja Multi-Config"
     },
     {
-      "name": "clang-multi",
-      "inherits": "ninja-multi",
+      "name": "clang",
+      "inherits": "ninja",
       "displayName": "Ninja Multi-Config (clang)",
       "description": "A Clang specific Ninja Multi-Config configuration",
       "cacheVariables": {
@@ -56,8 +56,8 @@
       }
     },
     {
-      "name": "cl-multi",
-      "inherits": ["ninja-multi", "win64-cl-base"],
+      "name": "cl",
+      "inherits": ["ninja", "win64-cl-base"],
       "displayName": "Ninja Multi-Config (MSVC x64)",
       "description": "A x64 MSVC specific Ninja Multi-Config configuration"
     }
@@ -84,55 +84,55 @@
     {
       "name": "ninja-debug",
       "displayName": "Ninja Debug",
-      "configurePreset": "ninja-multi",
+      "configurePreset": "ninja",
       "configuration": "Debug"
     },
     {
       "name": "ninja-relwithdebinfo",
       "displayName": "Ninja RelWithDebInfo",
-      "configurePreset": "ninja-multi",
+      "configurePreset": "ninja",
       "configuration": "RelWithDebInfo"
     },
     {
       "name": "ninja-release",
       "displayName": "Ninja Release",
-      "configurePreset": "ninja-multi",
+      "configurePreset": "ninja",
       "configuration": "Release"
     },
     {
       "name": "clang-debug",
       "displayName": "Clang Debug",
-      "configurePreset": "clang-multi",
+      "configurePreset": "clang",
       "configuration": "Debug"
     },
     {
       "name": "clang-relwithdebinfo",
       "displayName": "Clang RelWithDebInfo",
-      "configurePreset": "clang-multi",
+      "configurePreset": "clang",
       "configuration": "RelWithDebInfo"
     },
     {
       "name": "clang-release",
       "displayName": "Clang Release",
-      "configurePreset": "clang-multi",
+      "configurePreset": "clang",
       "configuration": "Release"
     },
     {
       "name": "cl-debug",
       "displayName": "CL Debug",
-      "configurePreset": "cl-multi",
+      "configurePreset": "cl",
       "configuration": "Debug"
     },
     {
       "name": "cl-relwithdebinfo",
       "displayName": "CL RelWithDebInfo",
-      "configurePreset": "cl-multi",
+      "configurePreset": "cl",
       "configuration": "RelWithDebInfo"
     },
     {
       "name": "cl-release",
       "displayName": "CL Release",
-      "configurePreset": "cl-multi",
+      "configurePreset": "cl",
       "configuration": "Release"
     }
   ],
@@ -153,37 +153,37 @@
       "name": "test-ninja-debug",
       "displayName": "Test (Debug)",
       "configuration": "Debug",
-      "configurePreset": "ninja-multi"
+      "configurePreset": "ninja"
     },
     {
       "name": "test-ninja-release",
       "displayName": "Test (Release)",
       "configuration": "Release",
-      "configurePreset": "ninja-multi"
+      "configurePreset": "ninja"
     },
     {
       "name": "test-clang-debug",
       "displayName": "Test (Debug)",
       "configuration": "Debug",
-      "configurePreset": "clang-multi"
+      "configurePreset": "clang"
     },
     {
       "name": "test-clang-release",
       "displayName": "Test (Release)",
       "configuration": "Release",
-      "configurePreset": "clang-multi"
+      "configurePreset": "clang"
     },
     {
       "name": "test-cl-debug",
       "displayName": "Test (Debug)",
       "configuration": "Debug",
-      "configurePreset": "cl-multi"
+      "configurePreset": "cl"
     },
     {
       "name": "test-cl-release",
       "displayName": "Test (Release)",
       "configuration": "Release",
-      "configurePreset": "cl-multi"
+      "configurePreset": "cl"
     }
   ]
 }
