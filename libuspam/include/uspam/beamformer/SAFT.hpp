@@ -27,27 +27,28 @@ template <Floating FloatType> struct SaftDelayParams {
   FloatType dt; // [s] timestep
   FloatType da; // [rad] angle step size in each rotation
 
-  FloatType f;     // [mm] transducer focal length
-  FloatType d;     // [mm] transducer diameter
-  FloatType angle; // [rad] transducer focus angle
+  FloatType f; // [mm] transducer focal length
+  FloatType d; // [mm] transducer diameter
 
-  FloatType angleLight; // [rad] illumination angle
+  FloatType illumAngleDeg; // [deg] illumination angle
 
   // [mm] spatial step size
   // NOLINTNEXTLINE(*-magic-numbers)
   [[nodiscard]] FloatType dr() const { return vs * dt * 1e3; }
 
+  // Transducer focus angle
+  [[nodiscard]] FloatType angle() const {
+    return std::asin(static_cast<FloatType>(d / (2 * f)));
+  }
+
+  [[nodiscard]] FloatType illumAngleRad() const {
+    return static_cast<FloatType>(deg2rad(illumAngleDeg));
+  }
+
   static auto make() {
     // NOLINTBEGIN(*-magic-numbers)
-    SaftDelayParams saftParams{
-        6.2,
-        1.5e3,
-        1.0 / 180e6,
-        2 * std::numbers::pi / 1000,
-        15.0,
-        8.5,
-        std::asin(static_cast<FloatType>(8.5 / (2 * 15.0))),
-        static_cast<float>(deg2rad(5.0)),
+    SaftDelayParams<FloatType> saftParams{
+        6.2, 1.5e3, 1.0 / 180e6, 2 * std::numbers::pi / 1000, 15.0, 8.5, 5.0,
     };
     // NOLINTEND(*-magic-numbers)
     return saftParams;
@@ -90,7 +91,7 @@ template <Floating FloatType>
           pi - std::acos((p.rt * p.rt + dr2 * dr2 - r * r) / (2 * p.rt * dr2));
 
       // Determine if point is within the light beam field
-      if (ang2 >= p.angleLight) {
+      if (ang2 >= p.illumAngleRad()) {
         continue;
       }
 
@@ -104,10 +105,10 @@ template <Floating FloatType>
       const auto ang3 =
           std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
 
-      if (dr3 <= p.f && ang3 <= p.angle) {
+      if (dr3 <= p.f && ang3 <= p.angle()) {
         timeDelay.at(i - zStart, j) = (abs(p.f - dr1) - dr3) / p.dr();
         nLines.at(i - zStart) += 1;
-      } else if ((pi - ang3) <= p.angle) {
+      } else if ((pi - ang3) <= p.angle()) {
         timeDelay.at(i - zStart, j) = (dr3 - abs(p.f - dr1)) / p.dr();
         nLines.at(i - zStart) += 1;
       }

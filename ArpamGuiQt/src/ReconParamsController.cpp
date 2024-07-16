@@ -1,4 +1,5 @@
 #include "ReconParamsController.hpp"
+#include "SaftParamsController.hpp"
 #include "uspam/beamformer/beamformer.hpp"
 #include "uspam/reconParams.hpp"
 #include <QCheckBox>
@@ -11,6 +12,7 @@
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
+#include <qpushbutton.h>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -82,18 +84,18 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   };
 
   const auto makeQDoubleSpinBox =
-      [this]<typename FloatType>(const std::pair<FloatType, FloatType> &range,
-                                 FloatType singleStep, FloatType &value,
-                                 auto *context) {
+      []<typename FloatType>(const std::pair<FloatType, FloatType> &range,
+                             FloatType singleStep, FloatType &value,
+                             auto *that) {
         auto *spinBox = new QDoubleSpinBox;
         spinBox->setRange(static_cast<double>(range.first),
                           static_cast<double>(range.second));
         spinBox->setValue(static_cast<double>(value));
         spinBox->setSingleStep(static_cast<double>(singleStep));
-        connect(spinBox, &QDoubleSpinBox::valueChanged, context,
+        connect(spinBox, &QDoubleSpinBox::valueChanged, that,
                 [&](double newValue) {
                   value = static_cast<FloatType>(newValue);
-                  this->_paramsUpdatedInternal();
+                  that->_paramsUpdatedInternal();
                 });
         return spinBox;
       };
@@ -119,13 +121,12 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *label = new QLabel("Freq");
       label->setToolTip(help_Freq);
-      layout->addWidget(label, row, 1);
+      layout->addWidget(label, row, 0);
 
       auto *filtFreq = new QLineEdit();
       filtFreq->setValidator(doubleListValidator);
-      layout->addWidget(filtFreq, row, 2);
+      layout->addWidget(filtFreq, row++, 1);
       filtFreq->setReadOnly(true);
-      row++;
 
       updateGuiFromParamsCallbacks.emplace_back([&p, filtFreq] {
         filtFreq->setText(
@@ -136,13 +137,12 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *label = new QLabel("Gain");
       label->setToolTip(help_Gain);
-      layout->addWidget(label, row, 1);
+      layout->addWidget(label, row, 0);
 
       auto *filtGain = new QLineEdit();
       filtGain->setValidator(doubleListValidator);
-      layout->addWidget(filtGain, row, 2);
+      layout->addWidget(filtGain, row++, 1);
       filtGain->setReadOnly(true);
-      row++;
 
       updateGuiFromParamsCallbacks.emplace_back([&p, filtGain] {
         filtGain->setText(
@@ -153,10 +153,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *label = new QLabel("Truncate");
       label->setToolTip(help_Truncate);
-      layout->addWidget(label, row, 1);
+      layout->addWidget(label, row, 0);
 
       auto *spinBox = makeQSpinBox({0, 1000}, p.truncate, this);
-      layout->addWidget(spinBox, row++, 2);
+      layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back(
@@ -166,11 +166,11 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *label = new QLabel("Noise floor");
       label->setToolTip(help_NoiseFloor);
-      layout->addWidget(label, row, 1);
+      layout->addWidget(label, row, 0);
 
       auto *spinBox =
           makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV, this);
-      layout->addWidget(spinBox, row++, 2);
+      layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" mV");
 
       updateGuiFromParamsCallbacks.emplace_back([this, spinBox, &p] {
@@ -181,11 +181,11 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *label = new QLabel("Dynamic range");
       label->setToolTip(help_DynamicRange);
-      layout->addWidget(label, row, 1);
+      layout->addWidget(label, row, 0);
 
       auto *spinBox =
           makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F, p.desiredDynamicRange, this);
-      layout->addWidget(spinBox, row++, 2);
+      layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" dB");
 
       updateGuiFromParamsCallbacks.emplace_back(
@@ -196,22 +196,21 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *label = new QLabel("Beamformer");
       label->setToolTip(help_DynamicRange);
-      layout->addWidget(label, row, 1);
+      layout->addWidget(label, row, 0);
       using uspam::beamformer::BeamformerType;
 
       auto *cbox = new QComboBox;
-      layout->addWidget(cbox, row++, 2);
+      layout->addWidget(cbox, row++, 1);
       cbox->addItem("None", QVariant::fromValue(BeamformerType::NONE));
       cbox->addItem("SAFT", QVariant::fromValue(BeamformerType::SAFT));
       cbox->addItem("SAFT CF", QVariant::fromValue(BeamformerType::SAFT_CF));
 
-      QObject::connect(
-          cbox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          [&, cbox](int index) {
-            p.beamformerType =
-                qvariant_cast<BeamformerType>(cbox->itemData(index));
-            this->_paramsUpdatedInternal();
-          });
+      connect(cbox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+              [&, cbox](int index) {
+                p.beamformerType =
+                    qvariant_cast<BeamformerType>(cbox->itemData(index));
+                this->_paramsUpdatedInternal();
+              });
 
       updateGuiFromParamsCallbacks.emplace_back([this, cbox, &p] {
         for (int i = 0; i < cbox->count(); ++i) {
@@ -222,6 +221,20 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         }
       });
     }
+
+    // Beamformer Params
+    {
+      auto *saftParamsController = new SaftParamsController;
+      layout->addWidget(saftParamsController, row, 0);
+      row++;
+
+      connect(saftParamsController, &SaftParamsController::paramsUpdated,
+              [this, &p](uspam::beamformer::SaftDelayParams<float> params) {
+                p.beamformerParams = params;
+                this->_paramsUpdatedInternal();
+              });
+    }
+
     return gb;
   };
 

@@ -8,7 +8,6 @@
 #include <armadillo>
 #include <cstdio>
 #include <future>
-#include <sstream>
 #include <tuple>
 #include <uspam/fft.hpp>
 #include <uspam/imutil.hpp>
@@ -182,7 +181,7 @@ auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
   // Beamform
   {
     uspam::TimeIt timeit;
-    beamform(rf, rfBeamformed, params.beamformerType);
+    beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams);
     beamform_ms = timeit.get_ms();
   }
 
