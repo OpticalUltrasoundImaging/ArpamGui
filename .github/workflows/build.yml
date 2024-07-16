@@ -117,7 +117,7 @@ jobs:
 
       - name: CMake configure
         shell: bash
-        run: cmake --preset clang-multi
+        run: cmake --preset clang
 
       - name: CMake build
         shell: bash
@@ -127,6 +127,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ArpamGuiQt-mac
-          path: ${{ github.workspace }}/build/clang-multi/ArpamGuiQt/Release/ArpamGuiQt.dmg
+          path: ${{ github.workspace }}/build/clang/ArpamGuiQt/Release/ArpamGuiQt.dmg
           if-no-files-found: "warn" # output a warning if no files are found.
           overwrite: true

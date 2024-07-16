@@ -34,7 +34,8 @@
     },
     {
       "name": "win64",
-      "displayName": "Win64 (Visual Studio 2022)",
+      "displayName": "Visual Studio 2022",
+      "description": "Visual Studio 2022 + x64 CL",
       "inherits": "win64-cl-base",
       "generator": "Visual Studio 17 2022"
     },
@@ -42,24 +43,42 @@
       "name": "ninja",
       "inherits": "base",
       "displayName": "Ninja Multi-Config",
-      "description": "A generic Ninja Multi-Config configuration",
+      "description": "Generic Ninja Multi-Config with no compiler specified",
       "generator": "Ninja Multi-Config"
     },
     {
       "name": "clang",
       "inherits": "ninja",
-      "displayName": "Ninja Multi-Config (clang)",
-      "description": "A Clang specific Ninja Multi-Config configuration",
+      "displayName": "Clang",
+      "description": "Ninja Multi-Config + Clang",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++"
       }
     },
     {
+      "name": "clang-vec-report",
+      "inherits": "clang",
+      "displayName": "Clang (with vec report)",
+      "description": "Ninja Multi-Config + Clang (with autovectorizer report)",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
+      }
+    },
+    {
       "name": "cl",
       "inherits": ["ninja", "win64-cl-base"],
-      "displayName": "Ninja Multi-Config (MSVC x64)",
-      "description": "A x64 MSVC specific Ninja Multi-Config configuration"
+      "displayName": "CL",
+      "description": "Ninja Multi-Config + x64 MSVC"
+    },
+    {
+      "name": "cl-vec-report",
+      "inherits": "cl",
+      "displayName": "CL (with vec report)",
+      "description": "Ninja Multi-Config + x64 MSVC (with autovectorizer report)",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "/Qvec-report:2"
+      }
     }
   ],
   "buildPresets": [
@@ -115,6 +134,12 @@
       "name": "clang-release",
       "displayName": "Clang Release",
       "configurePreset": "clang",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-vec-report-release",
+      "displayName": "Clang Release",
+      "configurePreset": "clang-vec-report",
       "configuration": "Release"
     },
     {
