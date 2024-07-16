@@ -47,6 +47,9 @@ add_definitions(-DARPAM_COMPILE_TIME="${CURRENT_TIME}")
 add_definitions(-DARPAM_COMPILER_NAME="${CMAKE_CXX_COMPILER_ID}")
 add_definitions(-DARPAM_COMPILER_VERSION="${CMAKE_CXX_COMPILER_VERSION}")
 
+# Use QCustomPlot as a shared library
+add_definitions(-DQCUSTOMPLOT_USE_LIBRARY)
+
 ### Source files
 qt_add_executable(${EXE_NAME}
     src/main.cpp

@@ -28,6 +28,5 @@
     "gtest",
     "cli11",
     "indicators"
-  ],
-  "builtin-baseline": "b65dbc0b65120b4b197180f5965838560fbc5b33"
+  ]
 }
