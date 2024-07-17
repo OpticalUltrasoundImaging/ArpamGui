@@ -1,5 +1,4 @@
 #include "Metrics/FreqSpectrum.hpp"
-#include "PlotCommon.hpp"
 #include <QPen>
 #include <QVBoxLayout>
 #include <QVector>
@@ -7,7 +6,6 @@
 #include <algorithm>
 #include <qcustomplot.h>
 #include <tuple>
-#include <type_traits>
 
 FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new CustomPlot) {
 
@@ -16,7 +14,7 @@ FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new CustomPlot) {
    */
   {
     customPlot->xAxis->setLabel("Frequency (MHz)");
-    customPlot->yAxis->setLabel("Magnitude");
+    customPlot->yAxis->setLabel("Power spectra (dB)");
   }
 
   customPlot->actShowFWHM()->toggle();
@@ -68,10 +66,11 @@ auto dbfft(const std::span<const Tin> y, const Tin fs) {
     const auto sp_mag = std::abs(_cx) / N;
 
     // Convert to dBFS
+    // db of power spectrum
     // s_dbfs = 20 * np.log10(s_mag / ref);
-    // const auto sp_dbfs = static_cast<Tout>(20 * std::log10(sp_mag));
+    const auto sp_dbfs = static_cast<Tout>(20 * std::log10(sp_mag));
 
-    sp[i] = sp_mag;
+    sp[i] = sp_dbfs;
   }
 
   return std::tuple{freq, sp};
