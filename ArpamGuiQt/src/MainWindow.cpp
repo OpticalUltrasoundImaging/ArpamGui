@@ -134,8 +134,15 @@ MainWindow::MainWindow(QWidget *parent)
       resizeDocks({dock}, {dock->sizeHint().width()},
                   Qt::Orientation::Horizontal);
 
-      // dockLayout->addWidget(reconParamsController);
-      dock->setWidget(reconParamsController);
+      // Wrap reconParamsController in a ScrollArea since it may overflow
+      auto *reconParamsScrollArea = new QScrollArea;
+      reconParamsScrollArea->setWidgetResizable(true);
+      reconParamsScrollArea->setHorizontalScrollBarPolicy(
+          Qt::ScrollBarAlwaysOff);
+      reconParamsScrollArea->setWidget(reconParamsController);
+      constexpr auto LeftDockMinWidth = 250;
+      reconParamsScrollArea->setMinimumWidth(LeftDockMinWidth);
+      dock->setWidget(reconParamsScrollArea);
 
       connect(reconParamsController, &ReconParamsController::paramsUpdated,
               [this](uspam::recon::ReconParams2 params,

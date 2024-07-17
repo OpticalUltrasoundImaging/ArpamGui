@@ -12,6 +12,7 @@
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
+#include <qboxlayout.h>
 #include <qpushbutton.h>
 #include <ranges>
 #include <sstream>
@@ -114,119 +115,139 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   const auto makeReconParamsControl = [&](const QString &groupBoxName,
                                           uspam::recon::ReconParams &p) {
     auto *gb = new QGroupBox(groupBoxName);
-    auto *layout = new QGridLayout;
-    gb->setLayout(layout);
-    int row = 1;
+    auto *vlayout = new QVBoxLayout;
+    gb->setLayout(vlayout);
 
     {
-      auto *label = new QLabel("Freq");
-      label->setToolTip(help_Freq);
-      layout->addWidget(label, row, 0);
+      auto *layout = new QGridLayout;
+      vlayout->addLayout(layout);
+      int row = 1;
 
-      auto *filtFreq = new QLineEdit();
-      filtFreq->setValidator(doubleListValidator);
-      layout->addWidget(filtFreq, row++, 1);
-      filtFreq->setReadOnly(true);
+      {
+        auto *label = new QLabel("Freq");
+        label->setToolTip(help_Freq);
+        layout->addWidget(label, row, 0);
 
-      updateGuiFromParamsCallbacks.emplace_back([&p, filtFreq] {
-        filtFreq->setText(
-            QString::fromStdString(vectorToStdString(p.filterFreq)));
-      });
-    }
+        auto *filtFreq = new QLineEdit();
+        filtFreq->setValidator(doubleListValidator);
+        layout->addWidget(filtFreq, row++, 1);
+        filtFreq->setReadOnly(true);
 
-    {
-      auto *label = new QLabel("Gain");
-      label->setToolTip(help_Gain);
-      layout->addWidget(label, row, 0);
+        updateGuiFromParamsCallbacks.emplace_back([&p, filtFreq] {
+          filtFreq->setText(
+              QString::fromStdString(vectorToStdString(p.filterFreq)));
+        });
+      }
 
-      auto *filtGain = new QLineEdit();
-      filtGain->setValidator(doubleListValidator);
-      layout->addWidget(filtGain, row++, 1);
-      filtGain->setReadOnly(true);
+      {
+        auto *label = new QLabel("Gain");
+        label->setToolTip(help_Gain);
+        layout->addWidget(label, row, 0);
 
-      updateGuiFromParamsCallbacks.emplace_back([&p, filtGain] {
-        filtGain->setText(
-            QString::fromStdString(vectorToStdString(p.filterGain)));
-      });
-    }
+        auto *filtGain = new QLineEdit();
+        filtGain->setValidator(doubleListValidator);
+        layout->addWidget(filtGain, row++, 1);
+        filtGain->setReadOnly(true);
 
-    {
-      auto *label = new QLabel("Truncate");
-      label->setToolTip(help_Truncate);
-      layout->addWidget(label, row, 0);
+        updateGuiFromParamsCallbacks.emplace_back([&p, filtGain] {
+          filtGain->setText(
+              QString::fromStdString(vectorToStdString(p.filterGain)));
+        });
+      }
 
-      auto *spinBox = makeQSpinBox({0, 1000}, p.truncate, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" pts");
+      {
+        auto *label = new QLabel("Truncate");
+        label->setToolTip(help_Truncate);
+        layout->addWidget(label, row, 0);
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox, &p] { spinBox->setValue(p.truncate); });
-    }
+        auto *spinBox = makeQSpinBox({0, 1000}, p.truncate, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
 
-    {
-      auto *label = new QLabel("Noise floor");
-      label->setToolTip(help_NoiseFloor);
-      layout->addWidget(label, row, 0);
+        updateGuiFromParamsCallbacks.emplace_back(
+            [this, spinBox, &p] { spinBox->setValue(p.truncate); });
+      }
 
-      auto *spinBox =
-          makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" mV");
+      {
+        auto *label = new QLabel("Noise floor");
+        label->setToolTip(help_NoiseFloor);
+        layout->addWidget(label, row, 0);
 
-      updateGuiFromParamsCallbacks.emplace_back([this, spinBox, &p] {
-        spinBox->setValue(static_cast<double>(p.noiseFloor_mV));
-      });
-    }
+        auto *spinBox =
+            makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" mV");
 
-    {
-      auto *label = new QLabel("Dynamic range");
-      label->setToolTip(help_DynamicRange);
-      layout->addWidget(label, row, 0);
+        updateGuiFromParamsCallbacks.emplace_back([this, spinBox, &p] {
+          spinBox->setValue(static_cast<double>(p.noiseFloor_mV));
+        });
+      }
 
-      auto *spinBox =
-          makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F, p.desiredDynamicRange, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" dB");
+      {
+        auto *label = new QLabel("Dynamic range");
+        label->setToolTip(help_DynamicRange);
+        layout->addWidget(label, row, 0);
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
-    }
+        auto *spinBox = makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F,
+                                           p.desiredDynamicRange, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" dB");
 
-    // Beamformer
-    {
-      auto *label = new QLabel("Beamformer");
-      label->setToolTip(help_DynamicRange);
-      layout->addWidget(label, row, 0);
-      using uspam::beamformer::BeamformerType;
+        updateGuiFromParamsCallbacks.emplace_back(
+            [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
+      }
 
-      auto *cbox = new QComboBox;
-      layout->addWidget(cbox, row++, 1);
-      cbox->addItem("None", QVariant::fromValue(BeamformerType::NONE));
-      cbox->addItem("SAFT", QVariant::fromValue(BeamformerType::SAFT));
-      cbox->addItem("SAFT CF", QVariant::fromValue(BeamformerType::SAFT_CF));
+      // Beamformer
+      {
+        auto *label = new QLabel("Beamformer");
+        label->setToolTip(help_DynamicRange);
+        layout->addWidget(label, row, 0);
+        using uspam::beamformer::BeamformerType;
 
-      connect(cbox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-              [&, cbox](int index) {
-                p.beamformerType =
-                    qvariant_cast<BeamformerType>(cbox->itemData(index));
-                this->_paramsUpdatedInternal();
-              });
+        auto *cbox = new QComboBox;
+        layout->addWidget(cbox, row++, 1);
+        cbox->addItem("None", QVariant::fromValue(BeamformerType::NONE));
+        cbox->addItem("SAFT", QVariant::fromValue(BeamformerType::SAFT));
+        cbox->addItem("SAFT CF", QVariant::fromValue(BeamformerType::SAFT_CF));
 
-      updateGuiFromParamsCallbacks.emplace_back([this, cbox, &p] {
-        for (int i = 0; i < cbox->count(); ++i) {
-          if (qvariant_cast<BeamformerType>(cbox->itemData(i)) ==
-              p.beamformerType) {
-            cbox->setCurrentIndex(i);
+        connect(cbox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                [&, cbox](int index) {
+                  p.beamformerType =
+                      qvariant_cast<BeamformerType>(cbox->itemData(index));
+                  this->_paramsUpdatedInternal();
+                });
+
+        updateGuiFromParamsCallbacks.emplace_back([this, cbox, &p] {
+          for (int i = 0; i < cbox->count(); ++i) {
+            if (qvariant_cast<BeamformerType>(cbox->itemData(i)) ==
+                p.beamformerType) {
+              cbox->setCurrentIndex(i);
+            }
           }
-        }
-      });
+        });
+      }
     }
+
+    auto *btnShowReconParams = new QPushButton("Show SAFT Parameters");
+    vlayout->addWidget(btnShowReconParams);
 
     // Beamformer Params
     {
+
       auto *saftParamsController = new SaftParamsController;
-      layout->addWidget(saftParamsController, row, 0);
-      row++;
+      vlayout->addWidget(saftParamsController);
+
+      connect(btnShowReconParams, &QPushButton::pressed,
+              [btnShowReconParams, saftParamsController] {
+                if (saftParamsController->isVisible()) {
+                  saftParamsController->setVisible(false);
+                  btnShowReconParams->setText("Show SAFT Parameters");
+                } else {
+                  saftParamsController->setVisible(true);
+                  btnShowReconParams->setText("Hide SAFT Parameters");
+                }
+              });
+      saftParamsController->hide();
 
       connect(saftParamsController, &SaftParamsController::paramsUpdated,
               [this, &p](uspam::beamformer::SaftDelayParams<float> params) {

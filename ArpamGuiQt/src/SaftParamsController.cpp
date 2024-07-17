@@ -18,6 +18,8 @@ SaftParamsController::SaftParamsController(QWidget *parent)
 
   // UI
   auto *layout = new QGridLayout;
+  layout->setContentsMargins(0, 0, 0, 0);
+
   this->setLayout(layout);
   int row{0};
 
@@ -45,7 +47,7 @@ SaftParamsController::SaftParamsController(QWidget *parent)
         };
       };
 
-  labelledSpinBox("Transducer offset", {0.0, 10.0}, 0.01, params.rt, " mm",
+  labelledSpinBox("Transducer offset", {0.0, 10.0}, 0.1, params.rt, " mm",
                   "Distance from axis of rotation to transducer surface");
   labelledSpinBox("Sound speed", {1000.0, 2000.0}, 1.0, params.vs, " mm",
                   "Sound speed");
