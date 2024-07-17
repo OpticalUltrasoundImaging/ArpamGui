@@ -17,8 +17,7 @@ TEST(SaftTimeDelayParamTest, Correct) {
   saftParams.da = 2 * std::numbers::pi / 1000;
   saftParams.f = 15.0;
   saftParams.d = 8.5;
-  saftParams.angle = std::asin(8.5 / (2 * 15.0));
-  saftParams.angleLight = beamformer::deg2rad(5);
+  saftParams.illumAngleDeg = 5;
 
   const auto timeDelay =
       beamformer::computeSaftTimeDelay(saftParams, 769, 2450);

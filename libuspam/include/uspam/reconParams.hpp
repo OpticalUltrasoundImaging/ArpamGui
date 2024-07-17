@@ -9,6 +9,7 @@
 namespace uspam::recon {
 namespace fs = std::filesystem;
 
+using beamformer::BeamformerParams;
 using beamformer::BeamformerType;
 
 struct ReconParams {
@@ -20,6 +21,7 @@ struct ReconParams {
   float desiredDynamicRange;
 
   BeamformerType beamformerType;
+  BeamformerParams<float> beamformerParams;
 
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;

@@ -2,6 +2,7 @@
 
 #include "uspam/beamformer/SAFT.hpp"
 #include <type_traits>
+#include <variant>
 
 namespace uspam::beamformer {
 
@@ -12,13 +13,20 @@ enum class BeamformerType {
 };
 
 template <typename T>
+using BeamformerParams = std::variant<std::monostate, SaftDelayParams<T>>;
+
+template <typename T>
 void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
-              BeamformerType beamformer)
+              BeamformerType beamformer, BeamformerParams<T> beamformerParams)
   requires std::is_floating_point_v<T>
 {
   switch (beamformer) {
   case BeamformerType::SAFT: {
-    const auto saftParams = uspam::beamformer::SaftDelayParams<T>::make();
+    const auto saftParams =
+        std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
+            ? std::get<SaftDelayParams<T>>(beamformerParams)
+            : SaftDelayParams<T>::make();
+
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
     const auto [rfSaft, rfSaftCF] =
@@ -28,7 +36,12 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
   } break;
 
   case BeamformerType::SAFT_CF: {
-    const auto saftParams = uspam::beamformer::SaftDelayParams<T>::make();
+
+    const auto saftParams =
+        std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
+            ? std::get<SaftDelayParams<T>>(beamformerParams)
+            : SaftDelayParams<T>::make();
+
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
     const auto [rfSaft, rfSaftCF] =
