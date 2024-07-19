@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <qcustomplot.h>
 #include <tuple>
+#include <uspam/signal.hpp>
 
 FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new CustomPlot) {
 
@@ -55,8 +56,17 @@ auto dbfft(const std::span<const Tin> y, const Tin fs) {
   // sp = np.fft.rfft(x)
   // s_mag = np.abs(sp) * 2 / np.sum(win);
   uspam::fft::engine_r2c_1d<Tin> engine(N);
-  std::copy(y.begin(), y.end(), engine.real.begin());
+
+  // std::copy(y.begin(), y.end(), engine.real.begin());
+
+  // Use hamming window
+  const auto win = uspam::signal::create_hamming_window(N);
+  for (int i = 0; i < N; i++) {
+    engine.real[i] = y[i] * win[i];
+  }
+
   engine.execute();
+
   QVector<Tout> sp;
   sp.resize(Nsp);
   for (int i = 0; i < Nsp; ++i) {
