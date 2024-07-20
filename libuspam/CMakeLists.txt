@@ -49,40 +49,42 @@ endif()
 include(CheckLanguage)
 check_language(CUDA)
 
-if(CMAKE_CUDA_COMPILER)
-    enable_language(CUDA)
-    find_package(CUDAToolkit REQUIRED)
+if (DEFINED ARPAM_CUDA)
+  if(CMAKE_CUDA_COMPILER)
+      enable_language(CUDA)
+      find_package(CUDAToolkit REQUIRED)
 
-    set_target_properties(${LIB_NAME} PROPERTIES
-        CUDA_STANDARD 20
-        CUDA_STANDARD_REQUIRED ON
-        CUDA_ARCHITECTURES 75
-        CUDA_SEPARABLE_COMPILATION ON
-        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    )
+      set_target_properties(${LIB_NAME} PROPERTIES
+          CUDA_STANDARD 20
+          CUDA_STANDARD_REQUIRED ON
+          CUDA_ARCHITECTURES 75
+          CUDA_SEPARABLE_COMPILATION ON
+          CUDA_RESOLVE_DEVICE_SYMBOLS ON
+      )
 
-    target_compile_definitions(${LIB_NAME} PUBLIC USPAM_HAS_CUDA=1)
-    target_sources(${LIB_NAME}
-        PRIVATE
-        src/cudaSignal.cu
-        src/cudaRecon.cu
-    )
+      target_compile_definitions(${LIB_NAME} PUBLIC USPAM_HAS_CUDA=1)
+      target_sources(${LIB_NAME}
+          PRIVATE
+          src/cudaSignal.cu
+          src/cudaRecon.cu
+      )
 
-    target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
-                           --use_fast_math
-                           --extended-lambda
-                           >)
+      target_compile_options(${LIB_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                             --use_fast_math
+                             --extended-lambda
+                             >)
 
-    message("BEGIN CUDA::cudart")
-    get_target_property(CUDART_INCLUDE_DIRS CUDA::cudart INTERFACE_INCLUDE_DIRECTORIES)
-    get_target_property(CUDART_LINK_LIBRARIES CUDA::cudart INTERFACE_LINK_LIBRARIES)
-    message("CUDA::cudart include directories: ${CUDART_INCLUDE_DIRS}")
-    message("CUDA::cudart link libraries: ${CUDART_LINK_LIBRARIES}")
-    message("END CUDA::cudart")
+      message("BEGIN CUDA::cudart")
+      get_target_property(CUDART_INCLUDE_DIRS CUDA::cudart INTERFACE_INCLUDE_DIRECTORIES)
+      get_target_property(CUDART_LINK_LIBRARIES CUDA::cudart INTERFACE_LINK_LIBRARIES)
+      message("CUDA::cudart include directories: ${CUDART_INCLUDE_DIRS}")
+      message("CUDA::cudart link libraries: ${CUDART_LINK_LIBRARIES}")
+      message("END CUDA::cudart")
 
-    target_link_libraries(${LIB_NAME} PUBLIC CUDA::cudart CUDA::cublas CUDA::cufft)
-else()
-    message(STATUS "No CUDA support")
+      target_link_libraries(${LIB_NAME} PUBLIC CUDA::cudart CUDA::cublas CUDA::cufft)
+  else()
+    message(WARNING "ARPAM_CUDA defined, but no CUDA support found.")
+  endif()
 endif()
 
 
