@@ -1,4 +1,4 @@
-artifact_path=./build/clang-multi/ArpamGuiQt/Release
+artifact_path=./build/clang/ArpamGuiQt/Release
 artifact_name=ArpamGuiQt.dmg
 archive_name="ArpamGuiQt-mac-$(date +%Y%m%d).dmg"
 
