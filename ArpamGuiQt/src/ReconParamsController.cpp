@@ -85,18 +85,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   };
 
   const auto makeQDoubleSpinBox =
-      []<typename FloatType>(const std::pair<FloatType, FloatType> &range,
-                             FloatType singleStep, FloatType &value,
-                             auto *that) {
+      [this]<typename FloatType>(const std::pair<FloatType, FloatType> &range,
+                                 FloatType singleStep, FloatType &value) {
         auto *spinBox = new QDoubleSpinBox;
         spinBox->setRange(static_cast<double>(range.first),
                           static_cast<double>(range.second));
         spinBox->setValue(static_cast<double>(value));
         spinBox->setSingleStep(static_cast<double>(singleStep));
-        connect(spinBox, &QDoubleSpinBox::valueChanged, that,
+        connect(spinBox, &QDoubleSpinBox::valueChanged, this,
                 [&](double newValue) {
                   value = static_cast<FloatType>(newValue);
-                  that->_paramsUpdatedInternal();
+                  this->_paramsUpdatedInternal();
                 });
         return spinBox;
       };
@@ -174,7 +173,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         layout->addWidget(label, row, 0);
 
         auto *spinBox =
-            makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV, this);
+            makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" mV");
 
@@ -188,8 +187,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         label->setToolTip(help_DynamicRange);
         layout->addWidget(label, row, 0);
 
-        auto *spinBox = makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F,
-                                           p.desiredDynamicRange, this);
+        auto *spinBox =
+            makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F, p.desiredDynamicRange);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" dB");
 
