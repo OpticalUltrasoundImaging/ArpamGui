@@ -105,7 +105,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   m_viewMenu->addAction(actResetZoom);
 
   actShowUSCanvas->setCheckable(true);
-  connect(actShowUSCanvas, &QAction::triggered,
+  connect(actShowUSCanvas, &QAction::toggled,
           [this](bool checked) { m_canvasUS->setVisible(checked); });
   m_viewMenu->addAction(actShowUSCanvas);
 

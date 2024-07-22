@@ -83,34 +83,44 @@ MainWindow::MainWindow(QWidget *parent)
     actViewSimple = new QAction("Physician view", this);
     actViewSimple->setCheckable(true);
     actViewSimple->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_1);
-    connect(actViewSimple, &QAction::triggered, this, [this] {
-      dockLog->hide();
-      dockFrameController->show();
-      dockFrameController->resize(QSize{dockFrameController->width(),
-                                        dockFrameController->minimumHeight()});
+    connect(actViewSimple, &QAction::toggled, this, [this](bool checked) {
+      if (checked) {
+        dockLog->hide();
+        dockFrameController->show();
+        dockFrameController->resize(
+            QSize{dockFrameController->width(),
+                  dockFrameController->minimumHeight()});
 
-      dockReconParams->hide();
-      dockAnnotations->hide();
-      dockAScanPlot->hide();
+        dockReconParams->hide();
+        dockAnnotations->hide();
+        dockAScanPlot->hide();
 
-      actViewSimple->setChecked(true);
-      actViewExpert->setChecked(false);
+        actViewSimple->setChecked(true);
+        actViewExpert->setChecked(false);
+
+        m_coregDisplay->actionShowUSCanvas()->setChecked(true);
+        m_coregDisplay->resetZoom();
+      }
     });
 
     actViewExpert = new QAction("Engineer view", this);
     actViewExpert->setCheckable(true);
     actViewExpert->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_2);
-    connect(actViewExpert, &QAction::triggered, this, [this] {
-      dockLog->show();
-      dockFrameController->show();
-      dockReconParams->show();
-      dockAnnotations->show();
-      dockAScanPlot->show();
+    connect(actViewExpert, &QAction::toggled, this, [this](bool checked) {
+      if (checked) {
+        dockLog->show();
+        dockFrameController->show();
+        dockReconParams->show();
+        dockAnnotations->show();
+        dockAScanPlot->show();
 
-      dockReconParams->raise();
+        dockReconParams->raise();
 
-      actViewSimple->setChecked(false);
-      actViewExpert->setChecked(true);
+        actViewSimple->setChecked(false);
+        actViewExpert->setChecked(true);
+
+        m_coregDisplay->actionShowUSCanvas()->setChecked(false);
+      }
     });
 
     m_viewMenu->addAction(actViewSimple);
