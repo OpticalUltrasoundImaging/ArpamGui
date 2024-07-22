@@ -17,7 +17,7 @@ public:
   using AnnotationModel = annotation::AnnotationModel;
   using Annotation = annotation::Annotation;
 
-  explicit CoregDisplay(AScanPlot *ascanPlot, QWidget *parent = nullptr);
+  explicit CoregDisplay(QWidget *parent = nullptr);
 
   [[nodiscard]] auto annotationView() const { return m_annoView; }
   [[nodiscard]] auto model() const { return m_model; }
@@ -25,6 +25,9 @@ public:
   [[nodiscard]] auto cursorToolbar() const { return m_cursorToolbar; }
   [[nodiscard]] auto cursorMenu() const { return m_cursorMenu; }
   [[nodiscard]] auto viewMenu() const { return m_viewMenu; }
+
+  [[nodiscard]] auto actionResetZoom() const { return actResetZoom; }
+  [[nodiscard]] auto actionShowUSCanvas() const { return actShowUSCanvas; }
 
 signals:
   void message(const QString &msg);
@@ -68,7 +71,6 @@ public slots:
 private:
   Canvas *m_canvasPAUS;
   Canvas *m_canvasUS;
-  AScanPlot *m_AScanPlot;
 
   AnnotationModel *m_model;
 
@@ -104,5 +106,4 @@ private:
   // Reset image zoom
   QAction *actResetZoom;
   QAction *actShowUSCanvas;
-  QAction *actShowAScanPlot;
 };

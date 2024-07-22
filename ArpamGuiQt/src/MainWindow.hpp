@@ -18,6 +18,7 @@
 #include <QStackedWidget>
 #include <QThread>
 #include <QVBoxLayout>
+#include <qdockwidget.h>
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -40,7 +41,16 @@ private:
   QMenu *m_fileMenu;
   QMenu *m_viewMenu;
 
+  // Docks
+  QDockWidget *dockLog;
+  QDockWidget *dockFrameController;
+  QDockWidget *dockReconParams;
+  QDockWidget *dockAnnotations;
+  QDockWidget *dockAScanPlot;
+
   // Actions
+  QAction *actViewSimple;
+  QAction *actViewExpert;
 
   // Worker
   QThread workerThread;

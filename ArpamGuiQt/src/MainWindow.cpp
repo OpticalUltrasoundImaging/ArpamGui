@@ -22,6 +22,7 @@
 #include <QtDebug>
 #include <QtLogging>
 #include <opencv2/opencv.hpp>
+#include <qnamespace.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -43,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
       textEdit(new QPlainTextEdit(this)),
       reconParamsController(new ReconParamsController),
       m_AScanPlot(new AScanPlot(reconParamsController)),
-      m_coregDisplay(new CoregDisplay(m_AScanPlot)),
+      m_coregDisplay(new CoregDisplay),
       m_frameController(new FrameController(reconParamsController, worker,
                                             m_AScanPlot, m_coregDisplay))
 
@@ -72,6 +73,51 @@ MainWindow::MainWindow(QWidget *parent)
     workerThread.start();
   }
 
+  /*
+  View mode actions
+
+  - Simple mode: hide parameter tuning docks
+  - Expert mode: most dock panels visible
+   */
+  {
+    actViewSimple = new QAction("Physician view", this);
+    actViewSimple->setCheckable(true);
+    actViewSimple->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_1);
+    connect(actViewSimple, &QAction::triggered, this, [this] {
+      dockLog->hide();
+      dockFrameController->show();
+      dockFrameController->resize(QSize{dockFrameController->width(),
+                                        dockFrameController->minimumHeight()});
+
+      dockReconParams->hide();
+      dockAnnotations->hide();
+      dockAScanPlot->hide();
+
+      actViewSimple->setChecked(true);
+      actViewExpert->setChecked(false);
+    });
+
+    actViewExpert = new QAction("Engineer view", this);
+    actViewExpert->setCheckable(true);
+    actViewExpert->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_2);
+    connect(actViewExpert, &QAction::triggered, this, [this] {
+      dockLog->show();
+      dockFrameController->show();
+      dockReconParams->show();
+      dockAnnotations->show();
+      dockAScanPlot->show();
+
+      dockReconParams->raise();
+
+      actViewSimple->setChecked(false);
+      actViewExpert->setChecked(true);
+    });
+
+    m_viewMenu->addAction(actViewSimple);
+    m_viewMenu->addAction(actViewExpert);
+    m_viewMenu->addSeparator();
+  }
+
   /**
    * Setup GUI
    */
@@ -86,29 +132,31 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Log dock widget
   {
-    auto *dock = new QDockWidget("Log", this);
+    dockLog = new QDockWidget("Log", this);
     // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
-    this->addDockWidget(Qt::TopDockWidgetArea, dock);
-    m_viewMenu->addAction(dock->toggleViewAction());
+    this->addDockWidget(Qt::TopDockWidgetArea, dockLog);
+    m_viewMenu->addAction(dockLog->toggleViewAction());
 
     // Error box
     // dockLayout->addWidget(textEdit);
-    dock->setWidget(textEdit);
+    dockLog->setWidget(textEdit);
     textEdit->setReadOnly(true);
     textEdit->appendPlainText(arpam_about::aboutString());
   }
 
   // Frame controller dock widget
   {
-    auto *dock = new QDockWidget("Frame Controller", this);
+    dockFrameController = new QDockWidget("Frame Controller", this);
     // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
-    this->addDockWidget(Qt::TopDockWidgetArea, dock);
-    resizeDocks({dock}, {dock->sizeHint().height()}, Qt::Orientation::Vertical);
+    this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
+    resizeDocks({dockFrameController},
+                {dockFrameController->sizeHint().height()},
+                Qt::Orientation::Vertical);
 
     // dockLayout->addWidget(m_frameController);
-    dock->setWidget(m_frameController);
+    dockFrameController->setWidget(m_frameController);
     m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
-    m_viewMenu->addAction(dock->toggleViewAction());
+    m_viewMenu->addAction(dockFrameController->toggleViewAction());
 
     connect(m_frameController, &FrameController::message, this,
             &MainWindow::logError);
@@ -122,16 +170,15 @@ MainWindow::MainWindow(QWidget *parent)
     setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::North);
 
     // Recon parameters controller
-    QDockWidget *reconParamsDock{};
     {
-      auto *dock = new QDockWidget("Recon Parameters", this);
-      reconParamsDock = dock;
+      dockReconParams = new QDockWidget("Recon Parameters", this);
       // dock->setFeatures(dock->features() ^
       // (QDockWidget::DockWidgetClosable));
-      this->addDockWidget(Qt::LeftDockWidgetArea, dock);
-      dock->toggleViewAction()->setShortcut({Qt::CTRL | Qt::SHIFT | Qt::Key_P});
-      m_viewMenu->addAction(dock->toggleViewAction());
-      resizeDocks({dock}, {dock->sizeHint().width()},
+      this->addDockWidget(Qt::LeftDockWidgetArea, dockReconParams);
+      dockReconParams->toggleViewAction()->setShortcut(
+          {Qt::CTRL | Qt::SHIFT | Qt::Key_P});
+      m_viewMenu->addAction(dockReconParams->toggleViewAction());
+      resizeDocks({dockReconParams}, {dockReconParams->sizeHint().width()},
                   Qt::Orientation::Horizontal);
 
       // Wrap reconParamsController in a ScrollArea since it may overflow
@@ -142,7 +189,7 @@ MainWindow::MainWindow(QWidget *parent)
       reconParamsScrollArea->setWidget(reconParamsController);
       constexpr auto LeftDockMinWidth = 250;
       reconParamsScrollArea->setMinimumWidth(LeftDockMinWidth);
-      dock->setWidget(reconParamsScrollArea);
+      dockReconParams->setWidget(reconParamsScrollArea);
 
       connect(reconParamsController, &ReconParamsController::paramsUpdated,
               [this](uspam::recon::ReconParams2 params,
@@ -166,29 +213,31 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Annotation view dock
     {
-      auto *dock = new QDockWidget("Annotations", this);
-      this->addDockWidget(Qt::LeftDockWidgetArea, dock);
-      dock->toggleViewAction()->setShortcut({Qt::CTRL | Qt::SHIFT | Qt::Key_L});
-      m_viewMenu->addAction(dock->toggleViewAction());
+      dockAnnotations = new QDockWidget("Annotations", this);
+      this->addDockWidget(Qt::LeftDockWidgetArea, dockAnnotations);
+      dockAnnotations->toggleViewAction()->setShortcut(
+          {Qt::CTRL | Qt::SHIFT | Qt::Key_L});
+      m_viewMenu->addAction(dockAnnotations->toggleViewAction());
 
       // Tabify annotation view and ReconParamsController
-      this->tabifyDockWidget(reconParamsDock, dock);
+      this->tabifyDockWidget(dockReconParams, dockAnnotations);
 
-      dock->setWidget(m_coregDisplay->annotationView());
+      dockAnnotations->setWidget(m_coregDisplay->annotationView());
     }
 
     // By default the last added tabified widget (Annotations) is activated.
     // Manually activate reconParamsDock
-    reconParamsDock->raise();
+    dockReconParams->raise();
   }
 
   {
-    auto *dock = new QDockWidget("AScan Plot", this);
-    this->addDockWidget(Qt::RightDockWidgetArea, dock);
-    dock->toggleViewAction()->setShortcut({Qt::CTRL | Qt::SHIFT | Qt::Key_A});
-    m_viewMenu->addAction(dock->toggleViewAction());
+    dockAScanPlot = new QDockWidget("AScan Plot", this);
+    this->addDockWidget(Qt::RightDockWidgetArea, dockAScanPlot);
+    dockAScanPlot->toggleViewAction()->setShortcut(
+        {Qt::CTRL | Qt::SHIFT | Qt::Key_A});
+    m_viewMenu->addAction(dockAScanPlot->toggleViewAction());
 
-    dock->setWidget(m_AScanPlot);
+    dockAScanPlot->setWidget(m_AScanPlot);
   }
 
   auto *fullscreenAction = new QAction("Full Screen");
@@ -228,6 +277,8 @@ MainWindow::MainWindow(QWidget *parent)
   connect(actAbout, &QAction::triggered, this,
           [this] { arpam_about::showAboutDialog(this); });
   m_fileMenu->addAction(actAbout);
+
+  actViewExpert->trigger();
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
