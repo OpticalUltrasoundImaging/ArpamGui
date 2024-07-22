@@ -47,7 +47,7 @@ public:
   // System parameters from early 2024
   static inline IOParams system2024v1() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{2650, 87, -100, -100, 1};
+    return IOParams{2650, 87, -100, -200, 1};
   }
 
   // Serialize to JSON
