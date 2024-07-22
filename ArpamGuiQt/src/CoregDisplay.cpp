@@ -16,11 +16,10 @@
 #include <uspam/defer.h>
 #include <utility>
 
-CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
+CoregDisplay::CoregDisplay(QWidget *parent)
     : QWidget(parent),
 
       m_canvasPAUS(new Canvas(this)), m_canvasUS(new Canvas(this)),
-      m_AScanPlot(ascanPlot),
 
       m_model(new annotation::AnnotationModel),
       m_annoView(new annotation::AnnotationView),
@@ -37,8 +36,7 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
 
       m_viewMenu(new QMenu("Frame Display")),
       actResetZoom(new QAction("Reset Zoom")),
-      actShowUSCanvas(new QAction("Show US")),
-      actShowAScanPlot(new QAction("Show AScan"))
+      actShowUSCanvas(new QAction("Show US"))
 
 {
   // Connect annotation model to canvas
@@ -107,14 +105,9 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
   m_viewMenu->addAction(actResetZoom);
 
   actShowUSCanvas->setCheckable(true);
-  connect(actShowUSCanvas, &QAction::triggered,
+  connect(actShowUSCanvas, &QAction::toggled,
           [this](bool checked) { m_canvasUS->setVisible(checked); });
   m_viewMenu->addAction(actShowUSCanvas);
-
-  actShowAScanPlot->setCheckable(true);
-  connect(actShowAScanPlot, &QAction::triggered,
-          [this](bool checked) { m_AScanPlot->setVisible(checked); });
-  m_viewMenu->addAction(actShowAScanPlot);
 
   /*
    * Setup UI
@@ -167,7 +160,6 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
     }
     m_cursorToolbar->addAction(actResetZoom);
     m_cursorToolbar->addAction(actShowUSCanvas);
-    m_cursorToolbar->addAction(actShowAScanPlot);
   }
 
   // Image Canvas
@@ -184,14 +176,11 @@ CoregDisplay::CoregDisplay(AScanPlot *ascanPlot, QWidget *parent)
       canvas->setDisabled(true);
       connect(canvas, &Canvas::mouseMoved, this, &CoregDisplay::mouseMoved);
     }
-
-    // hlayout->addWidget(m_AScanPlot);
   }
 
   // By default don't show the US canvas and show AScan
   actShowUSCanvas->setChecked(false);
   m_canvasUS->hide();
-  actShowAScanPlot->setChecked(true);
 }
 
 void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,
