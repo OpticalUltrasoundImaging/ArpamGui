@@ -95,6 +95,7 @@ find_package(GTest CONFIG REQUIRED)
 add_executable(test_libuspam
     test/test_io.cpp
     test/test_signal.cpp
+    test/test_reconParams.cpp
     test/test_recon.cpp
     test/test_imutil.cpp
     test/test_SAFT.cpp
