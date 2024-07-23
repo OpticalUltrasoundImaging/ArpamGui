@@ -360,7 +360,8 @@ void DataProcWorker::processCurrentFrame() {
   emit frameIdxChanged(m_frameIdx);
 
   // Save to file
-  {
+  constexpr bool SAVE_IMAGES = false;
+  if constexpr (SAVE_IMAGES) {
     const uspam::TimeIt timeit;
 
     // USradial_img.save(
