@@ -60,7 +60,7 @@ auto dbfft(const std::span<const Tin> y, const Tin fs) {
   // std::copy(y.begin(), y.end(), engine.real.begin());
 
   // Use hamming window
-  const auto win = uspam::signal::create_hamming_window(N);
+  const auto win = uspam::signal::create_hamming_window<Tin>(N);
   for (int i = 0; i < N; i++) {
     engine.real[i] = y[i] * win[i];
   }

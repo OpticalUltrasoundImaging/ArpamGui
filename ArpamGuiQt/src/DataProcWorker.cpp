@@ -193,11 +193,11 @@ auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
     const auto kernel = [&] {
       constexpr int numtaps = 95;
       if constexpr (std::is_same_v<T, double>) {
-        return uspam::signal::firwin2(numtaps, params.filterFreq,
-                                      params.filterGain);
+        return uspam::signal::firwin2<double>(numtaps, params.filterFreq,
+                                              params.filterGain);
       } else {
-        const auto _kernel = uspam::signal::firwin2(numtaps, params.filterFreq,
-                                                    params.filterGain);
+        const auto _kernel = uspam::signal::firwin2<double>(
+            numtaps, params.filterFreq, params.filterGain);
         const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
         return kernel;
       }
