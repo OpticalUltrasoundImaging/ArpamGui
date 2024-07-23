@@ -62,7 +62,7 @@
       "displayName": "Clang (with vec report)",
       "description": "Ninja Multi-Config + Clang (with autovectorizer report)",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
+        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
       }
     },
     {
