@@ -261,7 +261,8 @@ void hilbert_abs_r2c(const std::span<const T> x, const std::span<T> env) {
     for (auto i = 0; i < n; ++i) {
       const T real = x[i];
       const T imag = engine.real[i] * fct;
-      env[i] = std::abs(std::complex<T>{real, imag});
+      // env[i] = std::abs(std::complex<T>{real, imag});
+      env[i] = std::sqrt(real * real + imag * imag); // Clang can vectorize this
     }
     // NOLINTEND(*-pointer-arithmetic)
   }
