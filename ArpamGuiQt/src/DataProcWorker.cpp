@@ -66,11 +66,13 @@ void DataProcWorker::setBinfile(const fs::path &binfile) {
   m_binfilePath = binfile;
   m_imageSaveDir = m_binfilePath.parent_path() / m_binfilePath.stem();
 
-  if (!fs::create_directory(m_imageSaveDir) && !fs::exists(m_imageSaveDir)) {
-    emit error(tr("Failed to create imageSaveDir ") +
-               path2QString(m_imageSaveDir));
-  } else {
-    emit error(tr("Saving images to ") + path2QString(m_imageSaveDir));
+  if constexpr (SAVE_IMAGES) {
+    if (!fs::create_directory(m_imageSaveDir) && !fs::exists(m_imageSaveDir)) {
+      emit error(tr("Failed to create imageSaveDir ") +
+                 path2QString(m_imageSaveDir));
+    } else {
+      emit error(tr("Saving images to ") + path2QString(m_imageSaveDir));
+    }
   }
 
   try {
@@ -360,7 +362,6 @@ void DataProcWorker::processCurrentFrame() {
   emit frameIdxChanged(m_frameIdx);
 
   // Save to file
-  constexpr bool SAVE_IMAGES = false;
   if constexpr (SAVE_IMAGES) {
     const uspam::TimeIt timeit;
 
@@ -388,8 +389,6 @@ void DataProcWorker::processCurrentFrame() {
     fname = path2QString(m_imageSaveDir / std::string(_buf));
     pool->start(new ImageWriteTask(m_data->PAUSradial_img, fname));
     // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
-
-    perfMetrics.writeImages_ms = timeit.get_ms();
   }
 
   const auto elapsed = timeit.get_ms();
