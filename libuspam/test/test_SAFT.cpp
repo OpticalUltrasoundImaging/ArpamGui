@@ -1,7 +1,6 @@
+#include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/beamformer/SAFT.hpp"
-#include "uspam/signal.hpp"
 #include <armadillo>
-#include <cmath>
 #include <gtest/gtest.h>
 #include <numbers>
 
@@ -40,8 +39,13 @@ TEST(SaftApply, Correct) {
       beamformer::computeSaftTimeDelay(saftParams, 769, 2450);
 
   const arma::mat rf(2500, 1000, arma::fill::randn);
-  const auto [rf_saft, rf_saft_cf] =
-      beamformer::apply_saft<double, double>(timeDelay, rf);
+  const auto rf_saft =
+      beamformer::apply_saft<double, double, beamformer::BeamformerType::SAFT>(
+          timeDelay, rf);
+  const auto rf_saft_cf =
+      beamformer::apply_saft<double, double,
+                             beamformer::BeamformerType::SAFT_CF>(timeDelay,
+                                                                  rf);
   // rf_saft_cf.save("rf_saft_cf.bin", arma::raw_binary);
   // TODO write tests
 }

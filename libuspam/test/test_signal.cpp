@@ -6,6 +6,8 @@
 
 // NOLINTBEGIN(*-numbers,*-constant-array-index,*-global-variables,*-goto)
 
+namespace signal = uspam::signal; // NOLINT(*-using-namespace)
+
 TEST(InterpTest, NormalOperation) {
   std::array x{0.5, 1.5, 2.5};
   std::array xp{0., 1., 2., 3.};
@@ -13,7 +15,7 @@ TEST(InterpTest, NormalOperation) {
   std::array expected{0.5, 2.5, 6.5};
   std::array result{0., 0., 0.};
 
-  uspam::signal::interp(x, xp, fp, result);
+  signal::interp<double>(x, xp, fp, result);
   for (int i = 0; i < x.size(); ++i) {
     EXPECT_NEAR(result[i], expected[i], 1e-6);
   }
@@ -26,7 +28,7 @@ TEST(InterpTest, AtSamplePoints) {
   std::array expected{1., 4.}; // Exactly at sample points
   std::array result{0., 0.};
 
-  uspam::signal::interp(x, xp, fp, result);
+  signal::interp<double>(x, xp, fp, result);
 
   for (int i = 0; i < x.size(); ++i) {
     EXPECT_NEAR(result[i], expected[i], 1e-5);
@@ -40,7 +42,7 @@ TEST(InterpTest, OutOfBounds) {
 
   std::array expected{0., 9.}; // Clamp to the nearest value
   std::array result{0., 0.};
-  uspam::signal::interp(x, xp, fp, result);
+  signal::interp<double>(x, xp, fp, result);
 
   EXPECT_NEAR(result[0], expected[0], 1e-5);
   EXPECT_NEAR(result[1], expected[1], 1e-5);
@@ -52,7 +54,8 @@ TEST(InterpTest, ErrorConditions) {
   std::array fp{1.};
   std::array result{0., 0., 0.};
 
-  EXPECT_THROW(uspam::signal::interp(x, xp, fp, result), std::invalid_argument);
+  EXPECT_THROW(signal::interp<double>(x, xp, fp, result),
+               std::invalid_argument);
 }
 
 TEST(InterpTest, MismatchedXpFpSizes) {
@@ -61,7 +64,8 @@ TEST(InterpTest, MismatchedXpFpSizes) {
   std::array fp{0., 1.};
   std::array result{0., 0., 0.};
 
-  EXPECT_THROW(uspam::signal::interp(x, xp, fp, result), std::invalid_argument);
+  EXPECT_THROW(signal::interp<double>(x, xp, fp, result),
+               std::invalid_argument);
 }
 
 TEST(Firwin2Test, ReturnsCorrectNumberOfTaps) {
@@ -69,7 +73,7 @@ TEST(Firwin2Test, ReturnsCorrectNumberOfTaps) {
   const arma::vec freq({0.0, 1.0});
   const arma::vec gain({0.0, 1.0});
 
-  const auto result = uspam::signal::firwin2(numtaps, freq, gain);
+  const auto result = signal::firwin2<double>(numtaps, freq, gain);
   EXPECT_EQ(result.size(), numtaps);
 }
 
@@ -78,7 +82,7 @@ TEST(Firwin2Test, HandlesInvalidNumtaps) {
   const arma::vec freq({0.0, 1.0});
   const arma::vec gain({0.0, 1.0});
 
-  EXPECT_THROW(uspam::signal::firwin2(numtaps, freq, gain),
+  EXPECT_THROW(signal::firwin2<double>(numtaps, freq, gain),
                std::invalid_argument);
 }
 
@@ -87,13 +91,13 @@ TEST(Firwin2Test, HandlesFreqGainDifferentSize) {
   {
     const arma::vec freq({0.0, 0.1, 0.3, 1.0});
     const arma::vec gain({0.0, 1.0, 0.0});
-    EXPECT_THROW(uspam::signal::firwin2(numtaps, freq, gain),
+    EXPECT_THROW(signal::firwin2<double>(numtaps, freq, gain),
                  std::invalid_argument);
   }
   {
     const arma::vec freq({0.0, 0.1, 1.0});
     const arma::vec gain({0.0, 1.0, 1.0, 0.0});
-    EXPECT_THROW(uspam::signal::firwin2(numtaps, freq, gain),
+    EXPECT_THROW(signal::firwin2<double>(numtaps, freq, gain),
                  std::invalid_argument);
   }
 }
@@ -102,7 +106,7 @@ TEST(Firwin2Test, ValidatesFreqStartsAtZero) {
   const int numtaps = 5; // Invalid number of taps
   const arma::vec freq({0.1, 0.1, 0.3, 1.0});
   const arma::vec gain({0.0, 1.0, 1.0, 0.0});
-  EXPECT_THROW(uspam::signal::firwin2(numtaps, freq, gain),
+  EXPECT_THROW(signal::firwin2<double>(numtaps, freq, gain),
                std::invalid_argument);
 }
 
@@ -132,7 +136,7 @@ TEST(Firwin2Test, NormalOperation) {
          -2.91158967e-04, -2.32192842e-04, -2.33823175e-04, -1.67573816e-04,
          -1.55718185e-04});
 
-    const auto kernel = uspam::signal::firwin2(numtaps, freq, gain);
+    const auto kernel = signal::firwin2<double>(numtaps, freq, gain);
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
     }
@@ -178,7 +182,7 @@ TEST(Firwin2Test, NormalOperation) {
          -4.17179901e-07, 1.26129140e-06,  -7.29156588e-06, -6.51672129e-06,
          -1.04440356e-05});
 
-    const auto kernel = uspam::signal::firwin2(numtaps, freq, gain);
+    const auto kernel = signal::firwin2<double>(numtaps, freq, gain);
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
     }
@@ -192,7 +196,7 @@ TEST(Firwin2Test, NormalOperation) {
                               0.1605826, 0.59486607, 0.1605826, -0.06874682,
                               -0.01969895, -0.0108505, -0.00303209});
 
-    const auto kernel = uspam::signal::firwin2(numtaps, freq, gain);
+    const auto kernel = signal::firwin2<double>(numtaps, freq, gain);
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
     }
@@ -207,7 +211,7 @@ TEST(Firwin2Test, NormalOperation) {
                               0.16802909, -0.08332539, -0.03180531, -0.02829048,
                               -0.00959635, -0.00519774, -0.0023648});
 
-    const auto kernel = uspam::signal::firwin2(numtaps, freq, gain);
+    const auto kernel = signal::firwin2<double>(numtaps, freq, gain);
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
     }
@@ -241,7 +245,7 @@ TEST(Firwin2Test, NormalOperationWithFs) {
          -1.73201223e-04, -1.54020301e-04, -1.92241910e-04, -1.69269278e-04,
          -1.90497517e-04});
 
-    const auto kernel = uspam::signal::firwin2(numtaps, freq, gain, 0, fs);
+    const auto kernel = signal::firwin2<double>(numtaps, freq, gain, 0, fs);
 
     for (int i = 0; i < kernel.size(); ++i) {
       EXPECT_NEAR(kernel[i], expected[i], 1e-8);
@@ -282,7 +286,7 @@ TEST(HilbertTest, CorrectEven1) {
   // }
 
   {
-    const arma::vec env2 = uspam::signal::hilbert_abs<double>(input);
+    const arma::vec env2 = signal::hilbert_abs<double>(input);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -290,7 +294,7 @@ TEST(HilbertTest, CorrectEven1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs<double>(input, env2);
+    signal::hilbert_abs<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -298,7 +302,7 @@ TEST(HilbertTest, CorrectEven1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs_r2c<double>(input, env2);
+    signal::hilbert_abs_r2c<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -342,7 +346,7 @@ TEST(HilbertTest, CorrectEven2) {
   // }
 
   {
-    const arma::vec env2 = uspam::signal::hilbert_abs<double>(input);
+    const arma::vec env2 = signal::hilbert_abs<double>(input);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -350,7 +354,7 @@ TEST(HilbertTest, CorrectEven2) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs<double>(input, env2);
+    signal::hilbert_abs<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -358,7 +362,7 @@ TEST(HilbertTest, CorrectEven2) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs_r2c<double>(input, env2);
+    signal::hilbert_abs_r2c<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -402,7 +406,7 @@ TEST(HilbertTest, CorrectOdd1) {
   // }
 
   {
-    const arma::vec env2 = uspam::signal::hilbert_abs<double>(input);
+    const arma::vec env2 = signal::hilbert_abs<double>(input);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -410,7 +414,7 @@ TEST(HilbertTest, CorrectOdd1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs<double>(input, env2);
+    signal::hilbert_abs<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
@@ -418,7 +422,7 @@ TEST(HilbertTest, CorrectOdd1) {
 
   {
     arma::vec env2(input.size(), arma::fill::none);
-    uspam::signal::hilbert_abs_r2c<double>(input, env2);
+    signal::hilbert_abs_r2c<double>(input, env2);
     for (int i = 0; i < env2.size(); ++i) {
       EXPECT_NEAR(env2[i], expected[i], 1.5e-8);
     }
