@@ -142,8 +142,8 @@ auto firwin2(int numtaps, const std::span<const T> freq,
   auto &fft_engine = fft::engine_c2r_1d<T>::get(real_size);
   // NOLINTBEGIN(*-pointer-arithmetic)
   for (int i = 0; i < nfreqs; ++i) {
-    fft_engine.complex[i][0] = fx(i).real();
-    fft_engine.complex[i][1] = fx(i).imag();
+    fft_engine.complex[i][0] = fx.at(i).real();
+    fft_engine.complex[i][1] = fx.at(i).imag();
   }
   // NOLINTEND(*-pointer-arithmetic)
   fft_engine.execute();
