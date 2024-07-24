@@ -28,7 +28,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2",
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2",
         "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2"
       }
     },
@@ -51,16 +51,6 @@
       "inherits": ["ninja", "win64-cl-base"],
       "displayName": "CL",
       "description": "Ninja Multi-Config + x64 MSVC"
-    },
-    {
-      "name": "cl-vec-report",
-      "inherits": "cl",
-      "displayName": "CL (with vec report)",
-      "description": "Ninja Multi-Config + x64 MSVC (with autovectorizer report)",
-      "cacheVariables": {
-        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2",
-        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2"
-      }
     },
     {
       "name": "clang",
@@ -168,12 +158,6 @@
       "name": "cl-release",
       "displayName": "CL Release",
       "configurePreset": "cl",
-      "configuration": "Release"
-    },
-    {
-      "name": "cl-vec-report-release",
-      "displayName": "CL Release",
-      "configurePreset": "cl-vec-report",
       "configuration": "Release"
     }
   ],
