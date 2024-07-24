@@ -29,7 +29,7 @@
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
         "CMAKE_C_FLAGS": "/EHsc /arch:AVX2",
-        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2"
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2"
       }
     },
     {
@@ -47,25 +47,6 @@
       "generator": "Ninja Multi-Config"
     },
     {
-      "name": "clang",
-      "inherits": "ninja",
-      "displayName": "Clang",
-      "description": "Ninja Multi-Config + Clang",
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++"
-      }
-    },
-    {
-      "name": "clang-vec-report",
-      "inherits": "clang",
-      "displayName": "Clang (with vec report)",
-      "description": "Ninja Multi-Config + Clang (with autovectorizer report)",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
-      }
-    },
-    {
       "name": "cl",
       "inherits": ["ninja", "win64-cl-base"],
       "displayName": "CL",
@@ -77,7 +58,30 @@
       "displayName": "CL (with vec report)",
       "description": "Ninja Multi-Config + x64 MSVC (with autovectorizer report)",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/Qvec-report:2"
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2"
+      }
+    },
+    {
+      "name": "clang",
+      "inherits": "ninja",
+      "displayName": "Clang",
+      "description": "Ninja Multi-Config + Clang",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
+      }
+    },
+    {
+      "name": "clang-x64",
+      "inherits": "ninja",
+      "displayName": "Clang (x64)",
+      "description": "Ninja Multi-Config + Clang (with Haswell instructions)",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-march=haswell -fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
       }
     }
   ],
@@ -137,10 +141,16 @@
       "configuration": "Release"
     },
     {
-      "name": "clang-vec-report-release",
+      "name": "clang-x64-release",
       "displayName": "Clang Release",
-      "configurePreset": "clang-vec-report",
+      "configurePreset": "clang-x64",
       "configuration": "Release"
+    },
+    {
+      "name": "clang-x64-relwithdebinfo",
+      "displayName": "Clang RelWithDebInfo",
+      "configurePreset": "clang-x64",
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "cl-debug",
@@ -158,6 +168,12 @@
       "name": "cl-release",
       "displayName": "CL Release",
       "configurePreset": "cl",
+      "configuration": "Release"
+    },
+    {
+      "name": "cl-vec-report-release",
+      "displayName": "CL Release",
+      "configurePreset": "cl-vec-report",
       "configuration": "Release"
     }
   ],
