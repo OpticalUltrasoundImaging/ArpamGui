@@ -1,26 +1,74 @@
 #pragma once
 
 #include <armadillo>
+#include <cmath>
+#include <numbers>
 #include <span>
+#include <stdexcept>
 #include <uspam/fft.hpp>
 
 namespace uspam::signal {
 
-void create_hamming_window(std::span<double> window);
+template <Floating T> void create_hamming_window(const std::span<T> window) {
+  const auto numtaps = window.size();
+  const auto N = static_cast<T>(numtaps - 1);
 
-// Helper function to create a Hamming window
-[[nodiscard]] auto create_hamming_window(int numtaps) -> arma::vec;
+  // Hamming alpha = 0.54 or 25/46
+  constexpr T ALPHA = 0.54;
+
+  for (int i = 0; i < numtaps; ++i) {
+    window[i] =
+        ALPHA - (1 - ALPHA) * std::cos(2 * std::numbers::pi_v<T> * i / N);
+  }
+}
+
+template <Floating T>
+[[nodiscard]] auto create_hamming_window(const int numtaps) -> arma::Col<T> {
+  arma::Col<T> window(numtaps);
+  create_hamming_window<T>(window);
+  return window;
+}
 
 // 1D linear interpolation for monotonically increasing sample points
 // Conditions: xp must be increasing
-void interp(std::span<const double> x, std::span<const double> xp,
-            std::span<const double> fp, std::span<double> fx);
+template <Floating T>
+void interp(std::span<const T> x, std::span<const T> xp, std::span<const T> fp,
+            std::span<T> fx) {
+  if (xp.size() != fp.size() || xp.size() < 2) {
+    throw std::invalid_argument(
+        "xp and fp must have the same size and at least two elements");
+  }
+
+  for (int i = 0; i < x.size(); ++i) {
+    // Simple linear interpolation (replace )
+    const auto lower =
+        std::lower_bound(xp.begin(), xp.end(), x[i]) - xp.begin();
+    if (lower == 0) {
+      fx[i] = fp[0];
+    } else if (lower >= xp.size()) {
+      fx[i] = fp[fp.size() - 1];
+    } else {
+      const auto denom = (xp[lower] - xp[lower - 1]);
+      if (denom == 0) {
+        fx[i] = fp[lower - 1];
+      } else {
+        const auto t = (x[i] - xp[lower - 1]) / denom;
+        fx[i] = fp[lower - 1] + t * (fp[lower] - fp[lower - 1]);
+      }
+    }
+  }
+}
 
 // 1D linear interpolation for monotonically increasing sample points
 // Conditions: xp must be increasing
-[[nodiscard]] auto interp(const arma::vec &x, const arma::vec &xp,
-                          const arma::vec &fp);
 
+template <Floating T>
+[[nodiscard]] auto interp(const arma::Col<T> &x, const arma::Col<T> &xp,
+                          const arma::Col<T> &fp) {
+  arma::Col<T> fx(x.size());
+  interp(x, xp, fp, fx);
+  return fx;
+}
 /**
 @brief FIR filter design using the window method.
 
@@ -49,9 +97,67 @@ be between 0 and ``fs/2``. Default is 2.
 @return Eigen::ArrayXd The filter coefficients of the FIR filter, as a 1-D array
 of length numtaps
 */
-auto firwin2(int numtaps, std::span<const double> freq,
-             std::span<const double> gain, int nfreqs = 0, double fs = 2)
-    -> arma::vec;
+template <Floating T>
+auto firwin2(int numtaps, const std::span<const T> freq,
+             const std::span<const T> gain, int nfreqs = 0, T fs = 2)
+    -> arma::Col<T> {
+  if (numtaps < 3 || numtaps % 2 == 0) {
+    throw std::invalid_argument(
+        "numtaps must be odd and greater or equal to 3.");
+  }
+
+  if (freq.size() != gain.size()) {
+    throw std::invalid_argument("freq and gain must have the same size.\n");
+  }
+  if (freq[0] != 0) {
+    throw std::invalid_argument("freq[0] must be 0\n");
+  }
+
+  const T nyq = 0.5 * fs;
+  if (nfreqs == 0) {
+    nfreqs = 1 + static_cast<int>(std::pow(2, std::ceil(std::log2(numtaps))));
+  }
+
+  using CxVec = arma::Col<std::complex<T>>;
+
+  // Linearly interpolate the desired response on a uniform mesh `x`
+  const arma::Col<T> x = arma::linspace<arma::vec>(0, nyq, nfreqs);
+  CxVec fx;
+  {
+    arma::Col<T> _fx(x.size(), arma::fill::none);
+    interp<T>(x, freq, gain, _fx);
+    fx = arma::conv_to<CxVec>::from(_fx);
+  }
+
+  // Adjust phase of the coefficients so that the first `ntaps` of the
+  // inverse FFT are the desired filter coefficients
+  CxVec shift =
+      arma::exp(-static_cast<T>(numtaps - 1) / 2 * std::complex<T>(0, 1) *
+                std::numbers::pi_v<T> * x / nyq);
+  fx %= shift;
+
+  // Compute the inverse fft
+  const int real_size = (static_cast<int>(fx.size()) - 1) * 2;
+
+  auto &fft_engine = fft::engine_c2r_1d<T>::get(real_size);
+  // NOLINTBEGIN(*-pointer-arithmetic)
+  for (int i = 0; i < nfreqs; ++i) {
+    fft_engine.complex[i][0] = fx.at(i).real();
+    fft_engine.complex[i][1] = fx.at(i).imag();
+  }
+  // NOLINTEND(*-pointer-arithmetic)
+  fft_engine.execute();
+
+  // Keep only the first `numtaps` coefficients (and normalize since FFTW
+  // doesn't) and apply the Hamming window
+  arma::Col<T> out = create_hamming_window<T>(numtaps);
+  const auto fct = static_cast<T>(1. / real_size);
+  for (int i = 0; i < numtaps; ++i) {
+    out[i] *= fft_engine.real[i] * fct; // NOLINT
+  }
+
+  return out;
+}
 
 /**
 @brief Compute the analytic signal, using the Hilbert transform.
@@ -155,7 +261,8 @@ void hilbert_abs_r2c(const std::span<const T> x, const std::span<T> env) {
     for (auto i = 0; i < n; ++i) {
       const T real = x[i];
       const T imag = engine.real[i] * fct;
-      env[i] = std::abs(std::complex<T>{real, imag});
+      // env[i] = std::abs(std::complex<T>{real, imag});
+      env[i] = std::sqrt(real * real + imag * imag); // Clang can vectorize this
     }
     // NOLINTEND(*-pointer-arithmetic)
   }

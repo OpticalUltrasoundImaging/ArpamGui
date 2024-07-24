@@ -1,10 +1,11 @@
 #pragma once
 
+#include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/beamformer/common.hpp"
 #include <armadillo>
 #include <cmath>
 #include <numbers>
-#include <tuple>
+#include <opencv2/opencv.hpp>
 #include <uspam/fft.hpp>
 #include <uspam/signal.hpp>
 
@@ -62,12 +63,16 @@ template <Floating FloatType>
   // By default start = (half focal distance), end = (1.5x focal distance)
   constexpr auto pi = std::numbers::pi_v<FloatType>;
 
+  // where SAFT should start (as a fraction of focal length)
+  constexpr FloatType SAFT_START = 0.25;
+  constexpr FloatType SAFT_END = 1.5;
+
   if (zStart < 0) {
-    zStart = static_cast<int>(std::round((p.f * 0.25) / p.dr()));
+    zStart = static_cast<int>(std::round((p.f * SAFT_START) / p.dr()));
   }
 
   if (zEnd < 0) {
-    zEnd = static_cast<int>(std::round((p.f * 1.5) / p.dr()));
+    zEnd = static_cast<int>(std::round((p.f * SAFT_END) / p.dr()));
   }
 
   const int max_saft_lines = 15;
@@ -81,9 +86,9 @@ template <Floating FloatType>
     // relative position to the transducer center dr2 and ang2
     const auto ang1 = j * p.da;
 
-    for (int i = zStart; i < zEnd; ++i) {
-      const auto dr1 = i * p.dr();
-      const auto r = p.rt + i * p.dr();
+    for (int i = 0; i < zEnd - zStart; ++i) {
+      const auto dr1 = (i + zStart) * p.dr();
+      const auto r = p.rt + (i + zStart) * p.dr();
 
       const auto dr2 =
           std::sqrt(r * r + p.rt * p.rt - 2 * r * p.rt * std::cos(ang1));
@@ -106,11 +111,11 @@ template <Floating FloatType>
           std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
 
       if (dr3 <= p.f && ang3 <= p.angle()) {
-        timeDelay.at(i - zStart, j) = (abs(p.f - dr1) - dr3) / p.dr();
-        nLines.at(i - zStart) += 1;
+        timeDelay.at(i, j) = (abs(p.f - dr1) - dr3) / p.dr();
+        nLines.at(i) += 1;
       } else if ((pi - ang3) <= p.angle()) {
-        timeDelay.at(i - zStart, j) = (dr3 - abs(p.f - dr1)) / p.dr();
-        nLines.at(i - zStart) += 1;
+        timeDelay.at(i, j) = (dr3 - abs(p.f - dr1)) / p.dr();
+        nLines.at(i) += 1;
       }
     }
   }
@@ -118,7 +123,7 @@ template <Floating FloatType>
   return TimeDelay<FloatType>{timeDelay, nLines, zStart, zEnd};
 }
 
-template <typename RfType, Floating FloatType>
+template <typename RfType, Floating FloatType, BeamformerType BfType>
 auto apply_saft(const TimeDelay<FloatType> &timeDelay,
                 const arma::Mat<RfType> &rf) {
   const int nScans = rf.n_cols;
@@ -128,63 +133,65 @@ auto apply_saft(const TimeDelay<FloatType> &timeDelay,
   arma::Mat<uint8_t> n_saft(rf.n_rows, rf.n_cols, arma::fill::ones);
   arma::Mat<FloatType> CF_denom = arma::square(rf);
 
-  for (int j = 0; j < nScans; ++j) {
-    for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
-      for (int dj_saft = 0;
-           dj_saft < timeDelay.saftLines.at(iz - timeDelay.zStart); ++dj_saft) {
+  cv::parallel_for_(
+      cv::Range(timeDelay.zStart, timeDelay.zEnd), [&](const cv::Range range) {
+        for (int j = 0; j < nScans; ++j) {
+          for (int iz = range.start; iz < range.end; ++iz) {
+            // for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
 
-        const int iz_delayed = static_cast<int>(std::round(
-            iz + timeDelay.timeDelay.at(iz - timeDelay.zStart, dj_saft)));
+            const auto NLines = timeDelay.saftLines.at(iz - timeDelay.zStart);
 
-        if (iz_delayed >= nPts) {
-          continue;
+            for (int dj_saft = 0; dj_saft < NLines; ++dj_saft) {
+              const auto dt =
+                  timeDelay.timeDelay.at(iz - timeDelay.zStart, dj_saft);
+              const int iz_delayed = static_cast<int>(std::round(iz + dt));
+
+              if (iz_delayed >= nPts) {
+                continue;
+              }
+
+              const auto val = rf.at(iz_delayed, j);
+              const auto valSq = val * val;
+
+              {
+                const auto j_saft = (j - dj_saft + nScans) % nScans;
+                rf_saft.at(iz, j_saft) += val;
+                CF_denom.at(iz, j_saft) += valSq;
+                n_saft.at(iz, j_saft) += 1;
+              }
+
+              {
+                const auto j_saft = (j + dj_saft + nScans) % nScans;
+                rf_saft.at(iz, j_saft) += val;
+                CF_denom.at(iz, j_saft) += valSq;
+                n_saft.at(iz, j_saft) += 1;
+              }
+            }
+          }
         }
-
-        const auto val = rf.at(iz_delayed, j);
-
-        {
-          const auto j_saft = (j - dj_saft + nScans) % nScans;
-          rf_saft.at(iz, j_saft) += val;
-          CF_denom.at(iz, j_saft) += val * val;
-          n_saft.at(iz, j_saft) += 1;
-        }
-
-        {
-          const auto j_saft = (j + dj_saft + nScans) % nScans;
-          rf_saft.at(iz, j_saft) += val;
-          CF_denom.at(iz, j_saft) += val * val;
-          n_saft.at(iz, j_saft) += 1;
-        }
-      }
-    }
-  }
+      });
 
   // CF = PA_saft ** 2 / (CF_denom * n_saft)
-  arma::Mat<FloatType> CF(rf_saft.n_rows, rf_saft.n_cols, arma::fill::zeros);
-
   // rf_saft_cf = rf_saft * CF / n_saft
-  arma::Mat<FloatType> rf_saft_cf(rf_saft.n_rows, rf_saft.n_cols,
-                                  arma::fill::zeros);
 
   for (int col = 0; col < rf_saft.n_cols; ++col) {
     for (int row = 0; row < rf_saft.n_rows; ++row) {
-      const auto nom = rf_saft.at(row, col) * rf_saft.at(row, col);
-      const auto denom = CF_denom.at(row, col) * n_saft.at(row, col);
+      const auto rf_saft_ = rf_saft.at(row, col);
+      const auto n_saft_ = n_saft.at(row, col);
 
-      if (denom != 0) {
-        CF.at(row, col) = nom / denom;
-      } else {
-        CF.at(row, col) = 1;
+      if constexpr (BfType == BeamformerType::SAFT) {
+        rf_saft.at(row, col) = rf_saft_ / n_saft_;
+      } else { // BfType == BeamformerType::SAFT_CF
+        const auto nom = rf_saft_ * rf_saft_;
+        const auto denom = CF_denom.at(row, col) * n_saft_;
+
+        const auto CF_ = denom != 0 ? nom / denom : 1;
+        rf_saft.at(row, col) = rf_saft_ * CF_ / n_saft_;
       }
-
-      rf_saft_cf.at(row, col) =
-          rf_saft.at(row, col) * CF.at(row, col) / n_saft.at(row, col);
     }
   }
 
-  rf_saft = rf_saft / n_saft;
-
-  return std::tuple(rf_saft, rf_saft_cf);
+  return rf_saft;
 }
 
 } // namespace uspam::beamformer

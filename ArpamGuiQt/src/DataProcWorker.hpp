@@ -27,8 +27,6 @@ struct PerformanceMetrics {
 
   float makeOverlay_ms{};
 
-  float writeImages_ms{};
-
   // Template function to handle the common formatting
   template <typename Stream>
   friend Stream &operator<<(Stream &stream, const PerformanceMetrics &pm) {
@@ -37,8 +35,7 @@ struct PerformanceMetrics {
            << static_cast<int>(pm.beamform_ms) << ", recon "
            << static_cast<int>(pm.recon_ms) << ", imageConversion "
            << static_cast<int>(pm.imageConversion_ms) << ", makeOverlay "
-           << static_cast<int>(pm.makeOverlay_ms) << ", writeImages "
-           << static_cast<int>(pm.writeImages_ms);
+           << static_cast<int>(pm.makeOverlay_ms);
     return stream;
   }
 };
@@ -166,4 +163,6 @@ private:
 
   uspam::recon::ReconParams2 m_params;
   uspam::io::IOParams m_ioparams;
+
+  static constexpr bool SAVE_IMAGES{false};
 };
