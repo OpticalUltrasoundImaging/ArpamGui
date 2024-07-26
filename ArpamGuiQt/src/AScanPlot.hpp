@@ -93,6 +93,7 @@ private:
   int m_AScanPlotIdx{};        // Corrected for flip and rotation
 
   PlotType m_type{PlotType::RFRaw};
+  PlotType m_lastType{PlotType::Size};
 
   // Freq plot
   FreqSpectrum *m_freqSpectrum;

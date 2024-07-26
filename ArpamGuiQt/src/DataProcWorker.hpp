@@ -134,7 +134,6 @@ public slots:
 
 signals:
   void maxFramesChanged(int);
-  void frameIdxChanged(int);
 
   // pix2m is the depth [m] of each radial pixel
   void resultReady(std::shared_ptr<BScanData<FloatType>>);

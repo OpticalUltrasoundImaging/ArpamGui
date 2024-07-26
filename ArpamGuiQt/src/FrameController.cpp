@@ -44,16 +44,6 @@ FrameController::FrameController(ReconParamsController *paramsController,
   connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
           &FrameController::openFileSelectDialog);
 
-  // Result ready
-  connect(worker, &DataProcWorker::resultReady, this,
-          [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
-            m_AScanPlot->setData(data);
-            m_AScanPlot->plotCurrentAScan();
-
-            m_data = std::move(data);
-            plotCurrentBScan();
-          });
-
   // UI
   auto *vlayout = new QVBoxLayout;
   this->setLayout(vlayout);
@@ -160,10 +150,19 @@ FrameController::FrameController(ReconParamsController *paramsController,
               m_coregDisplay->setMaxIdx(maxIdx);
             });
 
-    connect(m_worker, &DataProcWorker::frameIdxChanged, this, [this](int idx) {
-      this->setFrameNum(idx);
-      m_coregDisplay->setIdx(idx);
-    });
+    // Result ready
+    connect(worker, &DataProcWorker::resultReady, this,
+            [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
+              m_AScanPlot->setData(data);
+              m_AScanPlot->plotCurrentAScan();
+
+              m_data = std::move(data);
+              plotCurrentBScan();
+
+              const auto idx = m_data->frameIdx;
+              this->setFrameNum(idx);
+              m_coregDisplay->setIdx(idx);
+            });
 
     connect(worker, &DataProcWorker::finishedPlaying, this,
             [this] { this->updatePlayingState(false); });

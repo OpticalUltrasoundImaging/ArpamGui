@@ -159,9 +159,6 @@ MainWindow::MainWindow(QWidget *parent)
     dockFrameController = new QDockWidget("Frame Controller", this);
     // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
-    resizeDocks({dockFrameController},
-                {dockFrameController->sizeHint().height()},
-                Qt::Orientation::Vertical);
 
     // dockLayout->addWidget(m_frameController);
     dockFrameController->setWidget(m_frameController);
@@ -254,11 +251,7 @@ MainWindow::MainWindow(QWidget *parent)
   fullscreenAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_F));
   fullscreenAction->setCheckable(true);
   connect(fullscreenAction, &QAction::triggered, [this](bool checked) {
-    if (checked) {
-      this->setWindowState(Qt::WindowFullScreen);
-    } else {
-      this->setWindowState(Qt::WindowMaximized);
-    }
+    this->setWindowState(checked ? Qt::WindowFullScreen : Qt::WindowMaximized);
   });
   m_viewMenu->addAction(fullscreenAction);
 

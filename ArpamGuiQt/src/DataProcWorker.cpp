@@ -58,7 +58,6 @@ QImage cvMatToQImage(const cv::Mat &mat) {
 void DataProcWorker::initDataBuffers() {
   QMutexLocker lock(&m_paramsMutex);
   m_data = std::make_shared<BScanData<FloatType>>();
-
   m_data->frameIdx = m_frameIdx;
 }
 
@@ -100,9 +99,8 @@ void DataProcWorker::setBinfile(const fs::path &binfile) {
 void DataProcWorker::play() {
   m_isPlaying = true;
 
-  while (m_isPlaying && m_frameIdx < m_loader.size()) {
-    playOne(m_frameIdx);
-    m_frameIdx++;
+  while (m_isPlaying && m_frameIdx + 1 < m_loader.size()) {
+    playOne(++m_frameIdx);
   }
 
   if (m_isPlaying) {
@@ -359,7 +357,6 @@ void DataProcWorker::processCurrentFrame() {
 
   // Send images to GUI thread
   emit resultReady(m_data);
-  emit frameIdxChanged(m_frameIdx);
 
   // Save to file
   if constexpr (SAVE_IMAGES) {
