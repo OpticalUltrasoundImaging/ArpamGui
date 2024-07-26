@@ -161,9 +161,6 @@ private:
 
   double m_pix2m{}; // [m] Factor converting pixel (in m_pixmap) to meters
 
-  // State of ticks
-  CanvasTicks m_ticks;
-
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::SelectAScan};
