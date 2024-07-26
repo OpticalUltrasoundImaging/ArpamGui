@@ -24,7 +24,7 @@ public:
     double xMax{0};
 
     double xScaler{1.0};
-    QString xUnit{}; // If xUnit is not empty, use xScaler
+    QString xUnit; // If xUnit is not empty, use xScaler
   };
 
   explicit CustomPlot(QWidget *parent = nullptr);
@@ -58,6 +58,9 @@ public:
   [[nodiscard]] auto actResetZoom() const { return m_actResetZoom; }
   [[nodiscard]] auto actShowFWHM() const { return m_actShowFWHM; }
   [[nodiscard]] auto actShowLegend() const { return m_actShowLegend; }
+
+public slots:
+  void resetZoom();
 
 private:
   // Makes sure m_x is properly generated
