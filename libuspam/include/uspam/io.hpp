@@ -2,7 +2,6 @@
 
 #include "uspam/ioParams.hpp"
 #include <algorithm>
-#include <armadillo>
 #include <bit>
 #include <cassert>
 #include <fstream>
@@ -41,8 +40,8 @@ void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
 // Function to convert matrix using OpenCV's cv::parallel_for_
 // With scaline by alpha and beta like cv::Mat::convertTo
 template <typename Tin, typename Tout>
-void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
-                       const Tout alpha = 1, const Tout beta = 0) {
+void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
+                      const Tout alpha, const Tout beta) {
   output.set_size(input.n_rows, input.n_cols);
   cv::parallel_for_(cv::Range(0, input.n_cols), [&](const cv::Range &range) {
     for (int col = range.start; col < range.end; ++col) {
@@ -163,7 +162,7 @@ public:
         constexpr T alpha =
             static_cast<T>(1) / static_cast<T>(1 << 15); // 1 / (2**15)
         constexpr T beta = -1;
-        parallel_convert_<TypeInBin, T>(readBuffer, rf, alpha, beta);
+        parallel_convert<TypeInBin, T>(readBuffer, rf, alpha, beta);
 
         return true;
       }

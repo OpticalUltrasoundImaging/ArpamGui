@@ -11,6 +11,10 @@
     "fftconv",
     "tbb",
     {
+      "name": "highway",
+      "features": ["contrib"]
+    },
+    {
       "name": "opencv4",
       "features": ["contrib", "dnn", "png", "vulkan", "tbb", "png", "world"]
     },

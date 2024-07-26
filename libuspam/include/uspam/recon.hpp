@@ -5,10 +5,12 @@
 #include "uspam/ioParams.hpp"
 #include "uspam/reconParams.hpp"
 #include "uspam/signal.hpp"
+#include "uspam/simd/simd.h"
 #include <algorithm>
 #include <armadillo>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <opencv2/opencv.hpp>
 #include <rapidjson/document.h>
 #include <type_traits>
@@ -70,13 +72,23 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
   // Apply log compression with clipping in a single pass
   cv::parallel_for_(cv::Range(0, x.n_cols), [&](const cv::Range &range) {
     for (int j = range.start; j < range.end; ++j) {
-      for (int i = 0; i < x.n_rows; ++i) {
-        const auto val = x(i, j);
-        const auto compressedVal =
-            logCompress(val, noiseFloor, desiredDynamicRangeDB) *
-            logCompressFct<T, Tout>();
 
-        xLog(i, j) = static_cast<Tout>(compressedVal);
+      if constexpr (std::is_same_v<Tout, uint8_t>) {
+        auto *xptr = x.colptr(j);
+        auto *xLogPtr = xLog.colptr(j);
+
+        hwy::HWY_NAMESPACE::logCompress<T>(xptr, xLogPtr, x.n_rows, noiseFloor,
+                                           desiredDynamicRangeDB);
+
+      } else {
+        for (int i = 0; i < x.n_rows; ++i) {
+          const auto val = x(i, j);
+          const auto compressedVal =
+              logCompress(val, noiseFloor, desiredDynamicRangeDB) *
+              logCompressFct<T, Tout>();
+
+          xLog(i, j) = static_cast<Tout>(compressedVal);
+        }
       }
     }
     //}(cv::Range(0, x.n_cols));
