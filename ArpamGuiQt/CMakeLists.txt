@@ -141,6 +141,29 @@ set_target_properties(${EXE_NAME} PROPERTIES
     # INTERPROCEDURAL_OPTIMIZATION TRUE
 )
 
+
+### Configure AlazarTech ATS-SDK on supported platforms
+if (WIN32)
+
+    # Check if ATS-SDK is installed
+    set(ATS_C_SDK_ROOT "C:/AlazarTech/ATS-SDK/7.7.0/Samples_C")
+    set(ATS_SDK_INCLUDE_DIR "${ATS_C_SDK_ROOT}/Include")
+    set(ATS_SDK_LIB "${ATS_C_SDK_ROOT}/Library/x64/ATSApi.lib")
+
+    if (EXISTS ${ATS_SDK_LIB})
+        message(STATUS "Found ATS-SDK at ${ATS_C_SDK_ROOT}. ArpamGuiQt will build with AlazarTech DAQ support.")
+
+        target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_ALAZARTECH)
+        target_include_directories(${EXE_NAME} PRIVATE ${ATS_SDK_INCLUDE_DIR})
+        target_link_libraries(${EXE_NAME} PRIVATE ${ATS_SDK_LIB})
+    else()
+        message(WARNING "ATS-SDK not found at ${ATS_C_SDK_ROOT}. Please check your ATS-SDK installation.")
+    endif()
+
+endif()
+
+
+### Run Qt deploy script
 if (WIN32)
     add_compile_definitions(_USE_MATH_DEFINES)
 
