@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
+#include "AcquisitionController.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
 #include "FrameController.hpp"
@@ -181,6 +182,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_frameController, &FrameController::statusMessage, statusBar(),
             &QStatusBar::showMessage);
+  }
+
+  // Acquisition controller dock
+  {
+    auto *dockFrameController = new QDockWidget("Acquisition Controller", this);
+    this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
+
+    auto *acquisitionController = new AcquisitionController;
+    dockFrameController->setWidget(acquisitionController);
   }
 
   // Tabify ReconParamsController dock and Annotations dock on the left

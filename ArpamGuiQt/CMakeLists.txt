@@ -96,6 +96,8 @@ qt_add_executable(${EXE_NAME}
     src/ReconWorker.hpp
     src/DAQ/DAQ.hpp
     src/DAQ/DAQ.cpp
+    src/AcquisitionController.hpp
+    src/AcquisitionController.cpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
