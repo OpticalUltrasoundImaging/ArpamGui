@@ -5,7 +5,9 @@ This module implements a data acquisition interface
 */
 #pragma once
 #include <QObject>
+#include <QString>
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <string>
 
@@ -30,16 +32,23 @@ public:
 
   bool initHardware();
   bool isInitialized();
-  void cleanupHardware();
-
-  bool startAcquisition();
-  void stopAcquisition();
+  bool isAcquiring() { return acquiringData; };
 
   void getBScan();
 
+signals:
+  void messageBox(QString);
+  void acquisitionStarted();
+  void acquisitionStopped();
+
+public slots:
+  bool startAcquisition();
+  void stopAcquisition();
+
 private:
-  void allocateBuffers();
-  void deallocateBuffers();
+  // Control states
+  std::atomic<bool> shouldStopAcquiring{false};
+  std::atomic<bool> acquiringData{false};
 
   // Alazar board handle
   void *board{};
@@ -50,11 +59,8 @@ private:
   double samplesPerSec = 0.0;
 
   // File pointer
-  bool saveData{false};
+  bool saveData{true};
   FILE *fpData{};
-
-  // control conditions
-  bool shouldStopAcquiring{false};
 };
 
 } // namespace daq

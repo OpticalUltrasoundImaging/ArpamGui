@@ -336,6 +336,7 @@ void MainWindow::logError(QString message) {
   textEdit->appendPlainText(message);
 }
 
+<<<<<<< HEAD
 void MainWindow::messageBox(const QString &title, const QString &message) {
   QMessageBox::information(this, title, message);
 };
@@ -360,3 +361,13 @@ void MainWindow::closeEvent(QCloseEvent *event) {
   producerThreadFile.wait();
   workerThread.wait();
 }
+=======
+MainWindow::~MainWindow() {
+  // Stop the worker thread
+  if (workerThread.isRunning()) {
+    this->worker->pause();
+    workerThread.quit();
+    workerThread.wait();
+  }
+};
+>>>>>>> 9cc1b94 (alazar control/communication works)
