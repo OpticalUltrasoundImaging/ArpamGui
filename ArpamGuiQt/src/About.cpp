@@ -23,7 +23,7 @@ auto aboutString() -> QString {
 #ifdef ARPAM_HAS_ALAZARTECH
   ss << daq::getDAQInfo();
 #else
-  ss << "No Alazar support.\n"
+  ss << "No Alazar support.\n";
 #endif
   ss << "-- AlazarTech\n\n";
 
