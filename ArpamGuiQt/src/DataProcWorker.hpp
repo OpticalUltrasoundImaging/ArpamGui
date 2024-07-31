@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common.hpp"
+#include "RFBuffer.hpp"
 #include <QImage>
 #include <QMutex>
 #include <QMutexLocker>
@@ -40,42 +42,6 @@ struct PerformanceMetrics {
   }
 };
 
-template <uspam::Floating T> struct BScanData_ {
-  arma::Mat<T> rf;
-  arma::Mat<T> rfFilt;
-  arma::Mat<T> rfBeamformed;
-  arma::Mat<T> rfEnv;
-  arma::Mat<uint8_t> rfLog;
-
-  // Images
-  cv::Mat radial;
-  QImage radial_img;
-};
-
-/**
- * Contains all the data for one BScan
- * From RF to Image
- *
- * For initialization, only PAUSpair need to be explicitly allocated since
- * `rf` will be overwritten, and cv::Mat and QImage have default constructors
- */
-template <uspam::Floating T> struct BScanData {
-  // RF data
-  arma::Mat<T> rf;
-
-  BScanData_<T> PA;
-  BScanData_<T> US;
-
-  cv::Mat PAUSradial; // CV_8U3C
-  QImage PAUSradial_img;
-
-  // depth [m] of one radial pixel
-  double fct{};
-
-  // Frame idx
-  int frameIdx{};
-};
-
 /**
  * Data processing worker that will be launched in a QThread
  */
@@ -83,8 +49,6 @@ class DataProcWorker : public QObject {
   Q_OBJECT
 
 public:
-  using FloatType = float;
-
   DataProcWorker()
       : m_params(uspam::recon::ReconParams2::system2024v1()),
         m_ioparams(uspam::io::IOParams::system2024v1()) {}
@@ -136,7 +100,7 @@ signals:
   void maxFramesChanged(int);
 
   // pix2m is the depth [m] of each radial pixel
-  void resultReady(std::shared_ptr<BScanData<FloatType>>);
+  void resultReady(std::shared_ptr<BScanData<ArpamFloat>>);
 
   void finishedPlaying();
   void error(QString err);
@@ -154,7 +118,7 @@ private:
   fs::path m_imageSaveDir;
 
   // Buffers;
-  std::shared_ptr<BScanData<FloatType>> m_data;
+  std::shared_ptr<BScanData<ArpamFloat>> m_data;
 
   // mutex for ReconParams2 and IOParams
   QMutex m_paramsMutex;

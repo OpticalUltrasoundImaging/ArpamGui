@@ -158,7 +158,7 @@ public:
       // NOLINTNEXTLINE(*-reinterpret-cast)
       if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
 
-        // Convert from uint16_t to FloatType, also scale from uint16_t space to
+        // Convert from uint16_t to Float, also scale from uint16_t space to
         // voltage [-1, 1]
         constexpr T alpha =
             static_cast<T>(1) / static_cast<T>(1 << 15); // 1 / (2**15)

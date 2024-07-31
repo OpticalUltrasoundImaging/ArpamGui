@@ -57,7 +57,7 @@ QImage cvMatToQImage(const cv::Mat &mat) {
 
 void DataProcWorker::initDataBuffers() {
   QMutexLocker lock(&m_paramsMutex);
-  m_data = std::make_shared<BScanData<FloatType>>();
+  m_data = std::make_shared<BScanData<ArpamFloat>>();
   m_data->frameIdx = m_frameIdx;
 }
 
@@ -260,13 +260,13 @@ void DataProcWorker::processCurrentFrame() {
   // Read next RF scan from file
   {
     const uspam::TimeIt timeit;
-    m_data->rf = m_loader.get<FloatType>(m_frameIdx);
+    m_data->rf = m_loader.get<ArpamFloat>(m_frameIdx);
     perfMetrics.fileloader_ms = timeit.get_ms();
   }
 
   const auto [paramsPA, paramsUS] = [&] {
     // Estimate background from current RF
-    const arma::Col<FloatType> background_aline = arma::mean(m_data->rf, 1);
+    const arma::Col<ArpamFloat> background_aline = arma::mean(m_data->rf, 1);
 
     // this->params and this->ioparams are used in this block
     // lock with paramsMutex
@@ -286,10 +286,10 @@ void DataProcWorker::processCurrentFrame() {
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
-    auto a1 = std::async(std::launch::async, procOne<FloatType>,
+    auto a1 = std::async(std::launch::async, procOne<ArpamFloat>,
                          std::ref(paramsPA), std::ref(m_data->PA), flip);
 
-    auto a2 = std::async(std::launch::async, procOne<FloatType>,
+    auto a2 = std::async(std::launch::async, procOne<ArpamFloat>,
                          std::ref(paramsUS), std::ref(m_data->US), flip);
 
     {
@@ -310,7 +310,7 @@ void DataProcWorker::processCurrentFrame() {
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne<FloatType>(paramsPA, m_data->PA, flip);
+          procOne<ArpamFloat>(paramsPA, m_data->PA, flip);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -318,7 +318,7 @@ void DataProcWorker::processCurrentFrame() {
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne<FloatType>(paramsUS, m_data->US, flip);
+          procOne<ArpamFloat>(paramsUS, m_data->US, flip);
       perfMetrics.beamform_ms += beamform_ms;
       perfMetrics.recon_ms += recon_ms;
       perfMetrics.imageConversion_ms += imageConversion_ms;

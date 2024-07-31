@@ -101,6 +101,8 @@ target_sources(${EXE_NAME} PRIVATE
     src/geometryUtils.hpp
     src/jsonUtils.cpp
     src/jsonUtils.hpp
+    src/RFProducerFile.hpp
+    src/RFProducerFile.cpp
 )
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"

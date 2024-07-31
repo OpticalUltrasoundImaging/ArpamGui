@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AScanPlot.hpp"
+#include "Common.hpp"
 #include "CoregDisplay.hpp"
 #include "DataProcWorker.hpp"
 #include "ReconParamsController.hpp"
@@ -13,6 +14,7 @@
 #include <QString>
 #include <memory>
 #include <rapidjson/document.h>
+
 
 class FrameController : public QWidget {
   Q_OBJECT
@@ -85,7 +87,7 @@ private:
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here
-  std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
+  std::shared_ptr<BScanData<ArpamFloat>> m_data;
 
   // Annotation JSON document
   annotation::AnnotationJsonFile m_doc;

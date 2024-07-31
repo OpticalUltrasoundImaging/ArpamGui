@@ -1,5 +1,6 @@
 #include "FrameController.hpp"
 #include "AScanPlot.hpp"
+#include "Common.hpp"
 #include "CoregDisplay.hpp"
 #include "strConvUtils.hpp"
 #include <QDebug>
@@ -22,6 +23,7 @@
 #include <rapidjson/rapidjson.h>
 #include <string>
 #include <uspam/json.hpp>
+
 
 FrameController::FrameController(ReconParamsController *paramsController,
                                  DataProcWorker *worker, AScanPlot *ascanPlot,
@@ -152,7 +154,7 @@ FrameController::FrameController(ReconParamsController *paramsController,
 
     // Result ready
     connect(worker, &DataProcWorker::resultReady, this,
-            [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
+            [this](std::shared_ptr<BScanData<ArpamFloat>> data) {
               m_AScanPlot->setData(data);
               m_AScanPlot->plotCurrentAScan();
 
