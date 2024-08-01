@@ -94,6 +94,8 @@ qt_add_executable(${EXE_NAME}
     src/RFProducerFile.hpp
     src/RFProducerFile.cpp
     src/ReconWorker.hpp
+    src/DAQ/DAQ.hpp
+    src/DAQ/DAQ.cpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
@@ -121,11 +123,13 @@ target_include_directories(${EXE_NAME} PRIVATE
     ${QCUSTOMPLOT_INCLUDE_DIR}
 )
 
+find_package(fmt CONFIG REQUIRED)
 find_package(FFTW3 CONFIG REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
 
 target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
+    fmt::fmt
     Qt::Widgets
     Qt::Gui
     Qt::PrintSupport

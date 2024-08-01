@@ -4,11 +4,13 @@ This module implements a data acquisition interface
 
 */
 #pragma once
+#include <string>
 
 #ifdef ARPAM_HAS_ALAZARTECH
 
-class DAQ {
+namespace daq {
+    std::string getDAQInfo();
+}
 
-};
 
 #endif 

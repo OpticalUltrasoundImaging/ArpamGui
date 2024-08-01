@@ -1,4 +1,5 @@
 #include "About.hpp"
+#include "DAQ/DAQ.hpp"
 #include <QMessageBox>
 #include <armadillo>
 #include <fftw3.h>
@@ -13,12 +14,20 @@ namespace arpam_about {
 auto aboutString() -> QString {
   std::stringstream ss;
 
-  ss << "ArpamGuiQt\n\n";
+  ss << "ArpamGuiQt. ";
+  ss << "(Build with " << ARPAM_COMPILER_NAME << " version "
+     << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE "-"
+     << ARPAM_COMPILE_TIME << ")\n\n";
 
-  ss << "Build with " << ARPAM_COMPILER_NAME << " version "
-     << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE " at "
-     << ARPAM_COMPILE_TIME << "\n";
+  ss << "-- AlazarTech\n";
+#ifdef ARPAM_HAS_ALAZARTECH
+  ss << daq::getDAQInfo();
+#else
+  ss << "No Alazar support.\n"
+#endif
+  ss << "-- AlazarTech\n\n";
 
+  ss << "-- Dependencies\n";
   ss << "Qt: " << QT_VERSION_STR << "\n";
   ss << "QCustomPlot: " << QCUSTOMPLOT_VERSION_STR << "\n";
 
@@ -28,7 +37,7 @@ auto aboutString() -> QString {
   ss << "OpenCV: " << cv::getVersionString() << "\n";
 
 #if defined(_WIN32) || defined(_WIN64)
-// Temp fix for Windows 
+// Temp fix for Windows
 // https://github.com/microsoft/vcpkg/issues/39719
 #else
   // NOLINTNEXTLINE(*-pointer-decay)
@@ -38,6 +47,7 @@ auto aboutString() -> QString {
   ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 
   ss << "oneTBB: " << TBB_VERSION_STRING << "\n";
+  ss << "-- Dependencies\n";
 
   return QString::fromStdString(ss.str());
 }
