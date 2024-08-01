@@ -25,10 +25,9 @@ void RFProducerFile::beginProducing() {
   assert(m_loader.isOpen());
 
   m_producing = true;
-  m_loader.setIdx(m_loader.idx() + 1);
-  while (m_producing && m_loader.hasMoreScans()) {
-    reproduceOne();
+  while (m_producing && m_loader.idx() + 1 < m_loader.size()) {
     m_loader.setIdx(m_loader.idx() + 1);
+    reproduceOne();
   }
   m_producing = false;
 
