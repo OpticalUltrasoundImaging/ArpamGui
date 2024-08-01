@@ -2,13 +2,18 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <qnamespace.h>
-#include <qobjectdefs.h>
+#include <Qt>
 
-AcquisitionController::AcquisitionController() : m_daq(new daq::DAQ) {
+AcquisitionController::AcquisitionController(
+    const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
+    : m_buffer(buffer), m_daq(new daq::DAQ(buffer)),
+
+      m_btnInitBoard(new QPushButton("Initialize Alazar Board")),
+      m_btnStartStopAcquisition(new QPushButton("Start"))
+
+{
 
   {
-
     m_daq->moveToThread(&m_daqThread);
 
     connect(&m_daqThread, &QThread::finished, m_daq, &QObject::deleteLater);
@@ -27,17 +32,18 @@ AcquisitionController::AcquisitionController() : m_daq(new daq::DAQ) {
   auto *layout = new QVBoxLayout;
   this->setLayout(layout);
 
+  // Initialize Alazar board button
   {
-    auto *btn = new QPushButton("Init Alazar board");
-    layout->addWidget(btn);
-    connect(btn, &QPushButton::pressed, m_daq, &daq::DAQ::initHardware);
+    layout->addWidget(m_btnInitBoard);
+    connect(m_btnInitBoard, &QPushButton::pressed, m_daq,
+            &daq::DAQ::initHardware);
   }
 
+  // Acquisition start/stop button
   {
-    auto *btn = new QPushButton("Start");
-    layout->addWidget(btn);
-    connect(btn, &QPushButton::pressed, this, [this, btn]() {
-      btn->setDisabled(true);
+    layout->addWidget(m_btnStartStopAcquisition);
+    connect(m_btnStartStopAcquisition, &QPushButton::pressed, this, [this]() {
+      m_btnStartStopAcquisition->setDisabled(true);
       if (m_daq->isAcquiring()) {
         m_daq->stopAcquisition();
       } else {
@@ -45,14 +51,14 @@ AcquisitionController::AcquisitionController() : m_daq(new daq::DAQ) {
       }
     });
 
-    connect(m_daq, &daq::DAQ::acquisitionStarted, this, [this, btn]() {
-      btn->setEnabled(true);
-      btn->setText("Stop");
+    connect(m_daq, &daq::DAQ::acquisitionStarted, this, [this]() {
+      m_btnStartStopAcquisition->setEnabled(true);
+      m_btnStartStopAcquisition->setText("Stop");
     });
 
-    connect(m_daq, &daq::DAQ::acquisitionStopped, this, [this, btn]() {
-      btn->setEnabled(true);
-      btn->setText("Start");
+    connect(m_daq, &daq::DAQ::acquisitionStopped, this, [this]() {
+      m_btnStartStopAcquisition->setEnabled(true);
+      m_btnStartStopAcquisition->setText("Start");
     });
   }
 };

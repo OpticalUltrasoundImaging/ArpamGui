@@ -1,4 +1,5 @@
 #include "Recon.hpp"
+#include "uspam/ioParams.hpp"
 
 #include <future>
 
@@ -41,17 +42,31 @@ QImage cvMatToQImage(const cv::Mat &mat) {
 }
 
 void reconBScan(BScanData<ArpamFloat> &data,
-                const uspam::recon::ReconParams2 &params) {
+                const uspam::recon::ReconParams2 &params,
+                const uspam::io::IOParams &ioparams) {
   auto &perfMetrics = data.metrics;
   uspam::TimeIt timeit;
 
   /*
   Here, data has defined
-
     data.rf
-    data.PA.rf
-    data.US.rf
+  */
 
+  /*
+  Split and background
+  */
+  // Estimate background from current RF
+  const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
+
+  // Split RF into PA and US scan lines
+  {
+    const uspam::TimeIt timeit;
+    ioparams.splitRfPAUS_sub(data.rf, background_aline, data.PA.rf, data.US.rf);
+    perfMetrics.split_ms = timeit.get_ms();
+  }
+
+  /*
+  Recon
   */
   const auto &paramsPA = params.PA;
   const auto &paramsUS = params.US;

@@ -145,11 +145,8 @@ MainWindow::MainWindow(QWidget *parent)
    */
 
   m_viewMenu->addMenu(m_coregDisplay->viewMenu());
-
   m_viewMenu->addSeparator();
-
   m_viewMenu->addMenu(m_coregDisplay->cursorMenu());
-
   m_viewMenu->addSeparator();
 
   // Log dock widget
@@ -189,7 +186,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto *dockFrameController = new QDockWidget("Acquisition Controller", this);
     this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
 
-    auto *acquisitionController = new AcquisitionController;
+    auto *acquisitionController = new AcquisitionController(buffer);
     dockFrameController->setWidget(acquisitionController);
   }
 
@@ -225,7 +222,7 @@ MainWindow::MainWindow(QWidget *parent)
                      uspam::io::IOParams ioparams) {
                 // Update params
                 rfProducerFile->setIOParams(ioparams);
-                reconWorker->reconstructor().setParams(std::move(params));
+                reconWorker->reconstructor().setParams(params, ioparams);
 
                 // Only invoke "replayOne" if not currently worker is not
                 // playing

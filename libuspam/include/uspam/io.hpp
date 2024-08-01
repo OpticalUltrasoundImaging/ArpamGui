@@ -42,17 +42,74 @@ void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
 template <typename Tin, typename Tout>
 void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
                        const Tout alpha = 1, const Tout beta = 0) {
+  const int rows = input.n_rows;
+  const int cols = input.n_cols;
   output.set_size(input.n_rows, input.n_cols);
-  cv::parallel_for_(cv::Range(0, input.n_cols), [&](const cv::Range &range) {
+  cv::parallel_for_(cv::Range(0, cols), [&](const cv::Range &range) {
     for (int col = range.start; col < range.end; ++col) {
       const auto *inptr = input.colptr(col);
       auto *outptr = output.colptr(col);
-      for (int i = 0; i < input.n_rows; ++i) {
+      for (int i = 0; i < rows; ++i) {
         // NOLINTNEXTLINE(*-pointer-arithmetic)
         outptr[i] = cv::saturate_cast<Tout>(inptr[i]) * alpha + beta;
       }
     }
   });
+}
+
+template <typename Tin, typename Tout>
+void copyRFWithScaling(Tin *bufIn, int sizeIn, arma::Mat<Tout> &rf,
+                       int alinesPerBScan, int samplesPerAScan = RF_ALINE_SIZE)
+  requires(std::is_floating_point_v<Tout>)
+{
+  assert(samplesPerAScan * alinesPerBScan == sizeIn);
+
+  if (rf.n_rows != samplesPerAScan || rf.n_cols != alinesPerBScan) {
+    rf.set_size(RF_ALINE_SIZE, alinesPerBScan);
+  }
+
+  if constexpr (std::is_same_v<Tin, Tout>) {
+    // type stored in bin is the same type as the buffer give. Use directly
+    // NOLINTNEXTLINE(*-reinterpret-cast)
+    std::copy(bufIn, bufIn + sizeIn, rf.memptr());
+
+  } else {
+    // Type stored in bin different from the given buffer.
+    // Construct temporary arma mat that shares memory with the input buffer
+    arma::Mat<Tin> inMat(bufIn, samplesPerAScan, alinesPerBScan, false, true);
+
+    // Convert from uint16_t to Float, also scale from uint16_t space to
+    // voltage [-1, 1]
+    constexpr Tout alpha =
+        static_cast<Tout>(1) / static_cast<Tout>(1 << 15); // 1 / (2**15)
+    constexpr Tout beta = -1;
+    parallel_convert_<Tin, Tout>(inMat, rf, alpha, beta);
+  }
+}
+
+template <typename Tin, typename Tout>
+void copyRFWithScaling(const arma::Mat<Tin> &bufIn, arma::Mat<Tout> &rf)
+  requires(std::is_floating_point_v<Tout>)
+{
+  if (rf.n_rows != bufIn.n_rows || rf.n_cols != bufIn.n_cols) {
+    rf.set_size(bufIn.n_rows, bufIn.n_cols);
+  }
+
+  if constexpr (std::is_same_v<Tin, Tout>) {
+    // type stored in bin is the same type as the buffer give
+    // Trivial copy
+    rf = bufIn;
+
+  } else {
+    // Type stored in bin different from the given buffer.
+
+    // Convert from uint16_t to Float, also scale from uint16_t space to
+    // voltage [-1, 1]
+    constexpr Tout alpha =
+        static_cast<Tout>(1) / static_cast<Tout>(1 << 15); // 1 / (2**15)
+    constexpr Tout beta = -1;
+    parallel_convert_<Tin, Tout>(bufIn, rf, alpha, beta);
+  }
 }
 
 template <typename TypeInBin> class BinfileLoader {
@@ -83,7 +140,7 @@ public:
     m_numScans = (fsize - this->m_byteOffset) / scanSizeBytes();
     m_file.seekg(this->m_byteOffset, std::ios::beg);
   }
-  bool isOpen() const { return m_file.is_open(); }
+  [[nodiscard]] bool isOpen() const { return m_file.is_open(); }
   void close() {
     m_file.close();
     m_numScans = 0;

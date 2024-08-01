@@ -1,15 +1,18 @@
 /*
-
 This module implements a data acquisition interface
-
 */
 #pragma once
+
+#include "Common.hpp"
+#include "RFBuffer.hpp"
 #include <QObject>
 #include <QString>
 #include <array>
 #include <atomic>
 #include <cstdio>
+#include <memory>
 #include <string>
+#include <utility>
 
 #ifdef ARPAM_HAS_ALAZARTECH
 
@@ -21,7 +24,8 @@ class DAQ : public QObject {
   Q_OBJECT
 
 public:
-  DAQ();
+  explicit DAQ(std::shared_ptr<RFBuffer<ArpamFloat>> buffer)
+      : m_buffer(std::move(buffer)) {}
 
   DAQ(const DAQ &) = delete;
   DAQ(DAQ &&) = delete;
@@ -31,8 +35,8 @@ public:
   ~DAQ();
 
   bool initHardware();
-  bool isInitialized();
-  bool isAcquiring() { return acquiringData; };
+  bool initialized() const { return board != nullptr; }
+  bool isAcquiring() const { return acquiringData; };
 
   void getBScan();
 
@@ -46,6 +50,9 @@ public slots:
   void stopAcquisition();
 
 private:
+  // Buffer
+  std::shared_ptr<RFBuffer<ArpamFloat>> m_buffer;
+
   // Control states
   std::atomic<bool> shouldStopAcquiring{false};
   std::atomic<bool> acquiringData{false};
@@ -54,7 +61,7 @@ private:
   void *board{};
 
   // Buffers
-  std::array<uint16_t *, 4> buffers;
+  std::array<uint16_t *, 4> buffers{};
 
   double samplesPerSec = 0.0;
 

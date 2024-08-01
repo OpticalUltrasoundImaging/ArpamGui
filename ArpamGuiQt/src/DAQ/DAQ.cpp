@@ -5,11 +5,14 @@
 #include "AlazarError.h"
 #include <QDebug>
 #include <QtLogging>
+#include <armadillo>
 #include <fmt/format.h>
 #include <qlogging.h>
 #include <sstream>
 #include <string>
 #include <uspam/defer.h>
+#include <uspam/io.hpp>
+#include <uspam/timeit.hpp>
 
 // NOLINTBEGIN(*-do-while)
 
@@ -348,8 +351,6 @@ std::string getDAQInfo() {
   return ss.str();
 }
 
-DAQ::DAQ() { initHardware(); }
-
 bool DAQ::initHardware() {
   /*
    * Initialize and configure board
@@ -438,7 +439,7 @@ bool DAQ::initHardware() {
 }
 
 bool DAQ::startAcquisition() {
-
+  shouldStopAcquiring = false;
   acquiringData = true;
   emit acquisitionStarted();
 
@@ -458,7 +459,7 @@ bool DAQ::startAcquisition() {
   U32 recordsPerBuffer = 1000;
 
   // Total number of buffers to capture
-  U32 buffersPerAcquisition = 2;
+  U32 buffersPerAcquisition = 10;
 
   // Channels to capture
   const U32 channelMask = CHANNEL_A;
@@ -578,6 +579,24 @@ bool DAQ::startAcquisition() {
 
         // TODO: Process sample data in this buffer.
 
+        m_buffer->produce(
+            [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
+              data->frameIdx = buffersCompleted;
+
+              // Construct temporary arma mat that shares memory with the input
+              // buffer
+              arma::Mat inMat(pBuffer, bytesPerBuffer, recordsPerBuffer, false,
+                              true);
+
+              // Copy RF from Alazar buffer to our buffer
+              {
+                const uspam::TimeIt timeit;
+                uspam::io::copyRFWithScaling(pBuffer, bytesPerBuffer, data->rf,
+                                             recordsPerBuffer);
+                data->metrics.load_ms = timeit.get_ms();
+              }
+            });
+
         // NOTE:
         //
         // While you are processing this buffer, the board is already filling
@@ -675,7 +694,6 @@ bool DAQ::startAcquisition() {
           bytesPerSec);
   }
 
-  // emit messageBox("DAQ: startAcquisition returning.");
   return true;
 }
 

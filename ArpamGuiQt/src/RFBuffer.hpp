@@ -72,6 +72,11 @@ template <uspam::Floating T> struct BScanData {
   PerformanceMetrics metrics;
 };
 
+/*
+Thread safe buffer for the producer/consumer pattern
+
+Inspired by https://andrew128.github.io/ProducerConsumer/
+*/
 template <uspam::Floating T> class RFBuffer {
 public:
   RFBuffer() {
