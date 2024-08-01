@@ -9,8 +9,6 @@
 #include <mutex>
 #include <uspam/uspam.hpp>
 
-constexpr int BUFFER_CAPACITY = 2;
-
 struct PerformanceMetrics {
   float total_ms{};
   float load_ms{};
@@ -145,10 +143,10 @@ public:
   }
 
 private:
-  std::array<std::shared_ptr<BScanData<T>>, BUFFER_CAPACITY> buffer{};
-  int buffer_size{};
-  int left{};  // index where vars are put inside of buffer (produced)
-  int right{}; // idx where vars are removed from buffer (consumed)
+  std::array<std::shared_ptr<BScanData<T>>, 3> buffer{};
+  int buffer_size{0};
+  int left{0};  // index where vars are put inside of buffer (produced)
+  int right{0}; // idx where vars are removed from buffer (consumed)
 
   // Concurrency
   std::mutex mtx;

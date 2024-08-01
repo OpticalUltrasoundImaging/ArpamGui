@@ -20,6 +20,7 @@
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <Qt>
+#include <QtLogging>
 #include <cassert>
 #include <filesystem>
 #include <memory>
@@ -171,6 +172,7 @@ FrameController::FrameController(
           const auto idx = m_data->frameIdx;
           this->setFrameNum(idx);
           m_coregDisplay->setIdx(idx);
+          // qDebug() << "FrameController received idx =" << idx;
 
           // Display metrics
           {

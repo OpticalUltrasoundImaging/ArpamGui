@@ -44,6 +44,7 @@ void RFProducerFile::reproduceOne() {
     auto &metrics = data->metrics;
 
     data->frameIdx = m_loader.idx();
+    // qDebug() << "RFProducerFile:: produced idx =" << data->frameIdx;
 
     // Read RF scan at idx from file
     {

@@ -3,7 +3,9 @@
 #include "Common.hpp"
 #include "RFBuffer.hpp"
 #include "Recon.hpp"
+#include <QDebug>
 #include <QObject>
+#include <QtLogging>
 #include <atomic>
 #include <utility>
 
@@ -27,6 +29,7 @@ public:
           m_shouldStop = true;
         } else {
           m_recontsructor.recon(*data);
+          // qDebug() << "ReconWorker: consumed idx =" << data->frameIdx;
           emit imagesReady(data);
         }
       });
