@@ -2,6 +2,8 @@
 #include "AScanPlot.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
+#include "ReconParamsController.hpp"
+#include "ReconWorker.hpp"
 #include "strConvUtils.hpp"
 #include <QDebug>
 #include <QFileDialog>
@@ -9,7 +11,6 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
-#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QSpinBox>
@@ -24,11 +25,17 @@
 #include <string>
 #include <uspam/json.hpp>
 
+FrameController::FrameController(
 
-FrameController::FrameController(ReconParamsController *paramsController,
-                                 DataProcWorker *worker, AScanPlot *ascanPlot,
-                                 CoregDisplay *coregDisplay, QWidget *parent)
-    : QWidget(parent), m_reconParams(paramsController), m_worker(worker),
+    RFProducerFile *rfProducerFile, ReconWorker *reconWorker,
+
+    ReconParamsController *paramsController, AScanPlot *ascanPlot,
+    CoregDisplay *coregDisplay, QWidget *parent)
+    : QWidget(parent),
+
+      m_producerFile(rfProducerFile), m_reconWorker(reconWorker),
+
+      m_reconParams(paramsController),
 
       m_coregDisplay(coregDisplay), m_AScanPlot(ascanPlot),
       m_btnPlayPause(new QPushButton("Play", this)),
@@ -69,7 +76,6 @@ FrameController::FrameController(ReconParamsController *paramsController,
       connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
         const auto val = m_frameSlider->value();
         QToolTip::showText(QCursor::pos(), QString::number(val));
-        // m_frameNumSpinBox->setValue(val);
       });
 
       connect(m_frameSlider, &QSlider::sliderReleased, this,
@@ -109,7 +115,6 @@ FrameController::FrameController(ReconParamsController *paramsController,
   // Connections
   // Frame controller signals
   {
-
     // Action for when a new binfile is selected
     connect(this, &FrameController::sigBinfileSelected,
             [this](const QString &filepath) {
@@ -117,8 +122,8 @@ FrameController::FrameController(ReconParamsController *paramsController,
               std::filesystem::path path(pathUtf8.constData());
 
               // Worker: load file
-              QMetaObject::invokeMethod(m_worker, &DataProcWorker::setBinfile,
-                                        path);
+              QMetaObject::invokeMethod(m_producerFile,
+                                        &RFProducerFile::setBinpath, path);
 
               // Update canvas dipslay
               {
@@ -130,30 +135,28 @@ FrameController::FrameController(ReconParamsController *paramsController,
 
     // When frameController's changes it's frame number (through the drag bar
     // or play), tell the worker to process the right image
-    connect(this, &FrameController::sigFrameNumUpdated, worker,
-            &DataProcWorker::playOne);
+    connect(this, &FrameController::sigFrameNumUpdated, rfProducerFile,
+            &RFProducerFile::produceOne);
 
     // Signal to start playing
     connect(this, &FrameController::sigPlay, this, [this] {
       // Invoke worker::play in the worker thread
-      QMetaObject::invokeMethod(m_worker, &DataProcWorker::play);
+      QMetaObject::invokeMethod(m_producerFile,
+                                &RFProducerFile::beginProducing);
       m_coregDisplay->resetZoomOnNextImshow();
     });
 
     // Signal to pause playing
-    connect(this, &FrameController::sigPause, this, [&] {
-      // worker::pause is thread safe
-      m_worker->pause();
-    });
+    connect(this, &FrameController::sigPause, this,
+            [&] { m_producerFile->stopProducing(); });
 
-    connect(m_worker, &DataProcWorker::maxFramesChanged, this,
-            [this](int maxIdx) {
-              this->setMaxFrameNum(maxIdx);
-              m_coregDisplay->setMaxIdx(maxIdx);
-            });
+    connect(m_producerFile, &RFProducerFile::maxFramesChanged, this,
+            &FrameController::setMaxFrameNum);
+    connect(m_producerFile, &RFProducerFile::maxFramesChanged, m_coregDisplay,
+            &CoregDisplay::setMaxIdx);
 
     // Result ready
-    connect(worker, &DataProcWorker::resultReady, this,
+    connect(m_reconWorker, &ReconWorker::imagesReady, this,
             [this](std::shared_ptr<BScanData<ArpamFloat>> data) {
               m_AScanPlot->setData(data);
               m_AScanPlot->plotCurrentAScan();
@@ -166,7 +169,7 @@ FrameController::FrameController(ReconParamsController *paramsController,
               m_coregDisplay->setIdx(idx);
             });
 
-    connect(worker, &DataProcWorker::finishedPlaying, this,
+    connect(m_producerFile, &RFProducerFile::finishedProducing, this,
             [this] { this->updatePlayingState(false); });
   }
 

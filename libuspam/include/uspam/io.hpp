@@ -7,7 +7,6 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
-#include <mutex>
 #include <opencv2/opencv.hpp>
 #include <rapidjson/document.h>
 #include <span>
@@ -57,16 +56,6 @@ void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
 }
 
 template <typename TypeInBin> class BinfileLoader {
-private:
-  std::ifstream file;
-  int byteOffset = 0;
-  int numScans = 0;
-  int alinesPerBscan = 0;
-  int currScanIdx = 0;
-  mutable std::mutex mtx;
-
-  arma::Mat<TypeInBin> readBuffer;
-
 public:
   BinfileLoader() = default;
   BinfileLoader(const IOParams &ioparams, const fs::path filename,
@@ -77,93 +66,90 @@ public:
 
   void setParams(const IOParams &ioparams,
                  int alinesPerBscan = NUM_ALINES_DETAULT) {
-    this->byteOffset = ioparams.byte_offset;
-    this->alinesPerBscan = alinesPerBscan;
+    this->m_byteOffset = ioparams.byte_offset;
+    this->m_alinesPerBscan = alinesPerBscan;
   }
 
   void open(const fs::path &filename) {
     // Open file and seek to end
-    file = std::ifstream(filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+    m_file = std::ifstream(filename, std::ios::binary | std::ios::ate);
+    if (!m_file.is_open()) {
       throw std::runtime_error(
           std::string("[BinfileLoader] Failed to open file ") +
           filename.generic_string());
     }
-    const std::streamsize fsize = file.tellg();
-    numScans = (fsize - this->byteOffset) / scanSizeBytes();
-    file.seekg(this->byteOffset, std::ios::beg);
+    m_scanIdx = 0;
+    const std::streamsize fsize = m_file.tellg();
+    m_numScans = (fsize - this->m_byteOffset) / scanSizeBytes();
+    m_file.seekg(this->m_byteOffset, std::ios::beg);
   }
-
-  void close() { file.close(); }
-  bool isOpen() const { return file.is_open(); }
+  bool isOpen() const { return m_file.is_open(); }
+  void close() {
+    m_file.close();
+    m_numScans = 0;
+    m_scanIdx = 0;
+  }
 
   // (bytes) Raw RF size of one PAUS scan
   auto scanSizeBytes() const {
-    return RF_ALINE_SIZE * alinesPerBscan * sizeof(TypeInBin);
+    return RF_ALINE_SIZE * m_alinesPerBscan * sizeof(TypeInBin);
   }
 
-  auto size() const { return isOpen() ? numScans : 0; }
+  auto size() const { return isOpen() ? m_numScans : 0; }
 
-  void setCurrIdx(int idx) {
-    if (!isOpen()) [[unlikely]] {
-      return;
-    }
+  auto alinesPerBscan() const { return m_alinesPerBscan; }
 
-    std::lock_guard lock(mtx);
-    assert(idx >= 0 && idx < numScans);
-    currScanIdx = idx;
+  auto idx() const { return m_scanIdx; }
+  inline void setIdx(int idx) {
+    assert(idx >= 0 && idx < m_numScans);
+    m_scanIdx = idx;
   }
 
-  bool hasMoreScans() const {
-    if (!isOpen()) [[unlikely]] {
-      return false;
-    }
+  bool hasMoreScans() const { return isOpen() && m_scanIdx < m_numScans; }
 
-    std::lock_guard lock(mtx);
-    return currScanIdx < numScans;
-  }
-
-  auto setCurrIndex(int idx) { currScanIdx = idx; }
+  /**
+  Getters
+  */
 
   template <typename T> bool get(arma::Mat<T> &rf) {
     if (!isOpen()) [[unlikely]] {
       return false;
     }
 
-    std::lock_guard lock(mtx);
-    assert(currScanIdx < numScans);
+    assert(m_scanIdx < m_numScans);
 
     const auto sizeBytes = scanSizeBytes();
-    const auto start_pos = this->byteOffset + sizeBytes * currScanIdx;
-    file.seekg(start_pos, std::ios::beg);
+    const auto start_pos = this->m_byteOffset + sizeBytes * m_scanIdx;
+    m_file.seekg(start_pos, std::ios::beg);
 
-    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != alinesPerBscan) {
-      rf.set_size(RF_ALINE_SIZE, alinesPerBscan);
+    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != m_alinesPerBscan) {
+      rf.set_size(RF_ALINE_SIZE, m_alinesPerBscan);
     }
 
     if constexpr (std::is_same_v<T, TypeInBin>) {
       // type stored in bin is the same type as the buffer give. Use directly
       // NOLINTNEXTLINE(*-reinterpret-cast)
-      return !file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
+      return !m_file.read(reinterpret_cast<char *>(rf.memptr()), sizeBytes);
 
     } else {
       // Type stored in bin different from the given buffer.
-      // Read into .readBuffer first then convert
-      if (readBuffer.n_rows != RF_ALINE_SIZE ||
-          readBuffer.n_cols != alinesPerBscan) {
-        readBuffer.resize(RF_ALINE_SIZE, alinesPerBscan);
+      // Read into readBuffer first then convert
+      if (m_readBuffer.n_rows != RF_ALINE_SIZE ||
+          m_readBuffer.n_cols != m_alinesPerBscan) {
+        m_readBuffer.resize(RF_ALINE_SIZE, m_alinesPerBscan);
       }
 
       // Read file
       // NOLINTNEXTLINE(*-reinterpret-cast)
-      if (file.read(reinterpret_cast<char *>(readBuffer.memptr()), sizeBytes)) {
+      if (m_file.read(reinterpret_cast<char *>(m_readBuffer.memptr()),
+                      sizeBytes)) {
 
         // Convert from uint16_t to Float, also scale from uint16_t space to
         // voltage [-1, 1]
         constexpr T alpha =
             static_cast<T>(1) / static_cast<T>(1 << 15); // 1 / (2**15)
         constexpr T beta = -1;
-        parallel_convert_<TypeInBin, T>(readBuffer, rf, alpha, beta);
+        parallel_convert_<TypeInBin, T>(m_readBuffer, rf, alpha, beta);
 
         return true;
       }
@@ -172,8 +158,8 @@ public:
   }
 
   template <typename T> inline bool get(arma::Mat<T> &rf, int idx) {
-    setCurrIdx(idx);
-    return get<T>(rf);
+    setIdx(idx);
+    return get(rf);
   }
 
   template <typename T> auto get() -> arma::Mat<T> {
@@ -183,22 +169,28 @@ public:
   }
 
   template <typename T> auto get(int idx) -> arma::Mat<T> {
-    setCurrIdx(idx);
+    setIdx(idx);
     return get<T>();
   }
 
-  auto getNext(arma::Mat<TypeInBin> &rfStorage) -> bool {
+  auto getNext(arma::Mat<TypeInBin> &rf) -> bool {
     if (!isOpen()) [[unlikely]] {
       return false;
     }
 
-    const auto ret = get(rfStorage);
-    std::lock_guard lock(mtx);
-    currScanIdx++;
+    const auto ret = get(rf);
+    m_scanIdx++;
     return ret;
   }
 
-  auto getAlinesPerBscan() const { return alinesPerBscan; }
+private:
+  std::ifstream m_file;
+  int m_byteOffset = 0;
+  int m_numScans = 0;
+  int m_alinesPerBscan = 0;
+  int m_scanIdx = 0;
+
+  arma::Mat<TypeInBin> m_readBuffer;
 };
 
 // T is the type of value stored in the binary file.

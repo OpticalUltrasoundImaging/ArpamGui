@@ -2,78 +2,53 @@
 
 #include "Common.hpp"
 #include "RFBuffer.hpp"
-#include <QDebug>
-#include <QtLogging>
+#include <QObject>
+#include <atomic>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <uspam/io.hpp>
 #include <uspam/ioParams.hpp>
-
-// Virtual base class defines the interface for a RF producer
-class RFProducer {
-public:
-  explicit RFProducer(const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
-      : m_buffer(buffer) {}
-  RFProducer(const RFProducer &) = delete;
-  RFProducer(RFProducer &&) = delete;
-  RFProducer &operator=(const RFProducer &) = delete;
-  RFProducer &operator=(RFProducer &&) = delete;
-  virtual ~RFProducer();
-
-  [[nodiscard]] auto buffer() const { return m_buffer; }
-
-  // start produce frames sequentially. This should be started in a separate
-  // thread
-  virtual void beginProduce();
-
-  // Generate one frame. For file producer, generate frame at idx
-  void produceOne(int idx);
-
-  // Stop producing
-  void stop();
-
-  // Release any hardware/file resources
-  void release();
-
-  virtual void setIOParams(const uspam::io::IOParams &ioparams);
-
-private:
-  std::shared_ptr<RFBuffer<ArpamFloat>> m_buffer;
-};
+#include <uspam/timeit.hpp>
+#include <utility>
 
 namespace fs = std::filesystem;
 
-class RFProducerFile : public RFProducer {
+class RFProducerFile : public QObject {
+  Q_OBJECT
 public:
-  explicit RFProducerFile(const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
-      : RFProducer(buffer), m_ioparams(uspam::io::IOParams::system2024v1()) {}
+  explicit RFProducerFile(std::shared_ptr<RFBuffer<ArpamFloat>> buffer)
+      : m_buffer(std::move(buffer)),
+        m_ioparams(uspam::io::IOParams::system2024v1()) {}
   void resetParams() { m_ioparams = uspam::io::IOParams::system2024v1(); }
 
-  void setBinpath(const fs::path &binfile) {
-    m_binpath = binfile;
+  bool ready() { return m_loader.isOpen(); }
 
-    try {
-      // Init loader
-      m_loader.setParams(m_ioparams);
-      m_loader.open(m_binpath);
-    } catch (const std::runtime_error &e) {
-      const auto msg = QString("RFProducerFile exception: ") +
-                       QString::fromStdString(e.what());
-      qWarning() << msg;
-    }
-  }
-  auto binpath() const { return m_binpath; }
+  void setBinpath(const fs::path &binfile);
 
-  void beginProduce() override {}
+  void beginProducing();
+  bool producing() const { return m_producing; }
+  void produceOne(int idx);
+  void reproduceOne();
+  void stopProducing() { m_producing = false; }
 
-  void setIOParams(const uspam::io::IOParams &ioparams) override {
-    // IOParams is trivially copiable so std::move === memcpy
-    m_ioparams = ioparams;
-  }
+  void setIOParams(const uspam::io::IOParams &ioparams);
+
+signals:
+  void maxFramesChanged(int);
+  void finishedProducing();
+  void messageDialog(QString msg);
 
 private:
+  std::shared_ptr<RFBuffer<ArpamFloat>> m_buffer;
+
+  // IO Params. Can be concurrently accessed
+  std::mutex m_paramsMtx;
   uspam::io::IOParams m_ioparams;
 
-  fs::path m_binpath;
+  // File loader
   uspam::io::BinfileLoader<uint16_t> m_loader;
+
+  // Producing state
+  std::atomic<bool> m_producing{false};
 };

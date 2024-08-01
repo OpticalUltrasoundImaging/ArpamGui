@@ -3,8 +3,9 @@
 #include "AScanPlot.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
-#include "DataProcWorker.hpp"
+#include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
+#include "ReconWorker.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
 #include <QAction>
 #include <QMenu>
@@ -15,15 +16,15 @@
 #include <memory>
 #include <rapidjson/document.h>
 
-
 class FrameController : public QWidget {
   Q_OBJECT
 public:
   // FrameController does not own the worker or the coregDisplay (both are owned
   // by MainWindow). It merely keeps a reference to it for control
-  explicit FrameController(ReconParamsController *paramsController,
-                           DataProcWorker *worker, AScanPlot *ascanPlot,
-                           CoregDisplay *coregDisplay,
+  explicit FrameController(RFProducerFile *rfProducerFile,
+                           ReconWorker *reconWorker,
+                           ReconParamsController *paramsController,
+                           AScanPlot *ascanPlot, CoregDisplay *coregDisplay,
                            QWidget *parent = nullptr);
 
   [[nodiscard]] auto frameMenu() const { return m_menu; }
@@ -64,8 +65,14 @@ private:
   void saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
 
+  // RF producers
+  RFProducerFile *m_producerFile;
+
+  // RF consumer
+  ReconWorker *m_reconWorker;
+
+  // Params controller
   ReconParamsController *m_reconParams;
-  DataProcWorker *m_worker;
 
   // Ptr to the coregDisplay for showing a pair of BScan images
   CoregDisplay *m_coregDisplay;

@@ -3,6 +3,7 @@
 #include "Common.hpp"
 #include "CustomPlot.hpp"
 #include "Metrics/FreqSpectrum.hpp"
+#include "RFBuffer.hpp"
 #include <QMouseEvent>
 #include <QString>
 #include <QVector>
