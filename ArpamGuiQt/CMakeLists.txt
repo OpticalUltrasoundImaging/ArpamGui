@@ -82,8 +82,6 @@ qt_add_executable(${EXE_NAME}
     src/CanvasOverlay.cpp
     src/CoregDisplay.hpp
     src/CoregDisplay.cpp
-    src/DataProcWorker.hpp
-    src/DataProcWorker.cpp
     src/ReconParamsController.hpp
     src/ReconParamsController.cpp
     src/FrameController.hpp
@@ -93,10 +91,15 @@ qt_add_executable(${EXE_NAME}
     src/Metrics/FreqSpectrum.cpp
     src/SaftParamsController.hpp
     src/SaftParamsController.cpp
+    src/RFProducerFile.hpp
+    src/RFProducerFile.cpp
+    src/ReconWorker.hpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
 target_sources(${EXE_NAME} PRIVATE
+    src/Recon.hpp
+    src/Recon.cpp
     src/geometryUtils.cpp
     src/geometryUtils.hpp
     src/jsonUtils.cpp

@@ -40,10 +40,10 @@ struct ReconParams2 {
                    {0, 0, 1, 1, 0, 0},
                    250,
                    25,
-                   9.0F,
-                   35.0F,
+                   7.0F,
+                   30.0F,
                    BeamformerType::SAFT_CF};
-    ReconParams US{{0, 0.1, 0.3, 1},    {0, 1, 1, 0}, 500, 25, 6.0F, 48.0F,
+    ReconParams US{{0, 0.1, 0.3, 1},    {0, 1, 1, 0}, 500, 25, 6.0F, 40.0F,
                    BeamformerType::NONE};
 
     return ReconParams2{PA, US};

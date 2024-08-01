@@ -11,8 +11,8 @@
 
 namespace uspam::beamformer {
 
-template <Floating FloatType> struct TimeDelay {
-  arma::Mat<FloatType> timeDelay;
+template <Floating Float> struct TimeDelay {
+  arma::Mat<Float> timeDelay;
   arma::Col<uint8_t> saftLines;
   int zStart{};
   int zEnd{};
@@ -22,33 +22,33 @@ template <Floating FloatType> struct TimeDelay {
  * @brief SAFT parameters relating to transducer geometry, rotation geometry,
  * and illumination geometry
  */
-template <Floating FloatType> struct SaftDelayParams {
-  FloatType rt; // [mm] distance from axis of rotation to transducer surface
-  FloatType vs; // [m/s] sound speed
-  FloatType dt; // [s] timestep
-  FloatType da; // [rad] angle step size in each rotation
+template <Floating Float> struct SaftDelayParams {
+  Float rt; // [mm] distance from axis of rotation to transducer surface
+  Float vs; // [m/s] sound speed
+  Float dt; // [s] timestep
+  Float da; // [rad] angle step size in each rotation
 
-  FloatType f; // [mm] transducer focal length
-  FloatType d; // [mm] transducer diameter
+  Float f; // [mm] transducer focal length
+  Float d; // [mm] transducer diameter
 
-  FloatType illumAngleDeg; // [deg] illumination angle
+  Float illumAngleDeg; // [deg] illumination angle
 
   // [mm] spatial step size
   // NOLINTNEXTLINE(*-magic-numbers)
-  [[nodiscard]] FloatType dr() const { return vs * dt * 1e3; }
+  [[nodiscard]] Float dr() const { return vs * dt * 1e3; }
 
   // Transducer focus angle
-  [[nodiscard]] FloatType angle() const {
-    return std::asin(static_cast<FloatType>(d / (2 * f)));
+  [[nodiscard]] Float angle() const {
+    return std::asin(static_cast<Float>(d / (2 * f)));
   }
 
-  [[nodiscard]] FloatType illumAngleRad() const {
-    return static_cast<FloatType>(deg2rad(illumAngleDeg));
+  [[nodiscard]] Float illumAngleRad() const {
+    return static_cast<Float>(deg2rad(illumAngleDeg));
   }
 
   static auto make() {
     // NOLINTBEGIN(*-magic-numbers)
-    SaftDelayParams<FloatType> saftParams{
+    SaftDelayParams<Float> saftParams{
         6.2, 1.5e3, 1.0 / 180e6, 2 * std::numbers::pi / 1000, 15.0, 8.5, 5.0,
     };
     // NOLINTEND(*-magic-numbers)
@@ -56,16 +56,16 @@ template <Floating FloatType> struct SaftDelayParams {
   }
 };
 
-template <Floating FloatType>
-[[nodiscard]] auto computeSaftTimeDelay(const SaftDelayParams<FloatType> &p,
+template <Floating Float>
+[[nodiscard]] auto computeSaftTimeDelay(const SaftDelayParams<Float> &p,
                                         int zStart = -1, int zEnd = -1) {
   // [pts] z start and end points of SAFT.
   // By default start = (half focal distance), end = (1.5x focal distance)
-  constexpr auto pi = std::numbers::pi_v<FloatType>;
+  constexpr auto pi = std::numbers::pi_v<Float>;
 
   // where SAFT should start (as a fraction of focal length)
-  constexpr FloatType SAFT_START = 0.25;
-  constexpr FloatType SAFT_END = 1.5;
+  constexpr Float SAFT_START = 0.25;
+  constexpr Float SAFT_END = 1.5;
 
   if (zStart < 0) {
     zStart = static_cast<int>(std::round((p.f * SAFT_START) / p.dr()));
@@ -79,8 +79,7 @@ template <Floating FloatType>
 
   // number of saft lines as a func of z
   arma::Col<uint8_t> nLines(zEnd - zStart, arma::fill::zeros);
-  arma::Mat<FloatType> timeDelay(zEnd - zStart, max_saft_lines,
-                                 arma::fill::zeros);
+  arma::Mat<Float> timeDelay(zEnd - zStart, max_saft_lines, arma::fill::zeros);
 
   for (int j = 1; j < max_saft_lines; ++j) {
     // relative position to the transducer center dr2 and ang2
@@ -120,18 +119,18 @@ template <Floating FloatType>
     }
   }
 
-  return TimeDelay<FloatType>{timeDelay, nLines, zStart, zEnd};
+  return TimeDelay<Float>{timeDelay, nLines, zStart, zEnd};
 }
 
-template <typename RfType, Floating FloatType, BeamformerType BfType>
-auto apply_saft(const TimeDelay<FloatType> &timeDelay,
+template <typename RfType, Floating Float, BeamformerType BfType>
+auto apply_saft(const TimeDelay<Float> &timeDelay,
                 const arma::Mat<RfType> &rf) {
   const int nScans = rf.n_cols;
   const int nPts = rf.n_rows;
 
   arma::Mat<RfType> rf_saft = rf; // copy
   arma::Mat<uint8_t> n_saft(rf.n_rows, rf.n_cols, arma::fill::ones);
-  arma::Mat<FloatType> CF_denom = arma::square(rf);
+  arma::Mat<Float> CF_denom = arma::square(rf);
 
   cv::parallel_for_(
       cv::Range(timeDelay.zStart, timeDelay.zEnd), [&](const cv::Range range) {

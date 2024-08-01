@@ -97,7 +97,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
 
       // Plot Type Selectors
       {
-        auto *grid = new QGridLayout(this);
+        auto *grid = new QGridLayout;
         layout->addLayout(grid);
 
         // Create a button group

@@ -2,7 +2,6 @@
 
 #include "uspam/fft.hpp"
 #include <CustomPlot.hpp>
-#include <DataProcWorker.hpp>
 #include <QVector>
 #include <QWidget>
 #include <algorithm>

@@ -117,7 +117,24 @@ void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
   assert(x.size() == y.size());
   m_meta = meta;
 
-  // Compute FWHM
+  // Title
+  graph(0)->setName(meta.name);
+
+  // replot
+  graph(0)->setData(x, y, true);
+
+  // x range
+  m_meta.xMin = x.front();
+  m_meta.xMax = x.back();
+
+  // y range
+  if (m_meta.autoScaleY) {
+    const auto [min, max] = std::minmax_element(y.cbegin(), y.cend());
+    m_meta.yMin = *min;
+    m_meta.yMax = *max;
+  }
+
+  // Compute FWHM and update tracer
   const auto fwhm = m_FWHMtracers->updateData(x, y);
   // FWHM width in X
   const auto width = fwhm.width();
@@ -134,23 +151,6 @@ void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
   } else {
     m_FWHMLabel->setText(
         QString("Peak: %1; FWHM: %2 samples").arg(fwhm.maxY).arg(width));
-  }
-
-  // Title
-  graph(0)->setName(meta.name);
-
-  // replot
-  graph(0)->setData(x, y, true);
-
-  // x range
-  m_meta.xMin = x.front();
-  m_meta.xMax = x.back();
-
-  // y range
-  if (m_meta.autoScaleY) {
-    const auto [min, max] = std::minmax_element(y.cbegin(), y.cend());
-    m_meta.yMin = *min;
-    m_meta.yMax = *max;
   }
 
   replot();

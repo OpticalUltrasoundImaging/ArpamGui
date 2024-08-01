@@ -84,21 +84,20 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return spinBox;
   };
 
-  const auto makeQDoubleSpinBox =
-      [this]<typename FloatType>(const std::pair<FloatType, FloatType> &range,
-                                 FloatType singleStep, FloatType &value) {
-        auto *spinBox = new QDoubleSpinBox;
-        spinBox->setRange(static_cast<double>(range.first),
-                          static_cast<double>(range.second));
-        spinBox->setValue(static_cast<double>(value));
-        spinBox->setSingleStep(static_cast<double>(singleStep));
-        connect(spinBox, &QDoubleSpinBox::valueChanged, this,
-                [&](double newValue) {
-                  value = static_cast<FloatType>(newValue);
-                  this->_paramsUpdatedInternal();
-                });
-        return spinBox;
-      };
+  const auto makeQDoubleSpinBox = [this]<typename Float>(
+                                      const std::pair<Float, Float> &range,
+                                      Float singleStep, Float &value) {
+    auto *spinBox = new QDoubleSpinBox;
+    spinBox->setRange(static_cast<double>(range.first),
+                      static_cast<double>(range.second));
+    spinBox->setValue(static_cast<double>(value));
+    spinBox->setSingleStep(static_cast<double>(singleStep));
+    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [&](double newValue) {
+      value = static_cast<Float>(newValue);
+      this->_paramsUpdatedInternal();
+    });
+    return spinBox;
+  };
 
   const QString &help_Freq = "Parameters to the FIR filter.";
   const QString &help_Gain = "Parameters to the FIR filter.";
