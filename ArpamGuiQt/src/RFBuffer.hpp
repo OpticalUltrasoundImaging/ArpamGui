@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QImage>
+#include <QString>
 #include <armadillo>
 #include <array>
 #include <atomic>
@@ -8,9 +9,33 @@
 #include <mutex>
 #include <uspam/uspam.hpp>
 
-constexpr int BUFFER_CAPACITY = 4;
+constexpr int BUFFER_CAPACITY = 2;
+
+struct PerformanceMetrics {
+  float total_ms{};
+  float load_ms{};
+  float split_ms{};
+  float beamform_ms{};
+  float recon_ms{};
+  float imageConversion_ms{};
+  float overlay_ms{};
+
+  // Template function to handle the common formatting
+  template <typename Stream>
+  friend Stream &operator<<(Stream &stream, const PerformanceMetrics &pm) {
+    stream << "total " << static_cast<int>(pm.total_ms) << ", loadRf "
+           << static_cast<int>(pm.load_ms) << ", split "
+           << static_cast<int>(pm.split_ms) << ", beamform "
+           << static_cast<int>(pm.beamform_ms) << ", recon "
+           << static_cast<int>(pm.recon_ms) << ", imageConversion "
+           << static_cast<int>(pm.imageConversion_ms) << ", overlay "
+           << static_cast<int>(pm.overlay_ms);
+    return stream;
+  }
+};
 
 template <uspam::Floating T> struct BScanData_ {
+  // Buffers
   arma::Mat<T> rf;
   arma::Mat<T> rfFilt;
   arma::Mat<T> rfBeamformed;
@@ -44,6 +69,9 @@ template <uspam::Floating T> struct BScanData {
 
   // Frame idx
   int frameIdx{};
+
+  // Metrics
+  PerformanceMetrics metrics;
 };
 
 template <uspam::Floating T> class RFBuffer {
@@ -118,9 +146,9 @@ public:
 
 private:
   std::array<std::shared_ptr<BScanData<T>>, BUFFER_CAPACITY> buffer{};
-  int buffer_size;
-  int left;  // index where vars are put inside of buffer (produced)
-  int right; // idx where vars are removed from buffer (consumed)
+  int buffer_size{};
+  int left{};  // index where vars are put inside of buffer (produced)
+  int right{}; // idx where vars are removed from buffer (consumed)
 
   // Concurrency
   std::mutex mtx;

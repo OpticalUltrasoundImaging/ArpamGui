@@ -2,6 +2,7 @@
 #include "AScanPlot.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
+#include "Recon.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
 #include "strConvUtils.hpp"
@@ -14,6 +15,8 @@
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QSpinBox>
+#include <QString>
+#include <QTextStream>
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <Qt>
@@ -156,18 +159,28 @@ FrameController::FrameController(
             &CoregDisplay::setMaxIdx);
 
     // Result ready
-    connect(m_reconWorker, &ReconWorker::imagesReady, this,
-            [this](std::shared_ptr<BScanData<ArpamFloat>> data) {
-              m_AScanPlot->setData(data);
-              m_AScanPlot->plotCurrentAScan();
+    connect(
+        m_reconWorker, &ReconWorker::imagesReady, this,
+        [this](std::shared_ptr<BScanData<ArpamFloat>> data) {
+          m_AScanPlot->setData(data);
+          m_AScanPlot->plotCurrentAScan();
 
-              m_data = std::move(data);
-              plotCurrentBScan();
+          m_data = std::move(data);
+          plotCurrentBScan();
 
-              const auto idx = m_data->frameIdx;
-              this->setFrameNum(idx);
-              m_coregDisplay->setIdx(idx);
-            });
+          const auto idx = m_data->frameIdx;
+          this->setFrameNum(idx);
+          m_coregDisplay->setIdx(idx);
+
+          // Display metrics
+          {
+            auto msg =
+                QString("Frame %1/%2: ").arg(idx).arg(m_producerFile->size());
+            QTextStream stream(&msg);
+            stream << m_data->metrics;
+            emit message(msg);
+          }
+        });
 
     connect(m_producerFile, &RFProducerFile::finishedProducing, this,
             [this] { this->updatePlayingState(false); });

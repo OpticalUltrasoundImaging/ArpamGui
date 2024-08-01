@@ -23,28 +23,6 @@
 namespace Recon {
 namespace fs = std::filesystem;
 
-struct PerformanceMetrics {
-  float total_ms{};
-  float fileloader_ms{};
-  float splitRf_ms{};
-  float beamform_ms{};
-  float recon_ms{};
-  float imageConversion_ms{};
-  float makeOverlay_ms{};
-
-  // Template function to handle the common formatting
-  template <typename Stream>
-  friend Stream &operator<<(Stream &stream, const PerformanceMetrics &pm) {
-    stream << "fileloader " << static_cast<int>(pm.fileloader_ms)
-           << ", splitRf " << static_cast<int>(pm.splitRf_ms) << ", beamform "
-           << static_cast<int>(pm.beamform_ms) << ", recon "
-           << static_cast<int>(pm.recon_ms) << ", imageConversion "
-           << static_cast<int>(pm.imageConversion_ms) << ", makeOverlay "
-           << static_cast<int>(pm.makeOverlay_ms);
-    return stream;
-  }
-};
-
 /**
 Supports CV_8UC4, CV_8UC3, CV_8UC1, CV_64FC1
 Create copies for all.
@@ -161,8 +139,8 @@ public:
   void run() override { img.save(fname); }
 };
 
-PerformanceMetrics reconBScan(BScanData<ArpamFloat> &data,
-                              const uspam::recon::ReconParams2 &params);
+void reconBScan(BScanData<ArpamFloat> &data,
+                const uspam::recon::ReconParams2 &params);
 
 void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir);
 
@@ -172,10 +150,9 @@ public:
                              uspam::recon::ReconParams2::system2024v1())
       : m_params(std::move(params)) {}
 
-  auto recon(BScanData<ArpamFloat> &data) const {
+  void recon(BScanData<ArpamFloat> &data) const {
     std::unique_lock<std::mutex> lock(m_mtx);
-    auto metrics = reconBScan(data, m_params);
-    return metrics;
+    reconBScan(data, m_params);
   }
 
   void setParams(uspam::recon::ReconParams2 params) {

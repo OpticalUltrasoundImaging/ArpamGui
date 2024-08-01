@@ -32,6 +32,8 @@ public:
   void reproduceOne();
   void stopProducing() { m_producing = false; }
 
+  auto size() const { return m_loader.size(); }
+
   void setIOParams(const uspam::io::IOParams &ioparams);
 
 signals:

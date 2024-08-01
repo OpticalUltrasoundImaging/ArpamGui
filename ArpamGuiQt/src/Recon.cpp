@@ -38,9 +38,9 @@ QImage cvMatToQImage(const cv::Mat &mat) {
   return {};
 }
 
-PerformanceMetrics reconBScan(BScanData<ArpamFloat> &data,
-                              const uspam::recon::ReconParams2 &params) {
-  PerformanceMetrics perfMetrics{};
+void reconBScan(BScanData<ArpamFloat> &data,
+                const uspam::recon::ReconParams2 &params) {
+  auto &perfMetrics = data.metrics;
   uspam::TimeIt timeit;
 
   /*
@@ -120,13 +120,12 @@ PerformanceMetrics reconBScan(BScanData<ArpamFloat> &data,
   {
     const uspam::TimeIt timeit;
     uspam::imutil::makeOverlay(data.US.radial, data.PA.radial, data.PAUSradial);
-    perfMetrics.makeOverlay_ms = timeit.get_ms();
+    perfMetrics.overlay_ms = timeit.get_ms();
   }
 
   data.PAUSradial_img = cvMatToQImage(data.PAUSradial);
 
   perfMetrics.total_ms = timeit.get_ms();
-  return perfMetrics;
 }
 
 void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {

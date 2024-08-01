@@ -41,13 +41,15 @@ void RFProducerFile::produceOne(int idx) {
 
 void RFProducerFile::reproduceOne() {
   m_buffer->produce([this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
+    auto &metrics = data->metrics;
+
     data->frameIdx = m_loader.idx();
 
     // Read RF scan at idx from file
     {
       const uspam::TimeIt timeit;
       m_loader.get<ArpamFloat>(data->rf);
-      const auto fileloader_ms = timeit.get_ms();
+      metrics.load_ms = timeit.get_ms();
     }
 
     // Estimate background from current RF
@@ -59,7 +61,7 @@ void RFProducerFile::reproduceOne() {
       const uspam::TimeIt timeit;
       m_ioparams.splitRfPAUS_sub(data->rf, background_aline, data->PA.rf,
                                  data->US.rf);
-      const auto splitRf_ms = timeit.get_ms();
+      metrics.split_ms = timeit.get_ms();
     }
   });
 };
