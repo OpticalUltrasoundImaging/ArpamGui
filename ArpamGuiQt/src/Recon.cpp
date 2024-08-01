@@ -1,5 +1,7 @@
 #include "Recon.hpp"
 
+#include <future>
+
 namespace Recon {
 
 QImage cvMatToQImage(const cv::Mat &mat) {

@@ -10,7 +10,6 @@
 #include <QtLogging>
 #include <RFBuffer.hpp>
 #include <armadillo>
-#include <future>
 #include <mutex>
 #include <opencv2/opencv.hpp>
 #include <tuple>

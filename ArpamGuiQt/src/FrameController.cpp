@@ -2,7 +2,6 @@
 #include "AScanPlot.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
-#include "Recon.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
 #include "strConvUtils.hpp"
@@ -26,7 +25,6 @@
 #include <memory>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
-#include <string>
 #include <uspam/json.hpp>
 
 FrameController::FrameController(
