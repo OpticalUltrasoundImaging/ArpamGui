@@ -169,6 +169,34 @@ if (WIN32)
 endif()
 
 
+### Configure NI-DAQmx C library on supported platforms
+# https://forums.ni.com/t5/Multifunction-DAQ/64bit-NIDAQmx-ANSI-C-library-location/td-p/4319040
+if (WIN32)
+    set(NI_DAQMX_C_SDK_ROOT "C:/Program Files (x86)/National Instruments/Shared/ExternalCompilerSupport/C")
+    set(NI_DAQMX_INCLUDE_DIR "${NI_DAQMX_C_SDK_ROOT}/include")
+    set(NI_DAQMX_LIB_DIR "${NI_DAQMX_C_SDK_ROOT}/lib64/msvc")
+
+
+    if (EXISTS ${NI_DAQMX_C_SDK_ROOT})
+        message(STATUS "Found NI-DAQmx 64-bit C SDK at ${NI_DAQMX_C_SDK_ROOT}. ArpamGuiQt will build with NI support.")
+        set(NI_DAQMX_LIBS 
+            ${NI_DAQMX_LIB_DIR}/NIDAQmx.lib
+            ${NI_DAQMX_LIB_DIR}/nip2p.lib
+            ${NI_DAQMX_LIB_DIR}/nisyscfg.lib
+            ${NI_DAQMX_LIB_DIR}/nivision.lib
+        )
+
+        target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_NI)
+        target_include_directories(${EXE_NAME} PRIVATE ${NI_DAQMX_INCLUDE_DIR})
+        target_link_libraries(${EXE_NAME} PRIVATE ${NI_DAQMX_LIBS})
+
+    else()
+        message(WARNING "NI-DAQmx 64-bit C SDK not found at ${NI_DAQMX_C_SDK_ROOT}.")
+    endif()
+
+endif()
+
+
 ### Run Qt deploy script
 if (WIN32)
     add_compile_definitions(_USE_MATH_DEFINES)
