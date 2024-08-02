@@ -3,6 +3,8 @@ This module implements a data acquisition interface
 */
 #pragma once
 
+#ifdef ARPAM_HAS_ALAZAR
+
 #include "Common.hpp"
 #include "RFBuffer.hpp"
 #include <QObject>
@@ -13,8 +15,6 @@ This module implements a data acquisition interface
 #include <memory>
 #include <string>
 #include <utility>
-
-#ifdef ARPAM_HAS_ALAZARTECH
 
 namespace daq {
 // Get DAQ board information
@@ -72,4 +72,4 @@ private:
 
 } // namespace daq
 
-#endif
+#endif // ARPAM_HAS_ALAZAR

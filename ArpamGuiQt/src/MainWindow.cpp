@@ -186,6 +186,11 @@ MainWindow::MainWindow(QWidget *parent)
     auto *dockFrameController = new QDockWidget("Acquisition Controller", this);
     this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
 
+    m_viewMenu->addAction(dockFrameController->toggleViewAction());
+#ifndef ARPAM_HAS_ALAZAR
+    dockFrameController->hide();
+#endif // ARPAM_HAS_ALAZAR
+
     auto *acquisitionController = new AcquisitionController(buffer);
     dockFrameController->setWidget(acquisitionController);
   }

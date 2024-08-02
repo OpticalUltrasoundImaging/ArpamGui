@@ -1,4 +1,7 @@
 #include "AcquisitionController.hpp"
+
+#ifdef ARPAM_HAS_ALAZAR
+
 #include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -6,7 +9,9 @@
 
 AcquisitionController::AcquisitionController(
     const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
-    : m_buffer(buffer), m_daq(new daq::DAQ(buffer)),
+    : m_buffer(buffer),
+
+      m_daq(new daq::DAQ(buffer)),
 
       m_btnInitBoard(new QPushButton("Initialize Alazar Board")),
       m_btnStartStopAcquisition(new QPushButton("Start"))
@@ -70,3 +75,11 @@ AcquisitionController::~AcquisitionController() {
     m_daqThread.wait();
   }
 };
+
+#else
+
+AcquisitionController::AcquisitionController(
+    const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer) {}
+AcquisitionController::~AcquisitionController() {}
+
+#endif // ARPAM_HAS_ALAZAR

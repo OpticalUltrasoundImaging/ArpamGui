@@ -1,8 +1,11 @@
 #include "DAQ/DAQ.hpp"
 
+#ifdef ARPAM_HAS_ALAZAR
+
 #include "AlazarApi.h"
 #include "AlazarCmd.h"
 #include "AlazarError.h"
+
 #include <QDebug>
 #include <QtLogging>
 #include <armadillo>
@@ -714,3 +717,5 @@ void DAQ::stopAcquisition() { shouldStopAcquiring = true; };
 } // namespace daq
 
 // NOLINTEND(*-do-while)
+
+#endif // ARPAM_HAS_ALAZAR

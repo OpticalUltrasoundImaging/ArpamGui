@@ -159,7 +159,7 @@ if (WIN32)
     if (EXISTS ${ATS_SDK_LIB})
         message(STATUS "Found ATS-SDK at ${ATS_C_SDK_ROOT}. ArpamGuiQt will build with AlazarTech DAQ support.")
 
-        target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_ALAZARTECH)
+        target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_ALAZAR)
         target_include_directories(${EXE_NAME} PRIVATE ${ATS_SDK_INCLUDE_DIR})
         target_link_libraries(${EXE_NAME} PRIVATE ${ATS_SDK_LIB})
     else()

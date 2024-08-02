@@ -23,6 +23,7 @@ public:
   AcquisitionController &operator=(AcquisitionController &&) = delete;
   ~AcquisitionController() override;
 
+#ifdef ARPAM_HAS_ALAZAR
 private:
   // Buffer
   std::shared_ptr<RFBuffer<ArpamFloat>> m_buffer;
@@ -35,3 +36,8 @@ private:
   QPushButton *m_btnInitBoard;
   QPushButton *m_btnStartStopAcquisition;
 };
+
+#else
+};
+
+#endif // ARPAM_HAS_ALAZAR

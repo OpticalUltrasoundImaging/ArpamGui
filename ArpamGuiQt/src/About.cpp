@@ -19,15 +19,15 @@ auto aboutString() -> QString {
      << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE "-"
      << ARPAM_COMPILE_TIME << ")\n\n";
 
-  ss << "-- AlazarTech\n";
-#ifdef ARPAM_HAS_ALAZARTECH
+  ss << "-- Data acquisition interface\n";
+#ifdef ARPAM_HAS_ALAZAR
   ss << daq::getDAQInfo();
 #else
   ss << "No Alazar support.\n";
 #endif
-  ss << "-- AlazarTech\n\n";
+  ss << "-- Data acquisition interface\n\n";
 
-  ss << "-- Dependencies\n";
+  ss << "-- Bundled Dependencies\n";
   ss << "Qt: " << QT_VERSION_STR << "\n";
   ss << "QCustomPlot: " << QCUSTOMPLOT_VERSION_STR << "\n";
 
@@ -47,7 +47,7 @@ auto aboutString() -> QString {
   ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 
   ss << "oneTBB: " << TBB_VERSION_STRING << "\n";
-  ss << "-- Dependencies\n";
+  ss << "-- Bundled Dependencies\n";
 
   return QString::fromStdString(ss.str());
 }
