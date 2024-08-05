@@ -98,6 +98,8 @@ qt_add_executable(${EXE_NAME}
     src/DAQ/DAQ.cpp
     src/AcquisitionController.hpp
     src/AcquisitionController.cpp
+    src/Motor/NI.hpp
+    src/Motor/NI.cpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
@@ -176,9 +178,11 @@ if (WIN32)
     set(NI_DAQMX_INCLUDE_DIR "${NI_DAQMX_C_SDK_ROOT}/include")
     set(NI_DAQMX_LIB_DIR "${NI_DAQMX_C_SDK_ROOT}/lib64/msvc")
 
-
     if (EXISTS ${NI_DAQMX_C_SDK_ROOT})
-        message(STATUS "Found NI-DAQmx 64-bit C SDK at ${NI_DAQMX_C_SDK_ROOT}. ArpamGuiQt will build with NI support.")
+        message(STATUS "Found NI-DAQmx 64-bit C SDK at ${NI_DAQMX_C_SDK_ROOT}")
+        message(STATUS "ArpamGuiQt will build with NI support")
+        message(STATUS "NI_DAQMX_INCLUDE_DIR ${NI_DAQMX_INCLUDE_DIR}")
+
         set(NI_DAQMX_LIBS 
             ${NI_DAQMX_LIB_DIR}/NIDAQmx.lib
             ${NI_DAQMX_LIB_DIR}/nip2p.lib

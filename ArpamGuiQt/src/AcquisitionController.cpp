@@ -1,4 +1,5 @@
 #include "AcquisitionController.hpp"
+#include "Motor/NI.hpp"
 
 #ifdef ARPAM_HAS_ALAZAR
 
@@ -12,6 +13,8 @@ AcquisitionController::AcquisitionController(
     : m_buffer(buffer),
 
       m_daq(new daq::DAQ(buffer)),
+
+      m_motor(new motor::MotorNI),
 
       m_btnInitBoard(new QPushButton("Initialize Alazar Board")),
       m_btnStartStopAcquisition(new QPushButton("Start"))
@@ -31,6 +34,21 @@ AcquisitionController::AcquisitionController(
         Qt::BlockingQueuedConnection);
 
     m_daqThread.start();
+  }
+
+  {
+    m_motor->moveToThread(&m_motorThread);
+
+    connect(&m_motorThread, &QThread::finished, m_motor, &QObject::deleteLater);
+
+    connect(
+        m_motor, &motor::MotorNI::messageBox, this,
+        [this](QString msg) {
+          QMessageBox::information(this, "MotorNI Info", msg);
+        },
+        Qt::BlockingQueuedConnection);
+
+    m_motorThread.start();
   }
 
   // UI
@@ -66,6 +84,20 @@ AcquisitionController::AcquisitionController(
       m_btnStartStopAcquisition->setText("Start");
     });
   }
+
+  // Motor test buttons
+  {
+    auto *btn = new QPushButton("Motor clockwise");
+    layout->addWidget(btn);
+    connect(btn, &QPushButton::pressed, m_motor,
+            &motor::MotorNI::moveClockwise);
+  }
+  {
+    auto *btn = new QPushButton("Motor anticlockwise");
+    layout->addWidget(btn);
+    connect(btn, &QPushButton::pressed, m_motor,
+            &motor::MotorNI::moveAnticlockwise);
+  }
 };
 
 AcquisitionController::~AcquisitionController() {
@@ -73,6 +105,11 @@ AcquisitionController::~AcquisitionController() {
     m_daq->stopAcquisition();
     m_daqThread.quit();
     m_daqThread.wait();
+  }
+
+  if (m_motorThread.isRunning()) {
+    m_motorThread.quit();
+    m_motorThread.wait();
   }
 };
 

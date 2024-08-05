@@ -2,6 +2,7 @@
 
 #include "Common.hpp"
 #include "DAQ/DAQ.hpp"
+#include "Motor/NI.hpp"
 #include <QPushButton>
 #include <QThread>
 #include <QWidget>
@@ -31,6 +32,10 @@ private:
   // DAQ
   daq::DAQ *m_daq;
   QThread m_daqThread;
+
+  // Motor
+  motor::MotorNI *m_motor;
+  QThread m_motorThread;
 
   // UI
   QPushButton *m_btnInitBoard;

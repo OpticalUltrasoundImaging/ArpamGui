@@ -1,5 +1,6 @@
 #include "About.hpp"
 #include "DAQ/DAQ.hpp"
+#include "Motor/NI.hpp"
 #include <QMessageBox>
 #include <armadillo>
 #include <fftw3.h>
@@ -18,14 +19,6 @@ auto aboutString() -> QString {
   ss << "(Build with " << ARPAM_COMPILER_NAME << " version "
      << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE "-"
      << ARPAM_COMPILE_TIME << ")\n\n";
-
-  ss << "-- Data acquisition interface\n";
-#ifdef ARPAM_HAS_ALAZAR
-  ss << daq::getDAQInfo();
-#else
-  ss << "No Alazar support.\n";
-#endif
-  ss << "-- Data acquisition interface\n\n";
 
   ss << "-- Bundled Dependencies\n";
   ss << "Qt: " << QT_VERSION_STR << "\n";
@@ -48,6 +41,20 @@ auto aboutString() -> QString {
 
   ss << "oneTBB: " << TBB_VERSION_STRING << "\n";
   ss << "-- Bundled Dependencies\n";
+
+  ss << "-- Data acquisition interface\n";
+#ifdef ARPAM_HAS_ALAZAR
+  ss << daq::getDAQInfo();
+#else
+  ss << "No Alazar support.\n";
+#endif
+  ss << "-- Data acquisition interface\n\n";
+
+  ss << "-- Motor control interface\n";
+#ifdef ARPAM_HAS_NI
+  ss << motor::getNIDAQInfo();
+#endif
+  ss << "-- Motor control interface\n";
 
   return QString::fromStdString(ss.str());
 }
