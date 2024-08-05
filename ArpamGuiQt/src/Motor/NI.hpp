@@ -67,6 +67,13 @@ public slots:
     move();
   }
 
+  void moveClockwiseThenAnticlockwise() {
+    setDirection(Direction::CLOCKWISE);
+    move();
+    setDirection(Direction::ANTICLOCKWISE);
+    move();
+  }
+
 signals:
   void messageBox(const QString &msg);
 

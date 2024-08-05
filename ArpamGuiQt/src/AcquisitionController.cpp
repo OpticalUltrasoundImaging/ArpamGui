@@ -98,6 +98,12 @@ AcquisitionController::AcquisitionController(
     connect(btn, &QPushButton::pressed, m_motor,
             &motor::MotorNI::moveAnticlockwise);
   }
+  {
+    auto *btn = new QPushButton("Motor clockwise then anti");
+    layout->addWidget(btn);
+    connect(btn, &QPushButton::pressed, m_motor,
+            &motor::MotorNI::moveClockwiseThenAnticlockwise);
+  }
 };
 
 AcquisitionController::~AcquisitionController() {
