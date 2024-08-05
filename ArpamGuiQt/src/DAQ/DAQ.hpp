@@ -11,7 +11,7 @@ This module implements a data acquisition interface
 #include <QString>
 #include <array>
 #include <atomic>
-#include <cstdio>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -42,11 +42,19 @@ public:
 
 signals:
   void messageBox(QString);
+
+  void initHardwareSuccessful();
+
   void acquisitionStarted();
   void acquisitionStopped();
 
 public slots:
-  bool startAcquisition();
+
+  // 1. Allocates the alazar DMA buffers
+  // 2. Opens file pointer to write bin data
+  void prepareAcquisition();
+
+  bool startAcquisition(int buffersToAcquire);
   void stopAcquisition();
 
 private:
@@ -67,7 +75,7 @@ private:
 
   // File pointer
   bool saveData{true};
-  FILE *fpData{};
+  std::fstream m_fs;
 };
 
 } // namespace daq

@@ -1,4 +1,5 @@
 #include "DAQ/DAQ.hpp"
+#include <ios>
 
 #ifdef ARPAM_HAS_ALAZAR
 
@@ -6,11 +7,12 @@
 #include "AlazarCmd.h"
 #include "AlazarError.h"
 
+#include "datetime.hpp"
 #include <QDebug>
 #include <QtLogging>
 #include <armadillo>
-#include <fmt/format.h>
-#include <qlogging.h>
+#include <fmt/core.h>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <uspam/defer.h>
@@ -437,11 +439,14 @@ bool DAQ::initHardware() {
   ALAZAR_CALL(AlazarConfigureAuxIO(board, AUX_OUT_TRIGGER, 0));
   RETURN_BOOL_IF_FAIL();
 
-  emit messageBox("Init hardware successful.");
+  emit initHardwareSuccessful();
+
+  prepareAcquisition();
+
   return true;
 }
 
-bool DAQ::startAcquisition() {
+bool DAQ::startAcquisition(int buffersToAcquire) {
   shouldStopAcquiring = false;
   acquiringData = true;
   emit acquisitionStarted();
@@ -455,20 +460,20 @@ bool DAQ::startAcquisition() {
   bool success{true};
 
   // No pre-trigger samples in NPT mode
-  U32 preTriggerSamples = 0;
+  const U32 preTriggerSamples = 0;
   // Number of post trigger samples per record
-  U32 postTriggerSamples = 8192;
+  const U32 postTriggerSamples = 8192;
   // Number of records per DMA buffer
-  U32 recordsPerBuffer = 1000;
+  const U32 recordsPerBuffer = 1000;
 
   // Total number of buffers to capture
-  U32 buffersPerAcquisition = 10;
+  const U32 buffersPerAcquisition = buffersToAcquire;
 
   // Channels to capture
   const U32 channelMask = CHANNEL_A;
   const int channelCount = 1;
 
-  U8 bitsPerSample{};
+  uint8_t bitsPerSample{};
   U32 maxSamplesPerChannel{};
 
   ALAZAR_CALL(
@@ -482,23 +487,15 @@ bool DAQ::startAcquisition() {
             0.5); // 0.5 compensates for double to integer conversion
   U32 bytesPerBuffer = bytesPerRecord * recordsPerBuffer * channelCount;
 
-  if (saveData) {
-    fpData = fopen("data.bin", "wb");
-    if (fpData == nullptr) {
-      qCritical("Error: Unable to create data file.\n");
-      return false;
-    }
-  }
-
   // Allocate memory for DMA buffers
-  qDebug("bytesPerSample: %f\n", bytesPerSample);
-  qDebug("bytesPerRecord: %d\n", bytesPerRecord);
-  qDebug("bytesPerBuffer: %d\n", bytesPerBuffer);
+  // qDebug("bytesPerSample: %f\n", bytesPerSample);
+  // qDebug("bytesPerRecord: %d\n", bytesPerRecord);
+  // qDebug("bytesPerBuffer: %d\n", bytesPerBuffer);
   for (auto &pBuffer : buffers) {
     // Allocate page aligned memory
     pBuffer = AlazarAllocBufferU16(board, bytesPerBuffer);
     if (pBuffer == nullptr) {
-      qCritical("Error: Alloc %u bytes failed\n", bytesPerBuffer);
+      qCritical("Error: Alloc %u bytes failed", bytesPerBuffer);
       success = false;
     }
     BREAK_IF_FAIL();
@@ -514,7 +511,7 @@ bool DAQ::startAcquisition() {
     }
   };
 
-  qDebug("Allocated %d bytes of memory (%dx %d byte buffers)\n",
+  qDebug("Allocated %d bytes of memory (%dx %d byte buffers)",
          bytesPerBuffer * buffers.size(), buffers.size(), bytesPerBuffer);
 
   // Configure the record size
@@ -522,12 +519,10 @@ bool DAQ::startAcquisition() {
     ALAZAR_CALL(
         AlazarSetRecordSize(board, preTriggerSamples, postTriggerSamples));
   }
-  qDebug("After set record size Success: %u\n", static_cast<int>(success));
 
   // Configure the board to make an NPT AutoDMA acquisition
   if (success) {
     U32 recordsPerAcquisition = recordsPerBuffer * buffersPerAcquisition;
-    qDebug("recordsPerAcquisition: %d", recordsPerAcquisition);
     U32 admaFlags = ADMA_EXTERNAL_STARTCAPTURE | ADMA_NPT;
     ALAZAR_CALL(AlazarBeforeAsyncRead(
         board, channelMask, -(long)preTriggerSamples, samplesPerRecord,
@@ -582,24 +577,6 @@ bool DAQ::startAcquisition() {
 
         // TODO: Process sample data in this buffer.
 
-        m_buffer->produce(
-            [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
-              data->frameIdx = buffersCompleted;
-
-              // Construct temporary arma mat that shares memory with the input
-              // buffer
-              arma::Mat inMat(pBuffer, bytesPerBuffer, recordsPerBuffer, false,
-                              true);
-
-              // Copy RF from Alazar buffer to our buffer
-              {
-                const uspam::TimeIt timeit;
-                uspam::io::copyRFWithScaling(pBuffer, bytesPerBuffer, data->rf,
-                                             recordsPerBuffer);
-                data->metrics.load_ms = timeit.get_ms();
-              }
-            });
-
         // NOTE:
         //
         // While you are processing this buffer, the board is already filling
@@ -618,12 +595,36 @@ bool DAQ::startAcquisition() {
         // - a sample code of 0x8000 represents a ~0V signal.
         // - a sample code of 0xFFFF represents a positive full scale input
         // signal.
+
+        m_buffer->produce(
+            [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
+              data->frameIdx = buffersCompleted;
+
+              // Construct arma mat that shares memory with the input buffer
+              arma::Mat inMat(pBuffer, bytesPerBuffer, recordsPerBuffer, false,
+                              true);
+
+              // Copy RF from Alazar buffer to our buffer
+              {
+                uspam::TimeIt timeit;
+                uspam::io::copyRFWithScaling(pBuffer, (int)bytesPerBuffer,
+                                             data->rf, recordsPerBuffer);
+                data->metrics.load_ms = timeit.get_ms();
+              }
+            });
+
         if (saveData) {
           // Write record to file
-          size_t bytesWritten =
-              fwrite(pBuffer, sizeof(BYTE), bytesPerBuffer, fpData);
-          if (bytesWritten != bytesPerBuffer) {
-            qCritical("Error: Write buffer %u failed -- %u\n", buffersCompleted,
+          try {
+            uspam::TimeIt timeit;
+            m_fs.write((char *)pBuffer, bytesPerBuffer);
+
+            const auto time_ms = timeit.get_ms();
+            const auto speed_MBps = bytesPerBuffer / 1e3 / time_ms;
+            qInfo("Wrote %d bytes to file in %f ms (%f MB/s)", bytesPerBuffer,
+                  time_ms, speed_MBps);
+          } catch (std::ios_base::failure &e) {
+            qCritical("Error: Write buffer %u failed -- %u", buffersCompleted,
                       GetLastError());
             success = false;
           }
@@ -633,7 +634,7 @@ bool DAQ::startAcquisition() {
       case ApiWaitTimeout: {
         const QString msg =
             "DAQ: AlazarWaitAsyncBufferComplete timeout. Please make sure the "
-            "trigger is connected.\n";
+            "trigger is connected.";
         qCritical() << msg;
         emit messageBox(msg);
       } break;
@@ -642,7 +643,7 @@ bool DAQ::startAcquisition() {
         const QString msg =
             "DAQ: AlazarWaitAsyncBufferComplete buffer overflow. The data "
             "acquisition rate is higher than the transfer rate from on-board "
-            "memory to host memory.\n";
+            "memory to host memory.";
         qCritical() << msg;
         emit messageBox(msg);
       } break;
@@ -665,36 +666,39 @@ bool DAQ::startAcquisition() {
 
       // Check for condition to stop acquiring
       if (shouldStopAcquiring) {
-        const QString msg = "DAQ: received stop acquisition signal\n";
+        const QString msg = "DAQ: received stop acquisition signal";
         qInfo() << msg;
         emit messageBox(msg);
         break;
       }
 
       // Display progress
-      qInfo("Completed %u buffers\r", buffersCompleted);
+      qInfo("Completed %u buffers", buffersCompleted);
     }
 
     // Display results
-    double transferTime_sec = (GetTickCount() - startTickCount) / 1000.;
-    qInfo("Capture completed in %.2lf sec\n", transferTime_sec);
+    // {
+    //   const double transferTime_sec = (GetTickCount() - startTickCount) /
+    //   1000.; qInfo("Capture completed in %.2lf sec\n", transferTime_sec);
 
-    double buffersPerSec{};
-    double bytesPerSec{};
-    double recordsPerSec{};
-    U32 recordsTransferred = recordsPerBuffer * buffersCompleted;
-    if (transferTime_sec > 0.) {
-      buffersPerSec = buffersCompleted / transferTime_sec;
-      bytesPerSec = bytesTransferred / transferTime_sec;
-      recordsPerSec = recordsTransferred / transferTime_sec;
-    }
+    //   double buffersPerSec{};
+    //   double bytesPerSec{};
+    //   double recordsPerSec{};
+    //   U32 recordsTransferred = recordsPerBuffer * buffersCompleted;
+    //   if (transferTime_sec > 0.) {
+    //     buffersPerSec = buffersCompleted / transferTime_sec;
+    //     bytesPerSec = bytesTransferred / transferTime_sec;
+    //     recordsPerSec = recordsTransferred / transferTime_sec;
+    //   }
 
-    qInfo("Captured %u buffers (%.4g buffers per sec)\n", buffersCompleted,
-          buffersPerSec);
-    qInfo("Captured %u records (%.4g records per sec)\n", recordsTransferred,
-          recordsPerSec);
-    qInfo("Transferred %d bytes (%.4g bytes per sec)\n", bytesTransferred,
-          bytesPerSec);
+    //   qInfo("Captured %u buffers (%.4g buffers per sec)\n", buffersCompleted,
+    //         buffersPerSec);
+    //   qInfo("Captured %u records (%.4g records per sec)\n",
+    //   recordsTransferred,
+    //         recordsPerSec);
+    //   qInfo("Transferred %d bytes (%.4g bytes per sec)\n", bytesTransferred,
+    //         bytesPerSec);
+    // }
   }
 
   return true;
@@ -713,6 +717,12 @@ DAQ::~DAQ() {
 }
 
 void DAQ::stopAcquisition() { shouldStopAcquiring = true; };
+
+void DAQ::prepareAcquisition() {
+  const auto fname = datetime::datetimeFormat("%H%M%S");
+  qDebug() << "Generated fname: " << fname;
+  m_fs = std::fstream(fname + "bin", std::ios::out | std::ios::binary);
+}
 
 } // namespace daq
 

@@ -62,7 +62,7 @@ void copyRFWithScaling(Tin *bufIn, int sizeIn, arma::Mat<Tout> &rf,
                        int alinesPerBScan, int samplesPerAScan = RF_ALINE_SIZE)
   requires(std::is_floating_point_v<Tout>)
 {
-  assert(samplesPerAScan * alinesPerBScan == sizeIn);
+  assert(samplesPerAScan * alinesPerBScan * sizeof(Tin) == sizeIn);
 
   if (rf.n_rows != samplesPerAScan || rf.n_cols != alinesPerBScan) {
     rf.set_size(RF_ALINE_SIZE, alinesPerBScan);

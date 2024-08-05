@@ -70,7 +70,9 @@ AcquisitionController::AcquisitionController(
       if (m_daq->isAcquiring()) {
         m_daq->stopAcquisition();
       } else {
-        QMetaObject::invokeMethod(m_daq, &daq::DAQ::startAcquisition);
+        QMetaObject::invokeMethod(m_daq, &daq::DAQ::startAcquisition, 2);
+        QMetaObject::invokeMethod(
+            m_motor, &motor::MotorNI::moveClockwiseThenAnticlockwise);
       }
     });
 
@@ -82,6 +84,11 @@ AcquisitionController::AcquisitionController(
     connect(m_daq, &daq::DAQ::acquisitionStopped, this, [this]() {
       m_btnStartStopAcquisition->setEnabled(true);
       m_btnStartStopAcquisition->setText("Start");
+    });
+
+    m_btnStartStopAcquisition->setEnabled(false);
+    connect(m_daq, &daq::DAQ::initHardwareSuccessful, this, [this] {
+      m_btnStartStopAcquisition->setEnabled(true);
     });
   }
 
