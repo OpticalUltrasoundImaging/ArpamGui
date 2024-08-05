@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ARPAM_HAS_NI
+
 /*
 Impl motor control using the NI-DAQmx 64-bit C SDK
 
@@ -75,3 +77,5 @@ private:
 };
 
 } // namespace motor
+
+#endif // ARPAM_HAS_NI

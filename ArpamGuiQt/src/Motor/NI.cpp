@@ -1,4 +1,7 @@
 #include "Motor/NI.hpp"
+
+#ifdef ARPAM_HAS_NI
+
 #include "NIDAQmx.h"
 #include <span>
 
@@ -159,3 +162,5 @@ void motor::MotorNI::setDirection(Direction direction) {
 }
 
 // NOLINTEND(*-do-while, *-pointer-decay)
+
+#endif // ARPAM_HAS_NI
