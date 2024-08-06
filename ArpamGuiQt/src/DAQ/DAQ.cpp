@@ -446,9 +446,9 @@ bool DAQ::initHardware() {
 
   if (m_saveData) {
     const auto fname = datetime::datetimeFormat("%H%M%S") + ".bin";
-    const auto path = m_savedir / fname;
-    qDebug() << "Save file name fname: " << path.c_str();
-    m_fs = std::fstream(path, std::ios::out | std::ios::binary);
+    m_lastBinfile = m_savedir / fname;
+    qDebug() << "Save file name fname: " << m_lastBinfile.c_str();
+    m_fs = std::fstream(m_lastBinfile, std::ios::out | std::ios::binary);
   } else {
     qDebug() << "Not saving data.";
   }

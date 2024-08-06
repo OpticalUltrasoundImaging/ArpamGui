@@ -8,6 +8,7 @@
 #include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
+#include "strConvUtils.hpp"
 #include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
@@ -198,6 +199,22 @@ MainWindow::MainWindow(QWidget *parent)
             &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
             &CoregDisplay::setMaxIdx);
 
+    connect(acquisitionController->controller.daq(),
+            &daq::DAQ::finishedAcquiringBinfile, this,
+            [this](const fs::path &path) {
+              // Log event
+              const auto strpath = path2QString(path);
+              {
+                const auto msg =
+                    QString("Finished acquiring to %1").arg(strpath);
+                qInfo() << msg;
+                statusBar()->showMessage(msg);
+                logError(msg);
+              }
+
+              // Load binfile in frame controller
+              m_frameController->acceptNewBinfile(strpath);
+            });
 #else
     dockFrameController->hide();
 #endif // ARPAM_HAS_ALAZAR

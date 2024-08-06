@@ -51,9 +51,8 @@ void AcquisitionControllerObj::startAcquisition() {
     m_motor->moveClockwiseThenAnticlockwise();
   }
 
-  if (shouldStop) {
-    QMetaObject::invokeMethod(m_daq, &daq::DAQ::stopAcquisition);
-  }
+  m_daq->stopAcquisition();
+  QMetaObject::invokeMethod(m_daq, &daq::DAQ::finishAcquisition);
 }
 
 AcquisitionController::AcquisitionController(
@@ -93,8 +92,11 @@ AcquisitionController::AcquisitionController(
     connect(m_btnStartStopAcquisition, &QPushButton::clicked, this, [this]() {
       m_btnStartStopAcquisition->setEnabled(false);
       if (controller.isAcquiring()) {
+        m_btnStartStopAcquisition->setText("Stopping");
+        m_btnStartStopAcquisition->setStyleSheet("background-color: yellow");
         controller.stopAcquisition();
       } else {
+        m_btnStartStopAcquisition->setText("Starting");
         QMetaObject::invokeMethod(&controller,
                                   &AcquisitionControllerObj::startAcquisition);
       }

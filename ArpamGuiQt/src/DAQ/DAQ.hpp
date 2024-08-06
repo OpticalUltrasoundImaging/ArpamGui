@@ -52,6 +52,8 @@ signals:
   void acquisitionStarted();
   void acquisitionStopped();
 
+  void finishedAcquiringBinfile(fs::path);
+
 public slots:
 
   // Acquire `buffersToAcquire` buffers (BScans)
@@ -59,6 +61,15 @@ public slots:
 
   // Signal the acquisition thread to exit.
   void stopAcquisition() { shouldStopAcquiring = true; }
+
+  void finishAcquisition() {
+    if (m_fs.is_open()) {
+      // Close file handle
+      m_fs.close();
+
+      emit finishedAcquiringBinfile(m_lastBinfile);
+    }
+  }
 
   // Set whether to save raw data or not.
   void setSaveData(bool save) { m_saveData = save; }
@@ -85,6 +96,7 @@ private:
   bool m_saveData{true};
   std::fstream m_fs;
   fs::path m_savedir;
+  fs::path m_lastBinfile;
 };
 
 } // namespace daq
