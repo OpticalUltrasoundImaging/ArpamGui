@@ -108,6 +108,8 @@ MainWindow::MainWindow(QWidget *parent)
         dockAnnotations->hide();
         dockAScanPlot->hide();
 
+        dockAcquisitionController->hide();
+
         actViewSimple->setChecked(true);
         actViewExpert->setChecked(false);
 
@@ -128,6 +130,12 @@ MainWindow::MainWindow(QWidget *parent)
         dockAScanPlot->show();
 
         dockReconParams->raise();
+
+#ifdef ARPAM_HAS_ALAZAR
+        dockAcquisitionController->show();
+#else
+        dockAcquisitionController->hide();
+#endif
 
         actViewSimple->setChecked(false);
         actViewExpert->setChecked(true);
@@ -215,8 +223,6 @@ MainWindow::MainWindow(QWidget *parent)
               // Load binfile in frame controller
               m_frameController->acceptBinfile(strpath);
             });
-#else
-    dockFrameController->hide();
 #endif // ARPAM_HAS_ALAZAR
   }
 

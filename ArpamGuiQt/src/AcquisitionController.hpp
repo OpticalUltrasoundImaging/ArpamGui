@@ -10,6 +10,8 @@
 #include <atomic>
 #include <memory>
 
+#ifdef ARPAM_HAS_ALAZAR
+
 class AcquisitionControllerObj : public QObject {
   Q_OBJECT
 public:
@@ -55,6 +57,8 @@ private:
   std::atomic<bool> acquiring{false};
   std::atomic<bool> shouldStop{false};
 };
+
+#endif // ARPAM_HAS_ALAZAR
 
 /*
 This widget acts as the data acquisition control UI

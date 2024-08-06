@@ -40,19 +40,21 @@ auto aboutString() -> QString {
   ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 
   ss << "oneTBB: " << TBB_VERSION_STRING << "\n";
-  ss << "-- Bundled Dependencies\n";
+  ss << "-- Bundled Dependencies\n\n";
 
   ss << "-- Data acquisition interface\n";
 #ifdef ARPAM_HAS_ALAZAR
   ss << daq::getDAQInfo();
 #else
-  ss << "No Alazar support.\n";
+  ss << "No DAQ support.\n";
 #endif
   ss << "-- Data acquisition interface\n\n";
 
   ss << "-- Motor control interface\n";
 #ifdef ARPAM_HAS_NI
   ss << motor::getNIDAQInfo();
+#else
+  ss << "No motor control support.\n";
 #endif
   ss << "-- Motor control interface\n";
 
