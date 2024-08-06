@@ -220,7 +220,6 @@ void FrameController::acceptBinfile(const QString &filename) {
     loadFrameAnnotationsFromDocToModel(frameNum());
   } else {
     m_doc.init();
-    m_doc.writeToFile(m_annoPath);
   }
 }
 

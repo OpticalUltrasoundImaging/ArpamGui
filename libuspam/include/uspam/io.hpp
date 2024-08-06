@@ -11,6 +11,7 @@
 #include <rapidjson/document.h>
 #include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace uspam::io {
@@ -112,6 +113,13 @@ void copyRFWithScaling(const arma::Mat<Tin> &bufIn, arma::Mat<Tout> &rf)
   }
 }
 
+inline bool isPrefix(std::string_view prefix, const std::string_view str) {
+  if (prefix.size() > str.size()) {
+    return false;
+  }
+  return std::equal(prefix.begin(), prefix.end(), str.begin());
+}
+
 template <typename TypeInBin> class BinfileLoader {
 public:
   BinfileLoader() = default;
@@ -137,9 +145,15 @@ public:
     }
     m_scanIdx = 0;
     const std::streamsize fsize = m_file.tellg();
+
+    if (isPrefix("ARPAM", filename.stem().string())) {
+      this->m_byteOffset = 0;
+    }
+
     m_numScans = (fsize - this->m_byteOffset) / scanSizeBytes();
     m_file.seekg(this->m_byteOffset, std::ios::beg);
   }
+
   [[nodiscard]] bool isOpen() const { return m_file.is_open(); }
   void close() {
     m_file.close();

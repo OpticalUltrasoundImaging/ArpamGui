@@ -445,7 +445,7 @@ bool DAQ::initHardware() {
   emit initHardwareSuccessful();
 
   if (m_saveData) {
-    const auto fname = datetime::datetimeFormat("%H%M%S") + ".bin";
+    const auto fname = "ARPAM" + datetime::datetimeFormat("%H%M%S") + ".bin";
     m_lastBinfile = m_savedir / fname;
     qDebug() << "Save file name fname: " << m_lastBinfile.c_str();
     m_fs = std::fstream(m_lastBinfile, std::ios::out | std::ios::binary);
