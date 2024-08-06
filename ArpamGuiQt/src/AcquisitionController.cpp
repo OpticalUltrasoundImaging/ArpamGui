@@ -1,6 +1,4 @@
 #include "AcquisitionController.hpp"
-#include <qnamespace.h>
-#include <qobjectdefs.h>
 
 #ifdef ARPAM_HAS_ALAZAR
 
@@ -18,9 +16,7 @@ AcquisitionControllerObj::AcquisitionControllerObj(
     : m_daq(buffer) {}
 
 void AcquisitionControllerObj::startAcquisitionLoop() {
-  shouldStop = false;
   acquiring = true;
-  defer { acquiring = false; };
 
   // Init DAQ board
   // Call the method directly to make sure sequential
@@ -34,7 +30,7 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
     emit acquisitionStarted();
 
     const auto maxFramePairs = 100;
-    for (int i = 0; i < maxFramePairs && !shouldStop; ++i) {
+    for (int i = 0; i < maxFramePairs && acquiring; ++i) {
       const int maxIdx = (i + 1) * 2;
       emit maxIndexChanged(maxIdx);
 
@@ -64,6 +60,8 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
     emit error(m_daq.errMsg());
     qCritical() << "Acquisition failed: " << m_daq.errMsg();
   }
+
+  acquiring = true;
   m_daq.finishAcquisition();
   emit acquisitionFinished();
 }

@@ -31,7 +31,7 @@ public:
 
   bool isAcquiring() const { return acquiring; }
   void startAcquisitionLoop();
-  void stopAcquisitionLoop() { shouldStop = true; };
+  void stopAcquisitionLoop() { acquiring = false; };
 
 signals:
   void acquisitionStarted();
@@ -47,7 +47,6 @@ private:
   daq::DAQ m_daq;
 
   std::atomic<bool> acquiring{false};
-  std::atomic<bool> shouldStop{false};
 };
 
 #endif // ARPAM_HAS_ALAZAR
