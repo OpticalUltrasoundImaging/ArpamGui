@@ -1,12 +1,18 @@
 #include "AcquisitionController.hpp"
+#include <qgridlayout.h>
+#include <qmessagebox.h>
+#include <qpushbutton.h>
 
 #ifdef ARPAM_HAS_ALAZAR
 
 #include "Motor/NI.hpp"
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QVBoxLayout>
 #include <Qt>
 #include <uspam/defer.h>
@@ -32,7 +38,7 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
   if (daqSuccess) {
     emit acquisitionStarted();
 
-    const auto maxFramePairs = 100;
+    const auto maxFramePairs = (m_maxFrames + 1) / 2;
 
     for (int pairsCompleted = 0; pairsCompleted < maxFramePairs && acquiring;
          ++pairsCompleted) {
@@ -112,8 +118,12 @@ AcquisitionController::AcquisitionController(
     const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
     : controller(buffer),
 
+      m_actShowMotorTestPanel(new QAction("Motor Test Panel")),
+
       m_btnStartStopAcquisition(new QPushButton("Start")),
-      m_btnSaveDisplay(new QPushButton("Saving"))
+      m_btnSaveDisplay(new QPushButton("Saving")), m_spMaxFrames(new QSpinBox),
+
+      m_motorTestGB(new QGroupBox("Motor testing"))
 
 {
   controller.moveToThread(&controllerThread);
@@ -122,23 +132,30 @@ AcquisitionController::AcquisitionController(
   auto *layout = new QVBoxLayout;
   setLayout(layout);
 
+  auto *acqGrid = new QGridLayout;
+  layout->addLayout(acqGrid);
+
   // Acquisition start/stop button
   // Save/display button
   {
-    layout->addWidget(m_btnStartStopAcquisition);
+    acqGrid->addWidget(m_btnStartStopAcquisition, 0, 0);
     m_btnStartStopAcquisition->setStyleSheet("background-color: green");
 
     connect(m_btnStartStopAcquisition, &QPushButton::clicked, this, [this]() {
       m_btnStartStopAcquisition->setEnabled(false);
-
       m_btnSaveDisplay->setEnabled(false);
+      m_spMaxFrames->setEnabled(false);
+
       m_motorTestGB->setEnabled(false);
 
       if (controller.isAcquiring()) {
+
         m_btnStartStopAcquisition->setText("Stopping");
         m_btnStartStopAcquisition->setStyleSheet("background-color: yellow");
         controller.stopAcquisitionLoop();
+
       } else {
+
         m_btnStartStopAcquisition->setText("Starting");
         QMetaObject::invokeMethod(
             &controller, &AcquisitionControllerObj::startAcquisitionLoop);
@@ -157,6 +174,7 @@ AcquisitionController::AcquisitionController(
       m_btnStartStopAcquisition->setStyleSheet("background-color: green");
 
       m_btnSaveDisplay->setEnabled(true);
+      m_spMaxFrames->setEnabled(true);
       m_motorTestGB->setEnabled(true);
     };
 
@@ -170,45 +188,85 @@ AcquisitionController::AcquisitionController(
             [this](const QString &msg) {
               QMessageBox::information(this, "Acquisition controller", msg);
             });
-
-    {
-      layout->addWidget(m_btnSaveDisplay);
-
-      m_btnSaveDisplay->setCheckable(true);
-      m_btnSaveDisplay->setChecked(true);
-
-      connect(m_btnSaveDisplay, &QPushButton::clicked, this,
-              [this](bool checked) {
-                if (checked) {
-                  m_btnSaveDisplay->setText("Saving");
-                  controller.daq().setSaveData(true);
-                } else {
-                  m_btnSaveDisplay->setText("Display only");
-                  controller.daq().setSaveData(false);
-                }
-              });
-    }
   }
 
-  // Motor test buttons
+  // Button to toggle between saving/display only
   {
-    m_motorTestGB = new QGroupBox("Motor testing");
-    layout->addWidget(m_motorTestGB);
+    acqGrid->addWidget(m_btnSaveDisplay, 0, 1);
 
+    m_btnSaveDisplay->setCheckable(true);
+
+    connect(m_btnSaveDisplay, &QPushButton::toggled, this,
+            [this](bool checked) {
+              if (checked) {
+                m_btnSaveDisplay->setText("Saving");
+                m_btnSaveDisplay->setStyleSheet("background-color: green");
+
+                controller.daq().setSaveData(true);
+              } else {
+                m_btnSaveDisplay->setText("Display only");
+                m_btnSaveDisplay->setStyleSheet("");
+
+                controller.daq().setSaveData(false);
+              }
+            });
+    m_btnSaveDisplay->setChecked(true);
+  }
+
+  // Spinbox to set maxFrames
+  {
+    auto *lbl = new QLabel("Max frames");
+    acqGrid->addWidget(lbl, 1, 0);
+
+    acqGrid->addWidget(m_spMaxFrames, 1, 1);
+
+    m_spMaxFrames->setMinimum(2);
+    m_spMaxFrames->setMaximum(200);
+    m_spMaxFrames->setSingleStep(1);
+
+    m_spMaxFrames->setValue(controller.maxFrames());
+
+    connect(m_spMaxFrames, &QSpinBox::valueChanged, &controller,
+            &AcquisitionControllerObj::setMaxFrames);
+  }
+
+  // Motor test panel
+  {
+    m_actShowMotorTestPanel->setCheckable(true);
+    m_actShowMotorTestPanel->setChecked(false);
+    connect(m_actShowMotorTestPanel, &QAction::triggered, this,
+            [this](bool checked) { m_motorTestGB->setVisible(checked); });
+    m_motorTestGB->setVisible(false);
+  }
+
+  {
+    layout->addWidget(m_motorTestGB);
     auto *hlayout = new QHBoxLayout;
     m_motorTestGB->setLayout(hlayout);
     {
       auto *btn = new QPushButton("Clockwise");
       hlayout->addWidget(btn);
 
-      connect(btn, &QPushButton::pressed, this,
-              [this] { controller.motor().moveClockwise(); });
+      connect(btn, &QPushButton::pressed, this, [this] {
+        const auto success = controller.motor().moveClockwise();
+        if (!success) {
+          QMessageBox::information(
+              this, "Motor",
+              QString::fromLocal8Bit(controller.motor().errMsg()));
+        }
+      });
     }
     {
       auto *btn = new QPushButton("Anticlockwise");
       hlayout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, this,
-              [this] { controller.motor().moveAnticlockwise(); });
+      connect(btn, &QPushButton::pressed, this, [this] {
+        const auto success = controller.motor().moveAnticlockwise();
+        if (!success) {
+          QMessageBox::information(
+              this, "Motor",
+              QString::fromLocal8Bit(controller.motor().errMsg()));
+        }
+      });
     }
   }
 };

@@ -3,8 +3,10 @@
 #include "Common.hpp"
 #include "DAQ/DAQ.hpp"
 #include "Motor/NI.hpp"
+#include <QAction>
 #include <QGroupBox>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QThread>
 #include <QWidget>
 #include <RFBuffer.hpp>
@@ -33,6 +35,11 @@ public:
   void startAcquisitionLoop();
   void stopAcquisitionLoop() { acquiring = false; };
 
+  [[nodiscard]] auto maxFrames() const { return m_maxFrames; }
+
+public slots:
+  void setMaxFrames(int val) { m_maxFrames = val; }
+
 signals:
   void acquisitionStarted();
   void acquisitionFinished();
@@ -44,6 +51,8 @@ signals:
 private:
   motor::MotorNI m_motor;
   daq::DAQ m_daq;
+
+  int m_maxFrames{200};
 
   std::atomic<bool> acquiring{false};
 };
@@ -64,6 +73,8 @@ public:
   AcquisitionController &operator=(AcquisitionController &&) = delete;
   ~AcquisitionController() override;
 
+  auto actShowMotorTestPanel() const { return m_actShowMotorTestPanel; }
+
 #ifdef ARPAM_HAS_ALAZAR
 
   void startAcquisitionBackAndForth();
@@ -71,9 +82,14 @@ public:
   AcquisitionControllerObj controller;
   QThread controllerThread;
 
+  // Actions
+  QAction *m_actShowMotorTestPanel;
+
   // UI
   QPushButton *m_btnStartStopAcquisition;
   QPushButton *m_btnSaveDisplay;
+
+  QSpinBox *m_spMaxFrames;
 
   QGroupBox *m_motorTestGB;
 };

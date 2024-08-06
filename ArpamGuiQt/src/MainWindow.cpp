@@ -246,6 +246,11 @@ MainWindow::MainWindow(QWidget *parent)
               qInfo() << msg;
               statusBar()->showMessage(msg);
             });
+
+    {
+      auto *act = acquisitionController->actShowMotorTestPanel();
+      m_viewMenu->addAction(act);
+    }
 #endif // ARPAM_HAS_ALAZAR
   }
 
