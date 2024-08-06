@@ -3,7 +3,7 @@
 #include <QString>
 #include <QtLogging>
 
-void RFProducerFile::setBinpath(const fs::path &binfile) {
+void RFProducerFile::setBinfile(const fs::path &binfile) {
   try {
     // Init loader
     m_loader.setParams(m_ioparams);
@@ -19,6 +19,11 @@ void RFProducerFile::setBinpath(const fs::path &binfile) {
     qCritical() << msg;
     emit messageDialog(msg);
   }
+}
+
+void RFProducerFile::closeBinfile() {
+  stopProducing();
+  m_loader.close();
 }
 
 void RFProducerFile::beginProducing() {

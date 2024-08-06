@@ -35,6 +35,7 @@ public slots:
 
   // Accept a binfile
   void acceptBinfile(const QString &filename);
+  void closeBinfile();
 
   [[nodiscard]] int frameNum() const;
   void setFrameNum(int frameNum);
@@ -54,12 +55,11 @@ signals:
   void message(QString);
   void statusMessage(QString message, int timeout = 0);
   void sigBinfileSelected(QString);
-  void sigPlay();
-  void sigPause();
   void sigFrameNumUpdated(int);
 
 public:
-  auto get_actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
+  auto actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
+  auto actCloseBinfile() { return m_actCloseBinfile; }
 
 private:
   bool saveFrameAnnotationsFromModelToDoc(int frame);
@@ -88,6 +88,8 @@ private:
   // Actions
   QMenu *m_menu;
   QAction *m_actOpenFileSelectDialog;
+  QAction *m_actCloseBinfile;
+
   QAction *m_actPlayPause;
   QAction *m_actNextFrame;
   QAction *m_actPrevFrame;

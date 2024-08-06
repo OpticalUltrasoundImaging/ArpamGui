@@ -181,7 +181,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // dockLayout->addWidget(m_frameController);
     dockFrameController->setWidget(m_frameController);
-    m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
+
+    m_fileMenu->addAction(m_frameController->actOpenFileSelectDialog());
+    m_fileMenu->addAction(m_frameController->actCloseBinfile());
+
     m_viewMenu->addAction(dockFrameController->toggleViewAction());
 
     connect(m_frameController, &FrameController::message, this,
@@ -230,6 +233,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&acquisitionController->controller,
             &AcquisitionControllerObj::acquisitionStarted,
             [this, acquisitionController] {
+              // Disable frame controller
+              m_frameController->setEnabled(false);
+
+              // Status message about save/display
               const auto &path =
                   acquisitionController->controller.daq().binpath();
 

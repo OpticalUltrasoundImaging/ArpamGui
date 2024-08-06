@@ -44,6 +44,8 @@ FrameController::FrameController(
 
       m_menu(new QMenu("Frames", this)),
       m_actOpenFileSelectDialog(new QAction("Open binfile")),
+      m_actCloseBinfile(new QAction("Close binfile")),
+
       m_actPlayPause(new QAction("Play/Pause")),
       m_actNextFrame(new QAction("Next Frame")),
       m_actPrevFrame(new QAction("Prev Frame"))
@@ -54,6 +56,11 @@ FrameController::FrameController(
   m_actOpenFileSelectDialog->setShortcut({Qt::CTRL | Qt::Key_O});
   connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
           &FrameController::openFileSelectDialog);
+
+  m_actCloseBinfile->setEnabled(false);
+  m_actCloseBinfile->setShortcut(Qt::CTRL | Qt::Key_W);
+  connect(m_actCloseBinfile, &QAction::triggered, this,
+          &FrameController::closeBinfile);
 
   // UI
   auto *vlayout = new QVBoxLayout;
@@ -125,7 +132,7 @@ FrameController::FrameController(
 
               // Worker: load file
               QMetaObject::invokeMethod(m_producerFile,
-                                        &RFProducerFile::setBinpath, path);
+                                        &RFProducerFile::setBinfile, path);
 
               // Update canvas dipslay
               {
@@ -140,20 +147,9 @@ FrameController::FrameController(
     connect(this, &FrameController::sigFrameNumUpdated, rfProducerFile,
             &RFProducerFile::produceOne);
 
-    // Signal to start playing
-    connect(this, &FrameController::sigPlay, this, [this] {
-      // Invoke worker::play in the worker thread
-      QMetaObject::invokeMethod(m_producerFile,
-                                &RFProducerFile::beginProducing);
-      m_coregDisplay->resetZoomOnNextImshow();
-    });
-
-    // Signal to pause playing
-    connect(this, &FrameController::sigPause, this,
-            [&] { m_producerFile->stopProducing(); });
-
     connect(m_producerFile, &RFProducerFile::maxFramesChanged, this,
             &FrameController::setMaxFrameNum);
+
     connect(m_producerFile, &RFProducerFile::maxFramesChanged, m_coregDisplay,
             &CoregDisplay::setMaxIdx);
 
@@ -202,6 +198,7 @@ void FrameController::openFileSelectDialog() {
 
 void FrameController::acceptBinfile(const QString &filename) {
   // Update GUI
+  setEnabled(true);
   updatePlayingState(false);
 
   // Emit signal
@@ -221,6 +218,26 @@ void FrameController::acceptBinfile(const QString &filename) {
   } else {
     m_doc.init();
   }
+
+  m_btnPlayPause->setEnabled(true);
+  m_frameSlider->setEnabled(true);
+  m_menu->setEnabled(true);
+
+  m_actCloseBinfile->setEnabled(true);
+}
+
+void FrameController::closeBinfile() {
+  m_producerFile->stopProducing();
+  m_producerFile->closeBinfile();
+
+  m_binPath.clear();
+  m_annoPath.clear();
+
+  m_btnPlayPause->setEnabled(false);
+  m_frameSlider->setEnabled(false);
+  m_menu->setEnabled(false);
+
+  m_actCloseBinfile->setEnabled(false);
 }
 
 int FrameController::frameNum() const {
@@ -249,10 +266,6 @@ void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   m_frameSlider->setMinimum(0);
   m_frameSlider->setMaximum(maxFrameNum - 1);
-
-  m_btnPlayPause->setEnabled(true);
-  m_frameSlider->setEnabled(true);
-  m_menu->setEnabled(true);
 }
 
 void FrameController::updatePlayingState(bool playing) {
@@ -264,11 +277,16 @@ void FrameController::updatePlayingState(bool playing) {
   if (playing) {
     // Now playing
     m_btnPlayPause->setText("Pause");
-    emit sigPlay();
+
+    // Invoke worker::play in the worker thread
+    QMetaObject::invokeMethod(m_producerFile, &RFProducerFile::beginProducing);
+    m_coregDisplay->resetZoomOnNextImshow();
+
   } else {
     // Now pausing
     m_btnPlayPause->setText("Play");
-    emit sigPause();
+
+    m_producerFile->stopProducing();
   }
 }
 
