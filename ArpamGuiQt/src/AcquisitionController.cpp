@@ -24,11 +24,11 @@ AcquisitionControllerObj::AcquisitionControllerObj(
     m_daqThread.start();
   }
   m_motor->setParent(this);
-
-  dumpObjectTree();
 }
 
-void AcquisitionControllerObj::startAcquisition() {
+void AcquisitionControllerObj::startAcquisitionLoop() {
+  emit acquisitionStarted();
+
   shouldStop = false;
   acquiring = true;
   defer { acquiring = false; };
@@ -53,6 +53,7 @@ void AcquisitionControllerObj::startAcquisition() {
 
   m_daq->stopAcquisition();
   QMetaObject::invokeMethod(m_daq, &daq::DAQ::finishAcquisition);
+  emit acquisitionFinished();
 }
 
 AcquisitionController::AcquisitionController(
@@ -65,19 +66,15 @@ AcquisitionController::AcquisitionController(
   controller.moveToThread(&controllerThread);
   controllerThread.start(QThread::HighPriority);
 
-  connect(
-      controller.daq(), &daq::DAQ::messageBox, this,
-      [this](const QString &msg) {
-        QMessageBox::information(this, "DAQ Info", msg);
-      },
-      Qt::BlockingQueuedConnection);
+  connect(controller.daq(), &daq::DAQ::messageBox, this,
+          [this](const QString &msg) {
+            QMessageBox::information(this, "DAQ Info", msg);
+          });
 
-  connect(
-      controller.motor(), &motor::MotorNI::messageBox, this,
-      [this](const QString &msg) {
-        QMessageBox::information(this, "MotorNI Info", msg);
-      },
-      Qt::BlockingQueuedConnection);
+  connect(controller.motor(), &motor::MotorNI::messageBox, this,
+          [this](const QString &msg) {
+            QMessageBox::information(this, "MotorNI Info", msg);
+          });
   /*
   UI
   */
@@ -94,25 +91,33 @@ AcquisitionController::AcquisitionController(
       if (controller.isAcquiring()) {
         m_btnStartStopAcquisition->setText("Stopping");
         m_btnStartStopAcquisition->setStyleSheet("background-color: yellow");
-        controller.stopAcquisition();
+        controller.stopAcquisitionLoop();
       } else {
         m_btnStartStopAcquisition->setText("Starting");
-        QMetaObject::invokeMethod(&controller,
-                                  &AcquisitionControllerObj::startAcquisition);
+        QMetaObject::invokeMethod(
+            &controller, &AcquisitionControllerObj::startAcquisitionLoop);
       }
     });
 
-    connect(controller.daq(), &daq::DAQ::acquisitionStarted, this, [this]() {
-      // m_btnStartStopAcquisition->setEnabled(true);
+    const auto btnStateRunning = [this] {
+      m_btnStartStopAcquisition->setEnabled(true);
       m_btnStartStopAcquisition->setText("Stop");
       m_btnStartStopAcquisition->setStyleSheet("background-color: red");
-    });
-
-    connect(controller.daq(), &daq::DAQ::acquisitionStopped, this, [this]() {
+    };
+    const auto btnStateStopped = [this] {
       m_btnStartStopAcquisition->setEnabled(true);
       m_btnStartStopAcquisition->setText("Start");
       m_btnStartStopAcquisition->setStyleSheet("background-color: green");
-    });
+    };
+
+    connect(&controller, &AcquisitionControllerObj::acquisitionStarted, this,
+            [btnStateRunning]() { btnStateRunning(); });
+
+    connect(&controller, &AcquisitionControllerObj::acquisitionFinished, this,
+            [btnStateStopped]() { btnStateStopped(); });
+
+    connect(controller.daq(), &daq::DAQ::acquisitionFailed, this,
+            [this] { controller.stopAcquisitionLoop(); });
   }
 
   // Motor test buttons
@@ -145,7 +150,7 @@ AcquisitionController::AcquisitionController(
 
 AcquisitionController::~AcquisitionController() {
   if (controllerThread.isRunning()) {
-    controller.stopAcquisition();
+    controller.stopAcquisitionLoop();
     controllerThread.quit();
     controllerThread.wait();
   }

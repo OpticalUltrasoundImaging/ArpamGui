@@ -39,10 +39,14 @@ public:
   [[nodiscard]] auto motor() const { return m_motor; }
 
   bool isAcquiring() const { return acquiring; }
-  void startAcquisition();
-  void stopAcquisition() { shouldStop = true; };
+  void startAcquisitionLoop();
+  void stopAcquisitionLoop() { shouldStop = true; };
 
 signals:
+  void acquisitionStarted();
+  void acquisitionFinished();
+  void acquisitionFailed();
+
   void maxIndexChanged(int);
 
 private:

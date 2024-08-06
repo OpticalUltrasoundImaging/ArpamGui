@@ -552,11 +552,6 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset) {
   // Arm the board system to wait for a trigger event to begin acquisition
   ALAZAR_CALL(AlazarStartCapture(board));
 
-  defer {
-    // Abort the acquisition
-    ALAZAR_CALL(AlazarAbortAsyncRead(board));
-  };
-
   if (success) {
     qInfo("Capturing %d buffers ...", buffersPerAcquisition);
 
@@ -667,11 +662,10 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset) {
       }
       }
 
-      // Add the buffer to the end of the list of available buffers.
-      ALAZAR_CALL(AlazarPostAsyncBuffer(board, pBuffer, bytesPerBuffer));
-
-      // If the acquisition failed, exit the acquisition loop
-      BREAK_IF_FAIL();
+      if (!success) {
+        emit acquisitionFailed();
+        break;
+      }
 
       // Check for condition to stop acquiring
       if (shouldStopAcquiring) {
@@ -681,10 +675,16 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset) {
         break;
       }
 
+      // Add the buffer to the end of the list of available buffers.
+      ALAZAR_CALL(AlazarPostAsyncBuffer(board, pBuffer, bytesPerBuffer));
+
       // Display progress
       // qInfo("Completed %u buffers", buffersCompleted);
     }
   }
+
+  // Abort the acquisition
+  ALAZAR_CALL(AlazarAbortAsyncRead(board));
 
   return true;
 }

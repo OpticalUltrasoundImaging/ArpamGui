@@ -51,6 +51,7 @@ signals:
 
   void acquisitionStarted();
   void acquisitionStopped();
+  void acquisitionFailed();
 
   void finishedAcquiringBinfile(fs::path);
 
