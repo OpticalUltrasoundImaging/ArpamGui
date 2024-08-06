@@ -231,23 +231,19 @@ int FrameController::frameNum() const {
 void FrameController::setFrameNum(int frame) {
   const auto oldFrame = frameNum();
   // Save old frames's labels
-  saveFrameAnnotationsFromModelToDoc(oldFrame);
+  if (saveFrameAnnotationsFromModelToDoc(oldFrame)) {
+    // If any annotations are present, save doc to file
+    m_doc.writeToFile(m_annoPath);
+  }
 
   // Load labels for new frame
   loadFrameAnnotationsFromDocToModel(frame);
 
-  // Save doc to file
-  m_doc.writeToFile(m_annoPath);
-
   // Update GUI
-  // m_frameNumSpinBox->setValue(frame);
   m_frameSlider->setValue(frame);
 }
 
-int FrameController::maxFrameNum() const {
-  // const auto val = m_frameNumSpinBox->maximum();
-  return m_frameSlider->maximum();
-}
+int FrameController::maxFrameNum() const { return m_frameSlider->maximum(); }
 
 void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
@@ -297,9 +293,14 @@ void FrameController::prevFrame() {
   }
 }
 
-void FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
-  auto *model = m_coregDisplay->model();
-  m_doc.setAnnotationForFrame(frame, model->annotations());
+bool FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
+  const auto *model = m_coregDisplay->model();
+  const auto &annotations = model->annotations();
+  if (!annotations.isEmpty()) {
+    m_doc.setAnnotationForFrame(frame, annotations);
+    return true;
+  }
+  return false;
 }
 
 void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {

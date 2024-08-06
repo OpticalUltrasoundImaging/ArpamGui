@@ -62,7 +62,7 @@ public:
   auto get_actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
 
 private:
-  void saveFrameAnnotationsFromModelToDoc(int frame);
+  bool saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
 
   // RF producers
