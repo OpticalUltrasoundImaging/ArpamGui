@@ -197,10 +197,10 @@ void FrameController::openFileSelectDialog() {
   const QString filename = QFileDialog::getOpenFileName(
       this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
 
-  acceptNewBinfile(filename);
+  acceptBinfile(filename);
 }
 
-void FrameController::acceptNewBinfile(const QString &filename) {
+void FrameController::acceptBinfile(const QString &filename) {
   // Update GUI
   updatePlayingState(false);
 

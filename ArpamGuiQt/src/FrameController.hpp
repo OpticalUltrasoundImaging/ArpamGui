@@ -34,7 +34,7 @@ public slots:
   void openFileSelectDialog();
 
   // Accept a binfile
-  void acceptNewBinfile(const QString &filename);
+  void acceptBinfile(const QString &filename);
 
   [[nodiscard]] int frameNum() const;
   void setFrameNum(int frameNum);

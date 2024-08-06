@@ -213,7 +213,7 @@ MainWindow::MainWindow(QWidget *parent)
               }
 
               // Load binfile in frame controller
-              m_frameController->acceptNewBinfile(strpath);
+              m_frameController->acceptBinfile(strpath);
             });
 #else
     dockFrameController->hide();
@@ -353,7 +353,7 @@ void MainWindow::dropEvent(QDropEvent *event) {
   if (mimeData->hasUrls()) {
     const auto &urls = mimeData->urls();
     const auto filepath = urls[0].toLocalFile();
-    m_frameController->acceptNewBinfile(filepath);
+    m_frameController->acceptBinfile(filepath);
 
     event->acceptProposedAction();
   }
