@@ -95,7 +95,7 @@ private:
   // File pointer
   bool m_saveData{true};
   std::fstream m_fs;
-  fs::path m_savedir;
+  fs::path m_savedir{"F:/ARPAM/"};
   fs::path m_lastBinfile;
 };
 
