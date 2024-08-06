@@ -11,6 +11,7 @@
   do {                                                                         \
     ret = fn;                                                                  \
     if (DAQmxFailed(ret)) {                                                    \
+      success = false;                                                         \
       DAQmxGetExtendedErrorInfo(errBuf, sizeof(errBuf));                       \
       qCritical("Error: %s failed -- Code %d, %s\n", #fn, ret, errBuf);        \
     }                                                                          \
@@ -22,10 +23,20 @@ std::string motor::getNIDAQInfo() {
   uInt32 vPatch = 0;
   int32_t ret = 0;
   char errBuf[1024] = {'\0'};
+  bool success = true;
 
   DAQMX_CALL(DAQmxGetSysNIDAQMajorVersion(&vMajor));
+  if (!success) {
+    return errBuf;
+  }
   DAQMX_CALL(DAQmxGetSysNIDAQMinorVersion(&vMinor));
+  if (!success) {
+    return errBuf;
+  }
   DAQMX_CALL(DAQmxGetSysNIDAQUpdateVersion(&vPatch));
+  if (!success) {
+    return errBuf;
+  }
 
   auto s = fmt::format("NIDAQ version {}.{}.{}\n", vMajor, vMinor, vPatch);
   return s;
@@ -53,49 +64,64 @@ void squareWave(std::span<double> data, int sampleRate, double amplitude,
 
 } // namespace
 
-void motor::MotorNI::prepareMove() {
+bool motor::MotorNI::prepareMove() {
+  errBuf[0] = '\0';
+  bool success = true;
+
   // Create a Task and Virtual Channels
   DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
-  // Create AO voltage channel
-  const char *physicalChannel = "Dev1/ao0";
-  constexpr float64 minVal = 0.0;
-  constexpr float64 maxVal = 5.0;
-  constexpr int32 units = DAQmx_Val_Volts;
-  DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "", minVal,
-                                      maxVal, units, nullptr));
+  if (success) {
+
+    // Create AO voltage channel
+    const char *physicalChannel = "Dev1/ao0";
+    constexpr float64 minVal = 0.0;
+    constexpr float64 maxVal = 5.0;
+    constexpr int32 units = DAQmx_Val_Volts;
+    DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "", minVal,
+                                        maxVal, units, nullptr));
+  }
 
   // Sampling options
   constexpr float64 sampleRate =
       1e6; //  sampling rate in samples/sec per channel
   constexpr uInt64 sampsPerChan =
       1e6; // num samples to acquire/generate for each channel
-  constexpr auto activeEdge = DAQmx_Val_Rising;
-  constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
 
-  DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", sampleRate, activeEdge,
-                                   sampleMode, sampsPerChan));
-
-  const float32 timeout =
-      10; // Time (s) to wait for the function to read/write all the samples
-  const bool32 autoStart = 0; // Whether or not this function automatically
-                              // starts the task if you do not start it
-  const bool32 dataLayout =
-      DAQmx_Val_GroupByChannel; // How data is arranged. Interleaved or
-                                // noninterleaved
-  if (data.size() != sampsPerChan) {
-    data.resize(sampsPerChan);
-    squareWave(data, 1600, 2.5, 2.5, 0.5);
+  if (success) {
+    constexpr auto activeEdge = DAQmx_Val_Rising;
+    constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
+    DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", sampleRate, activeEdge,
+                                     sampleMode, sampsPerChan));
   }
 
-  DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
-                                 dataLayout, data.data(), nullptr, nullptr));
+  if (success) {
+    const float32 timeout =
+        10; // Time (s) to wait for the function to read/write all the samples
+    const bool32 autoStart = 0; // Whether or not this function automatically
+                                // starts the task if you do not start it
+    const bool32 dataLayout =
+        DAQmx_Val_GroupByChannel; // How data is arranged. Interleaved or
+                                  // noninterleaved
+    if (data.size() != sampsPerChan) {
+      data.resize(sampsPerChan);
+      squareWave(data, 1600, 2.5, 2.5, 0.5);
+    }
+
+    DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
+                                   dataLayout, data.data(), nullptr, nullptr));
+  }
+  return success;
 }
 
-void motor::MotorNI::startMoveAsync() {
+bool motor::MotorNI::startMoveAsync() {
+  bool success = true;
   DAQMX_CALL(DAQmxStartTask(taskHandle));
+  return success;
 }
 
-void motor::MotorNI::waitUntilMoveEnds() {
+bool motor::MotorNI::waitUntilMoveEnds() {
+  bool success = true;
+
   DAQMX_CALL(DAQmxWaitUntilTaskDone(taskHandle, 2));
 
   // Stop and Clear the Task.
@@ -103,41 +129,44 @@ void motor::MotorNI::waitUntilMoveEnds() {
     DAQmxStopTask(taskHandle);
     DAQmxClearTask(taskHandle);
   }
+  return success;
 }
 
-void motor::MotorNI::moveBlocking() {
+void motor::MotorNI::abortMove() {
+  if (taskHandle != 0) {
+    DAQmxStopTask(taskHandle);
+    DAQmxClearTask(taskHandle);
+  }
+}
+
+bool motor::MotorNI::moveBlocking() {
+  bool success = true;
+
   // Create a Task and Virtual Channels
   DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
 
-  // Create AO voltage channel
-  const char *physicalChannel = "Dev1/ao0";
-  constexpr float64 minVal = 0.0;
-  constexpr float64 maxVal = 5.0;
-  constexpr int32 units = DAQmx_Val_Volts;
-  DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "", minVal,
-                                      maxVal, units, nullptr));
+  if (success) {
+    // Create AO voltage channel
+    const char *physicalChannel = "Dev1/ao0";
+    constexpr float64 minVal = 0.0;
+    constexpr float64 maxVal = 5.0;
+    constexpr int32 units = DAQmx_Val_Volts;
+    DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "", minVal,
+                                        maxVal, units, nullptr));
+  }
 
   // Sampling options
   constexpr float64 sampleRate =
       1e6; //  sampling rate in samples/sec per channel
   constexpr uInt64 sampsPerChan =
       1e6; // num samples to acquire/generate for each channel
-  constexpr auto activeEdge = DAQmx_Val_Rising;
-  constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
+  if (success) {
+    constexpr auto activeEdge = DAQmx_Val_Rising;
+    constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
 
-  DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", sampleRate, activeEdge,
-                                   sampleMode, sampsPerChan));
-
-  // DAQMX_CALL(DAQmxRegisterDoneEvent(
-  //     taskHandle, 0, DAQmxDoneEventCallbackPtr callbackFunction, nullptr));
-
-  // const char *startTriggerSource = "APFI0";
-  // const auto startTriggerSlope = DAQmx_Val_RisingSlope;
-  // const float64 startTriggerLevel =
-  //     0.5; // Threshold at which to start acquiring samples
-  // DAQMX_CALL(DAQmxCfgAnlgEdgeStartTrig(taskHandle, startTriggerSource,
-  //                                      startTriggerSlope,
-  //                                      startTriggerLevel));
+    DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", sampleRate, activeEdge,
+                                     sampleMode, sampsPerChan));
+  }
 
   /**
   Write
@@ -158,34 +187,44 @@ void motor::MotorNI::moveBlocking() {
     squareWave(data, 1600, 2.5, 2.5, 0.5);
   }
 
-  DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
-                                 dataLayout, data.data(), nullptr, nullptr));
+  if (success) {
+    DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
+                                   dataLayout, data.data(), nullptr, nullptr));
+  }
 
   /**
   Start
   */
-  DAQMX_CALL(DAQmxStartTask(taskHandle));
-  DAQMX_CALL(DAQmxWaitUntilTaskDone(taskHandle, 10));
+  if (success) {
+    DAQMX_CALL(DAQmxStartTask(taskHandle));
+    DAQMX_CALL(DAQmxWaitUntilTaskDone(taskHandle, 10));
+  }
 
   // Stop and Clear the Task.
-
   if (taskHandle != 0) {
     DAQmxStopTask(taskHandle);
     DAQmxClearTask(taskHandle);
   }
+  return success;
 }
 
-void motor::MotorNI::setDirection(Direction direction) {
-  void *taskHandle{};
+bool motor::MotorNI::setDirection(Direction direction) {
+  bool success{true};
+  void *taskHandle{}; // Use our own taskHandle here to be safe from interfering
+                      // with async move
 
   // Create a Task and Virtual Channels
   DAQMX_CALL(DAQmxCreateTask("SetMotorDirection", &taskHandle));
 
   // Create DIO channel
-  DAQMX_CALL(DAQmxCreateDOChan(taskHandle, "Dev1/port1", "",
-                               DAQmx_Val_ChanForAllLines));
+  if (success) {
+    DAQMX_CALL(DAQmxCreateDOChan(taskHandle, "Dev1/port1", "",
+                                 DAQmx_Val_ChanForAllLines));
+  }
 
-  DAQMX_CALL(DAQmxStartTask(taskHandle));
+  if (success) {
+    DAQMX_CALL(DAQmxStartTask(taskHandle));
+  }
 
   const float32 timeout =
       10; // Time (s) to wait for the function to read/write all the samples
@@ -196,13 +235,17 @@ void motor::MotorNI::setDirection(Direction direction) {
   // noninterleaved
   const uInt32 data = (direction == Direction::CLOCKWISE) ? 0xffffffff : 0x0;
 
-  DAQMX_CALL(DAQmxWriteDigitalU32(taskHandle, 1, autoStart, timeout, dataLayout,
-                                  &data, nullptr, nullptr));
+  if (success) {
+    DAQMX_CALL(DAQmxWriteDigitalU32(taskHandle, 1, autoStart, timeout,
+                                    dataLayout, &data, nullptr, nullptr));
+  }
 
   if (taskHandle != 0) {
     DAQmxStopTask(taskHandle);
     DAQmxClearTask(taskHandle);
   }
+
+  return success;
 }
 
 // NOLINTEND(*-do-while, *-pointer-decay)

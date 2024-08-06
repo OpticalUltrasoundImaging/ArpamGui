@@ -36,7 +36,6 @@ public:
 signals:
   void acquisitionStarted();
   void acquisitionFinished();
-  void acquisitionFailed();
 
   void maxIndexChanged(int);
 

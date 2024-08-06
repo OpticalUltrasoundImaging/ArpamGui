@@ -36,7 +36,6 @@ steps:
 */
 
 #include <NIDAQmx.h>
-#include <QString>
 #include <QtLogging>
 #include <fmt/core.h>
 #include <string>
@@ -52,40 +51,37 @@ public:
 
   MotorNI() = default;
 
-  void prepareMove();
-  void startMoveAsync();
-  void waitUntilMoveEnds();
+  [[nodiscard]] bool setDirection(Direction direction);
 
-  void setDirection(Direction direction);
+  // Async move
+  [[nodiscard]] bool prepareMove();
+  [[nodiscard]] bool startMoveAsync();
+  [[nodiscard]] bool waitUntilMoveEnds();
+  void abortMove();
 
-  void moveBlocking();
+  // Blocking move
+  [[nodiscard]] bool moveBlocking();
 
-  void moveClockwise() {
-    setDirection(Direction::CLOCKWISE);
-    moveBlocking();
+  [[nodiscard]] bool moveClockwise() {
+    return setDirection(Direction::CLOCKWISE) && moveBlocking();
   }
 
-  void moveAnticlockwise() noexcept {
-    setDirection(Direction::ANTICLOCKWISE);
-    moveBlocking();
+  [[nodiscard]] bool moveAnticlockwise() noexcept {
+    return setDirection(Direction::ANTICLOCKWISE) && moveBlocking();
   }
 
-  void moveClockwiseThenAnticlockwise() noexcept {
-    setDirection(Direction::CLOCKWISE);
-    moveBlocking();
-    setDirection(Direction::ANTICLOCKWISE);
-    moveBlocking();
+  [[nodiscard]] bool moveClockwiseThenAnticlockwise() noexcept {
+    return setDirection(Direction::CLOCKWISE) && moveBlocking() &&
+           setDirection(Direction::ANTICLOCKWISE) && moveBlocking();
   }
 
-  [[nodiscard]] auto &errMsg() const noexcept { return m_errMsg; }
+  [[nodiscard]] const char *errMsg() const noexcept { return &errBuf[0]; }
 
 private:
   std::vector<double> data; // Motor control signal
   void *taskHandle{};
   char errBuf[1024] = {'\0'};
   int32_t ret = 0;
-
-  QString m_errMsg;
 };
 
 } // namespace motor

@@ -18,50 +18,92 @@ AcquisitionControllerObj::AcquisitionControllerObj(
 void AcquisitionControllerObj::startAcquisitionLoop() {
   acquiring = true;
 
+  bool daqSuccess = true;
+  bool motorSuccess = true;
+
   // Init DAQ board
   // Call the method directly to make sure sequential
-  bool success = m_daq.initHardware();
+  daqSuccess = m_daq.initHardware();
 
-  if (success) {
-    success = m_daq.prepareAcquisition();
+  if (daqSuccess) {
+    daqSuccess = m_daq.prepareAcquisition();
   }
 
-  if (success) {
+  if (daqSuccess) {
     emit acquisitionStarted();
 
     const auto maxFramePairs = 100;
-    for (int i = 0; i < maxFramePairs && acquiring; ++i) {
-      const int maxIdx = (i + 1) * 2;
+
+    for (int pairsCompleted = 0; pairsCompleted < maxFramePairs && acquiring;
+         ++pairsCompleted) {
+      const int maxIdx = (pairsCompleted + 1) * 2;
       emit maxIndexChanged(maxIdx);
 
-      // Start data acquisition for 2 BScans in DAQ thread
-      const auto motorMoveAsyncCB = [&]() { m_motor.startMoveAsync(); };
+      // Start data acquisition for 2 BScans
+
+      const auto motorMoveAsyncCB = [&]() {
+        motorSuccess = m_motor.startMoveAsync();
+      };
 
       // Scan clockwise
-      m_motor.setDirection(motor::MotorNI::Direction::CLOCKWISE);
-      m_motor.prepareMove();
-      success = m_daq.startAcquisition(1, i * 2, motorMoveAsyncCB);
-      m_motor.waitUntilMoveEnds();
+      {
+        motorSuccess =
+            m_motor.setDirection(motor::MotorNI::Direction::CLOCKWISE) &&
+            m_motor.prepareMove();
+
+        // First motor move failed to prepare, safe to break now.
+        if (!motorSuccess) {
+          break;
+        }
+
+        daqSuccess =
+            m_daq.startAcquisition(1, pairsCompleted * 2, motorMoveAsyncCB);
+        motorSuccess = m_motor.waitUntilMoveEnds();
+      }
 
       // Scan anticlockwise
-      m_motor.setDirection(motor::MotorNI::Direction::ANTICLOCKWISE);
-      m_motor.prepareMove();
-      success = m_daq.startAcquisition(1, i * 2 + 1, motorMoveAsyncCB);
-      m_motor.waitUntilMoveEnds();
+      {
+        motorSuccess =
+            motorSuccess &&
+            m_motor.setDirection(motor::MotorNI::Direction::ANTICLOCKWISE) &&
+            m_motor.prepareMove();
 
-      if (!success) {
+        if (daqSuccess) {
+          daqSuccess = m_daq.startAcquisition(1, pairsCompleted * 2 + 1,
+                                              motorMoveAsyncCB);
+        } else {
+          // Make sure motor turns back even if DAQ failed.
+          motorMoveAsyncCB();
+        }
+
+        motorSuccess = m_motor.waitUntilMoveEnds();
+      }
+
+      if (!daqSuccess || !motorSuccess) {
         break;
       }
     }
   }
 
-  if (!success) {
-    emit acquisitionFailed();
-    emit error(m_daq.errMsg());
-    qCritical() << "Acquisition failed: " << m_daq.errMsg();
+  if (!daqSuccess) {
+    const auto &daqErr = m_daq.errMsg();
+    if (!daqErr.isEmpty()) {
+      emit error(daqErr);
+      qCritical() << "Acquisition failed: " << daqErr;
+    }
   }
 
-  acquiring = true;
+  if (!motorSuccess) {
+    const auto &motorErr = QString::fromLocal8Bit(m_motor.errMsg());
+    if (!motorErr.isEmpty()) {
+      emit error(motorErr);
+      qCritical() << "Acquisition failed: " << motorErr;
+    }
+  }
+
+  m_motor.abortMove(); // Clean up motor handles
+
+  acquiring = false;
   m_daq.finishAcquisition();
   emit acquisitionFinished();
 }
@@ -123,9 +165,6 @@ AcquisitionController::AcquisitionController(
 
     connect(&controller, &AcquisitionControllerObj::acquisitionFinished, this,
             [btnStateStopped]() { btnStateStopped(); });
-
-    connect(&controller, &AcquisitionControllerObj::acquisitionFailed, this,
-            [this] { controller.stopAcquisitionLoop(); });
 
     connect(&controller, &AcquisitionControllerObj::error, this,
             [this](const QString &msg) {
