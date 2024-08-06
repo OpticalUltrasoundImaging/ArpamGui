@@ -65,8 +65,8 @@ auto vectorToStdString(const std::vector<T> &vec) -> std::string {
 // NOLINTBEGIN(*-magic-numbers)
 
 ReconParamsController::ReconParamsController(QWidget *parent)
-    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v1()),
-      ioparams(uspam::io::IOParams::system2024v1()) {
+    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v2GUI()),
+      ioparams(uspam::io::IOParams::system2024v2GUI()) {
   auto *layout = new QVBoxLayout();
   this->setLayout(layout);
 
@@ -328,10 +328,19 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     auto *_layout = new QVBoxLayout;
     layout->addLayout(_layout);
 
-    auto *btn = new QPushButton("Reset params");
-    _layout->addWidget(btn);
-    connect(btn, &QPushButton::pressed, this,
-            &ReconParamsController::resetParams);
+    {
+      auto *btn = new QPushButton("Preset 2024v1 (Labview)");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v1);
+    }
+
+    {
+      auto *btn = new QPushButton("Preset 2024v2 (ArpamGui)");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v2GUI);
+    }
   }
 
   layout->addStretch();
@@ -339,9 +348,14 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   updateGuiFromParams();
 }
 
-void ReconParamsController::resetParams() {
+void ReconParamsController::resetParams2024v1() {
   params = uspam::recon::ReconParams2::system2024v1();
   ioparams = uspam::io::IOParams::system2024v1();
+  updateGuiFromParams();
+}
+void ReconParamsController::resetParams2024v2GUI() {
+  params = uspam::recon::ReconParams2::system2024v2GUI();
+  ioparams = uspam::io::IOParams::system2024v2GUI();
   updateGuiFromParams();
 }
 

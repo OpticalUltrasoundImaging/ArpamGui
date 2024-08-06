@@ -90,8 +90,12 @@ void motor::MotorNI::prepareMove() {
   DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
                                  dataLayout, data.data(), nullptr, nullptr));
 }
-void motor::MotorNI::startMove() { DAQMX_CALL(DAQmxStartTask(taskHandle)); }
-void motor::MotorNI::finishMove() {
+
+void motor::MotorNI::startMoveAsync() {
+  DAQMX_CALL(DAQmxStartTask(taskHandle));
+}
+
+void motor::MotorNI::waitUntilMoveEnds() {
   DAQMX_CALL(DAQmxWaitUntilTaskDone(taskHandle, 2));
 
   // Stop and Clear the Task.

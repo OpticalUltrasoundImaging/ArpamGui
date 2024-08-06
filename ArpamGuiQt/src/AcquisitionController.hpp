@@ -3,12 +3,14 @@
 #include "Common.hpp"
 #include "DAQ/DAQ.hpp"
 #include "Motor/NI.hpp"
+#include <QGroupBox>
 #include <QPushButton>
 #include <QThread>
 #include <QWidget>
 #include <RFBuffer.hpp>
 #include <atomic>
 #include <memory>
+#include <qgroupbox.h>
 
 #ifdef ARPAM_HAS_ALAZAR
 
@@ -22,21 +24,10 @@ public:
   AcquisitionControllerObj &
   operator=(const AcquisitionControllerObj &) = delete;
   AcquisitionControllerObj &operator=(AcquisitionControllerObj &&) = delete;
-  ~AcquisitionControllerObj() {
-    if (m_daqThread.isRunning()) {
-      m_daq->stopAcquisition();
-      m_daqThread.quit();
-      m_daqThread.wait();
-    }
+  ~AcquisitionControllerObj() {}
 
-    // if (m_motorThread.isRunning()) {
-    //   m_motorThread.quit();
-    //   m_motorThread.wait();
-    // }
-  }
-
-  [[nodiscard]] auto daq() const { return m_daq; }
-  [[nodiscard]] auto motor() const { return m_motor; }
+  [[nodiscard]] auto &daq() { return m_daq; }
+  [[nodiscard]] auto &motor() { return m_motor; }
 
   bool isAcquiring() const { return acquiring; }
   void startAcquisitionLoop();
@@ -49,14 +40,11 @@ signals:
 
   void maxIndexChanged(int);
 
-private:
-  // DAQ
-  daq::DAQ *m_daq;
-  QThread m_daqThread;
+  void error(QString);
 
-  // Motor
-  motor::MotorNI *m_motor;
-  // QThread m_motorThread;
+private:
+  motor::MotorNI m_motor;
+  daq::DAQ m_daq;
 
   std::atomic<bool> acquiring{false};
   std::atomic<bool> shouldStop{false};
@@ -86,8 +74,10 @@ public:
   QThread controllerThread;
 
   // UI
-  QPushButton *m_btnInitBoard;
   QPushButton *m_btnStartStopAcquisition;
+  QPushButton *m_btnSaveDisplay;
+
+  QGroupBox *m_motorTestGB;
 };
 
 #else

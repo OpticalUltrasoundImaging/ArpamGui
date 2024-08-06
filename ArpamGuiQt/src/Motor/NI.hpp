@@ -36,7 +36,6 @@ steps:
 */
 
 #include <NIDAQmx.h>
-#include <QObject>
 #include <QString>
 #include <QtLogging>
 #include <fmt/core.h>
@@ -47,18 +46,16 @@ namespace motor {
 
 std::string getNIDAQInfo();
 
-class MotorNI : public QObject {
-  Q_OBJECT
+class MotorNI {
 public:
   enum class Direction { ANTICLOCKWISE = 0, CLOCKWISE };
 
   MotorNI() = default;
 
   void prepareMove();
-  void startMove();
-  void finishMove();
+  void startMoveAsync();
+  void waitUntilMoveEnds();
 
-public slots:
   void setDirection(Direction direction);
 
   void moveBlocking();
@@ -68,26 +65,27 @@ public slots:
     moveBlocking();
   }
 
-  void moveAnticlockwise() {
+  void moveAnticlockwise() noexcept {
     setDirection(Direction::ANTICLOCKWISE);
     moveBlocking();
   }
 
-  void moveClockwiseThenAnticlockwise() {
+  void moveClockwiseThenAnticlockwise() noexcept {
     setDirection(Direction::CLOCKWISE);
     moveBlocking();
     setDirection(Direction::ANTICLOCKWISE);
     moveBlocking();
   }
 
-signals:
-  void messageBox(const QString &msg);
+  [[nodiscard]] auto &errMsg() const noexcept { return m_errMsg; }
 
 private:
   std::vector<double> data; // Motor control signal
   void *taskHandle{};
   char errBuf[1024] = {'\0'};
   int32_t ret = 0;
+
+  QString m_errMsg;
 };
 
 } // namespace motor

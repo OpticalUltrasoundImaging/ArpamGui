@@ -43,10 +43,10 @@ void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout> &output) {
 template <typename Tin, typename Tout>
 void parallel_convert_(const arma::Mat<Tin> &input, arma::Mat<Tout> &output,
                        const Tout alpha = 1, const Tout beta = 0) {
-  const int rows = input.n_rows;
-  const int cols = input.n_cols;
   output.set_size(input.n_rows, input.n_cols);
+  const int cols = input.n_cols;
   cv::parallel_for_(cv::Range(0, cols), [&](const cv::Range &range) {
+    const int rows = input.n_rows;
     for (int col = range.start; col < range.end; ++col) {
       const auto *inptr = input.colptr(col);
       auto *outptr = output.colptr(col);
@@ -63,7 +63,7 @@ void copyRFWithScaling(Tin *bufIn, int sizeIn, arma::Mat<Tout> &rf,
                        int alinesPerBScan, int samplesPerAScan = RF_ALINE_SIZE)
   requires(std::is_floating_point_v<Tout>)
 {
-  assert(samplesPerAScan * alinesPerBScan * sizeof(Tin) == sizeIn);
+  assert(samplesPerAScan * alinesPerBScan == sizeIn);
 
   if (rf.n_rows != samplesPerAScan || rf.n_cols != alinesPerBScan) {
     rf.set_size(RF_ALINE_SIZE, alinesPerBScan);

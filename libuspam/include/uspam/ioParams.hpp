@@ -44,8 +44,14 @@ struct IOParams {
 public:
   [[nodiscard]] auto rf_size_US() const { return rf_size_PA * 2; }
 
-  // System parameters from early 2024
+  // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
+    // NOLINTNEXTLINE(*-magic-numbers)
+    return IOParams{2650, 87, -100, -200, 1};
+  }
+
+  // System parameters from mid 2024 (ArpamGui acquisition)
+  static inline IOParams system2024v2GUI() {
     // NOLINTNEXTLINE(*-magic-numbers)
     return IOParams{2650, 87, -100, -200, 1};
   }

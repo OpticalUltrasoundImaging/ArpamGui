@@ -62,7 +62,9 @@ auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
       uspam::imutil::fliplr_inplace(rf);
 
       // Rotate
-      rf = arma::shift(rf, params.rotateOffset, 1);
+      if (params.rotateOffset != 0) {
+        rf = arma::shift(rf, params.rotateOffset, 1);
+      }
     }
 
     // Truncate the pulser/laser artifact
@@ -147,10 +149,10 @@ void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir);
 
 class Reconstructor {
 public:
-  explicit Reconstructor(
-      const uspam::recon::ReconParams2 &params =
-          uspam::recon::ReconParams2::system2024v1(),
-      const uspam::io::IOParams &ioparams = uspam::io::IOParams::system2024v1())
+  explicit Reconstructor(const uspam::recon::ReconParams2 &params =
+                             uspam::recon::ReconParams2::system2024v2GUI(),
+                         const uspam::io::IOParams &ioparams =
+                             uspam::io::IOParams::system2024v2GUI())
       : m_params(std::move(params)), m_ioparams(ioparams) {}
 
   void recon(BScanData<ArpamFloat> &data) const {

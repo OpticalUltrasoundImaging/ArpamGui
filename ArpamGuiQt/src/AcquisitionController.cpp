@@ -15,79 +15,85 @@
 
 AcquisitionControllerObj::AcquisitionControllerObj(
     const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
-    : m_daq(new daq::DAQ(buffer)), m_motor(new motor::MotorNI) {
-
-  {
-    m_daq->moveToThread(&m_daqThread);
-    connect(&m_daqThread, &QThread::finished, m_daq, &QObject::deleteLater);
-
-    m_daqThread.start();
-  }
-  m_motor->setParent(this);
-}
+    : m_daq(buffer) {}
 
 void AcquisitionControllerObj::startAcquisitionLoop() {
-  emit acquisitionStarted();
-
   shouldStop = false;
   acquiring = true;
   defer { acquiring = false; };
 
   // Init DAQ board
   // Call the method directly to make sure sequential
-  m_daq->initHardware();
-  // QMetaObject::invokeMethod(m_daq, &daq::DAQ::initHardware,
-  //                           Qt::BlockingQueuedConnection);
+  bool success = m_daq.initHardware();
 
-  const auto maxFramePairs = 100;
-  for (int i = 0; i < maxFramePairs && !shouldStop; ++i) {
-    const int maxIdx = (i + 1) * 2;
-    emit maxIndexChanged(maxIdx);
-
-    // Start data acquisition for 2 BScans in DAQ thread
-    QMetaObject::invokeMethod(m_daq, &daq::DAQ::startAcquisition, 2, i * 2);
-
-    // Start motor rotation for 1 back-and-forth rotation in the motor thread
-    m_motor->moveClockwiseThenAnticlockwise();
+  if (success) {
+    success = m_daq.prepareAcquisition();
   }
 
-  m_daq->stopAcquisition();
-  QMetaObject::invokeMethod(m_daq, &daq::DAQ::finishAcquisition);
+  if (success) {
+    emit acquisitionStarted();
+
+    const auto maxFramePairs = 100;
+    for (int i = 0; i < maxFramePairs && !shouldStop; ++i) {
+      const int maxIdx = (i + 1) * 2;
+      emit maxIndexChanged(maxIdx);
+
+      // Start data acquisition for 2 BScans in DAQ thread
+      const auto motorMoveAsyncCB = [&]() { m_motor.startMoveAsync(); };
+
+      // Scan clockwise
+      m_motor.setDirection(motor::MotorNI::Direction::CLOCKWISE);
+      m_motor.prepareMove();
+      success = m_daq.startAcquisition(1, i * 2, motorMoveAsyncCB);
+      m_motor.waitUntilMoveEnds();
+
+      // Scan anticlockwise
+      m_motor.setDirection(motor::MotorNI::Direction::ANTICLOCKWISE);
+      m_motor.prepareMove();
+      success = m_daq.startAcquisition(1, i * 2 + 1, motorMoveAsyncCB);
+      m_motor.waitUntilMoveEnds();
+
+      if (!success) {
+        break;
+      }
+    }
+  }
+
+  if (!success) {
+    emit acquisitionFailed();
+    emit error(m_daq.errMsg());
+    qCritical() << "Acquisition failed: " << m_daq.errMsg();
+  }
+  m_daq.finishAcquisition();
   emit acquisitionFinished();
 }
 
 AcquisitionController::AcquisitionController(
     const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
     : controller(buffer),
-      m_btnInitBoard(new QPushButton("Initialize Alazar Board")),
-      m_btnStartStopAcquisition(new QPushButton("Start"))
+
+      m_btnStartStopAcquisition(new QPushButton("Start")),
+      m_btnSaveDisplay(new QPushButton("Saving"))
 
 {
   controller.moveToThread(&controllerThread);
   controllerThread.start(QThread::HighPriority);
 
-  connect(controller.daq(), &daq::DAQ::messageBox, this,
-          [this](const QString &msg) {
-            QMessageBox::information(this, "DAQ Info", msg);
-          });
-
-  connect(controller.motor(), &motor::MotorNI::messageBox, this,
-          [this](const QString &msg) {
-            QMessageBox::information(this, "MotorNI Info", msg);
-          });
-  /*
-  UI
-  */
   auto *layout = new QVBoxLayout;
-  this->setLayout(layout);
+  setLayout(layout);
 
   // Acquisition start/stop button
+  // Save/display button
   {
     layout->addWidget(m_btnStartStopAcquisition);
     m_btnStartStopAcquisition->setStyleSheet("background-color: green");
 
     connect(m_btnStartStopAcquisition, &QPushButton::clicked, this, [this]() {
       m_btnStartStopAcquisition->setEnabled(false);
+
+      m_btnSaveDisplay->setEnabled(false);
+      m_motorTestGB->setEnabled(false);
+
       if (controller.isAcquiring()) {
         m_btnStartStopAcquisition->setText("Stopping");
         m_btnStartStopAcquisition->setStyleSheet("background-color: yellow");
@@ -104,10 +110,14 @@ AcquisitionController::AcquisitionController(
       m_btnStartStopAcquisition->setText("Stop");
       m_btnStartStopAcquisition->setStyleSheet("background-color: red");
     };
+
     const auto btnStateStopped = [this] {
       m_btnStartStopAcquisition->setEnabled(true);
       m_btnStartStopAcquisition->setText("Start");
       m_btnStartStopAcquisition->setStyleSheet("background-color: green");
+
+      m_btnSaveDisplay->setEnabled(true);
+      m_motorTestGB->setEnabled(true);
     };
 
     connect(&controller, &AcquisitionControllerObj::acquisitionStarted, this,
@@ -116,34 +126,52 @@ AcquisitionController::AcquisitionController(
     connect(&controller, &AcquisitionControllerObj::acquisitionFinished, this,
             [btnStateStopped]() { btnStateStopped(); });
 
-    connect(controller.daq(), &daq::DAQ::acquisitionFailed, this,
+    connect(&controller, &AcquisitionControllerObj::acquisitionFailed, this,
             [this] { controller.stopAcquisitionLoop(); });
+
+    connect(&controller, &AcquisitionControllerObj::error, this,
+            [this](const QString &msg) {
+              QMessageBox::information(this, "Acquisition controller", msg);
+            });
+
+    {
+      layout->addWidget(m_btnSaveDisplay);
+
+      m_btnSaveDisplay->setCheckable(true);
+      m_btnSaveDisplay->setChecked(true);
+
+      connect(m_btnSaveDisplay, &QPushButton::clicked, this,
+              [this](bool checked) {
+                if (checked) {
+                  m_btnSaveDisplay->setText("Saving");
+                  controller.daq().setSaveData(true);
+                } else {
+                  m_btnSaveDisplay->setText("Display only");
+                  controller.daq().setSaveData(false);
+                }
+              });
+    }
   }
 
   // Motor test buttons
   {
-    auto *gb = new QGroupBox("Motor testing");
-    layout->addWidget(gb);
+    m_motorTestGB = new QGroupBox("Motor testing");
+    layout->addWidget(m_motorTestGB);
 
     auto *hlayout = new QHBoxLayout;
-    gb->setLayout(hlayout);
+    m_motorTestGB->setLayout(hlayout);
     {
       auto *btn = new QPushButton("Clockwise");
       hlayout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, controller.motor(),
-              &motor::MotorNI::moveClockwise);
+
+      connect(btn, &QPushButton::pressed, this,
+              [this] { controller.motor().moveClockwise(); });
     }
     {
       auto *btn = new QPushButton("Anticlockwise");
       hlayout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, controller.motor(),
-              &motor::MotorNI::moveAnticlockwise);
-    }
-    {
-      auto *btn = new QPushButton("Clockwise then anti");
-      hlayout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, controller.motor(),
-              &motor::MotorNI::moveClockwiseThenAnticlockwise);
+      connect(btn, &QPushButton::pressed, this,
+              [this] { controller.motor().moveAnticlockwise(); });
     }
   }
 };

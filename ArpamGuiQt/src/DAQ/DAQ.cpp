@@ -1,17 +1,17 @@
 #include "DAQ/DAQ.hpp"
-#include <ios>
+#include "strConvUtils.hpp"
 
 #ifdef ARPAM_HAS_ALAZAR
 
-#include "AlazarApi.h"
-#include "AlazarCmd.h"
-#include "AlazarError.h"
-
 #include "datetime.hpp"
+#include <AlazarApi.h>
+#include <AlazarCmd.h>
+#include <AlazarError.h>
 #include <QDebug>
 #include <QtLogging>
 #include <armadillo>
 #include <fmt/core.h>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -356,7 +356,7 @@ std::string getDAQInfo() {
   return ss.str();
 }
 
-bool DAQ::initHardware() {
+bool DAQ::initHardware() noexcept {
   /*
    Initialize and configure board
 
@@ -369,7 +369,8 @@ bool DAQ::initHardware() {
 
   board = AlazarGetBoardBySystemID(1, 1);
   if (board == nullptr) {
-    throw std::exception("Failed to initialize board");
+    m_errMsg = "Failed to initialize board";
+    return false;
   }
 
   // Specify the sample rate (see sample rate id below)
@@ -442,262 +443,238 @@ bool DAQ::initHardware() {
   ALAZAR_CALL(AlazarConfigureAuxIO(board, AUX_OUT_TRIGGER, 0));
   RETURN_BOOL_IF_FAIL();
 
-  emit initHardwareSuccessful();
-
-  if (m_saveData) {
-    const auto fname = "ARPAM" + datetime::datetimeFormat("%H%M%S") + ".bin";
-    m_lastBinfile = m_savedir / fname;
-    qDebug() << "Save file name fname: " << m_lastBinfile.c_str();
-    m_fs = std::fstream(m_lastBinfile, std::ios::out | std::ios::binary);
-  } else {
-    qDebug() << "Not saving data.";
-  }
-
   return true;
 }
 
-bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset) {
-  shouldStopAcquiring = false;
-  acquiringData = true;
-  emit acquisitionStarted();
+bool DAQ::prepareAcquisition() noexcept {
+  m_errMsg.clear();
 
-  defer {
-    acquiringData = false;
-    emit acquisitionStopped();
-  };
+  // Open file pointer
+  if (m_saveData) {
+    const auto fname = "ARPAM" + datetime::datetimeFormat("%H%M%S") + ".bin";
+    m_lastBinfile = m_savedir / fname;
+    m_fs = std::fstream(m_lastBinfile, std::ios::out | std::ios::binary);
 
-  RETURN_CODE ret{ApiSuccess};
-  bool success{true};
+    if (!m_fs.is_open()) {
+      m_errMsg = QString("Failed to open binfile for writing: ") +
+                 path2QString(m_lastBinfile);
+      qCritical() << m_errMsg;
+      return false;
+    }
+  } else {
+    m_lastBinfile.clear();
+  }
 
-  // No pre-trigger samples in NPT mode
-  const U32 preTriggerSamples = 0;
-  // Number of post trigger samples per record
-  const U32 postTriggerSamples = 8192;
-  // Number of records per DMA buffer
-  const U32 recordsPerBuffer = 1000;
-
-  // Total number of buffers to capture
-  const U32 buffersPerAcquisition = buffersToAcquire;
-
-  // Channels to capture
-  const U32 channelMask = CHANNEL_A;
-  const int channelCount = 1;
+  /*
+  Prime the board
+  */
 
   uint8_t bitsPerSample{};
   U32 maxSamplesPerChannel{};
+
+  RETURN_CODE ret{ApiSuccess};
+  bool success{true};
 
   ALAZAR_CALL(
       AlazarGetChannelInfo(board, &maxSamplesPerChannel, &bitsPerSample));
   RETURN_BOOL_IF_FAIL();
 
   const auto bytesPerSample = (float)((bitsPerSample + 7) / 8);
-  const U32 samplesPerRecord = preTriggerSamples + postTriggerSamples;
-  U32 bytesPerRecord =
-      (U32)(bytesPerSample * samplesPerRecord +
-            0.5); // 0.5 compensates for double to integer conversion
-  U32 bytesPerBuffer = bytesPerRecord * recordsPerBuffer * channelCount;
+  const U32 bytesPerRecord = (U32)(bytesPerSample * samplesPerRecord() + 0.5);
+  const U32 bytesPerBuffer = bytesPerRecord * recordsPerBuffer * channelCount;
 
-  // Allocate memory for DMA buffers
-  // qDebug("bytesPerSample: %f\n", bytesPerSample);
-  // qDebug("bytesPerRecord: %d\n", bytesPerRecord);
-  // qDebug("bytesPerBuffer: %d\n", bytesPerBuffer);
-  for (auto &pBuffer : buffers) {
-    // Allocate page aligned memory
-    pBuffer = AlazarAllocBufferU16(board, bytesPerBuffer);
-    if (pBuffer == nullptr) {
-      qCritical("Error: Alloc %u bytes failed", bytesPerBuffer);
-      success = false;
+  // Free all memory allocated
+  for (auto &buf : buffers) {
+    if (buf.size() >= 0) {
+      AlazarFreeBufferU16(board, buf.data());
     }
-    BREAK_IF_FAIL();
   }
 
-  defer {
-    // Free all memory allocated
-    for (auto &pBuffer : buffers) {
-      if (pBuffer != nullptr) {
-        AlazarFreeBufferU16(board, pBuffer);
-      }
-      pBuffer = nullptr;
+  for (auto &buf : buffers) {
+    // Allocate page aligned memory
+    auto *ptr = AlazarAllocBufferU16(board, bytesPerBuffer);
+    if (ptr == nullptr) {
+      qCritical("Error: Alloc %u bytes failed", bytesPerBuffer);
+      return false;
     }
-  };
-
-  qDebug("Allocated %d bytes of memory (%dx %d byte buffers)",
-         bytesPerBuffer * buffers.size(), buffers.size(), bytesPerBuffer);
+    buf = std::span(ptr, recordsPerBuffer * samplesPerRecord());
+    qDebug("Allocated %d bytes of memory", bytesPerBuffer);
+  }
 
   // Configure the record size
-  if (success) {
-    ALAZAR_CALL(
-        AlazarSetRecordSize(board, preTriggerSamples, postTriggerSamples));
-  }
+  ALAZAR_CALL(
+      AlazarSetRecordSize(board, preTriggerSamples, postTriggerSamples));
+  RETURN_BOOL_IF_FAIL();
+
+  return success;
+}
+
+bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset,
+                           const std::function<void()> &callback) noexcept {
+  shouldStopAcquiring = false;
+  acquiringData = true;
+
+  defer { acquiringData = false; };
+
+  RETURN_CODE ret{ApiSuccess};
+  bool success{true};
+
+  // Total number of buffers to capture
+  const U32 buffersPerAcquisition = buffersToAcquire;
 
   // Configure the board to make an NPT AutoDMA acquisition
-  if (success) {
-    U32 recordsPerAcquisition = recordsPerBuffer * buffersPerAcquisition;
-    U32 admaFlags = ADMA_EXTERNAL_STARTCAPTURE | ADMA_NPT;
-    ALAZAR_CALL(AlazarBeforeAsyncRead(
-        board, channelMask, -(long)preTriggerSamples, samplesPerRecord,
-        recordsPerBuffer, recordsPerAcquisition, admaFlags));
-  }
+  U32 recordsPerAcquisition = recordsPerBuffer * buffersPerAcquisition;
+  U32 admaFlags = ADMA_EXTERNAL_STARTCAPTURE | ADMA_NPT;
+  ALAZAR_CALL(AlazarBeforeAsyncRead(
+      board, channelMask, -(long)preTriggerSamples, samplesPerRecord(),
+      recordsPerBuffer, recordsPerAcquisition, admaFlags));
+  RETURN_BOOL_IF_FAIL();
 
   // Add the buffers to a list of buffers available to be filled by the board
-  for (auto &pBuffer : buffers) {
-    BREAK_IF_FAIL();
-    ALAZAR_CALL(AlazarPostAsyncBuffer(board, pBuffer, bytesPerBuffer));
-  }
-
-  if (!success) {
-    return false;
+  for (auto &buf : buffers) {
+    auto bytesPerBuffer = buf.size() * sizeof(uint16_t);
+    ALAZAR_CALL(AlazarPostAsyncBuffer(board, buf.data(), bytesPerBuffer));
+    RETURN_BOOL_IF_FAIL();
   }
 
   // Arm the board system to wait for a trigger event to begin acquisition
-  ALAZAR_CALL(AlazarStartCapture(board));
+  defer {
+    // Abort the acquisition at the end
+    ALAZAR_CALL(AlazarAbortAsyncRead(board));
+  };
 
-  if (success) {
-    qInfo("Capturing %d buffers ...", buffersPerAcquisition);
-
-    U32 buffersCompleted = 0;
-    INT64 bytesTransferred = 0;
-    U32 bufferIdx = 0;
-    while (buffersCompleted < buffersPerAcquisition) {
-      // Set a buffer timeout that is longer than the time required to capture
-      // all the records in one buffer.
-      constexpr U32 timeout_ms = 2000;
-
-      // Wait for the buffer at the head of the list of available buffers
-      // to be filled by the board.
-      bufferIdx = buffersCompleted % buffers.size();
-      U16 *pBuffer = buffers[bufferIdx];
-
-      auto ret = AlazarWaitAsyncBufferComplete(board, pBuffer, timeout_ms);
-
-      success = false;
-      switch (ret) {
-      case ApiSuccess: {
-        success = true;
-        // The buffer is full and has been removed from the list
-        // of buffers available for the board
-        buffersCompleted++;
-        bytesTransferred += bytesPerBuffer;
-
-        // Process sample data in this buffer.
-
-        // NOTE:
-        //
-        // While you are processing this buffer, the board is already filling
-        // the next available buffer(s).
-        //
-        // You MUST finish processing this buffer and post it back to the
-        // board before the board fills all of its available DMA buffers and
-        // on-board memory.
-        //
-        // Records are arranged in the buffer as follows: R0A, R1A, R2A ...
-        // RnA, R0B, R1B, R2B ... with RXY the record number X of channel Y
-        //
-        // Sample codes are unsigned by default. As a result:
-        // - a sample code of 0x0000 represents a negative full scale input
-        // signal.
-        // - a sample code of 0x8000 represents a ~0V signal.
-        // - a sample code of 0xFFFF represents a positive full scale input
-        // signal.
-
-        m_buffer->produce(
-            [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
-              data->frameIdx = buffersCompleted + indexOffset;
-
-              // Construct arma mat that shares memory with the input buffer
-              arma::Mat inMat(pBuffer, bytesPerBuffer, recordsPerBuffer, false,
-                              true);
-
-              // Copy RF from Alazar buffer to our buffer
-              {
-                uspam::TimeIt timeit;
-                uspam::io::copyRFWithScaling(pBuffer, (int)bytesPerBuffer,
-                                             data->rf, recordsPerBuffer);
-                data->metrics.load_ms = timeit.get_ms();
-              }
-            });
-
-        if (m_fs.is_open()) {
-          // Write record to file
-          try {
-            uspam::TimeIt timeit;
-            m_fs.write((char *)pBuffer, bytesPerBuffer);
-
-            const auto time_ms = timeit.get_ms();
-            const auto speed_MBps = bytesPerBuffer / 1e3 / time_ms;
-            qInfo("Wrote %d bytes to file in %f ms (%f MB/s)", bytesPerBuffer,
-                  time_ms, speed_MBps);
-          } catch (std::ios_base::failure &e) {
-            qCritical("Error: Write buffer %u failed -- %u", buffersCompleted,
-                      GetLastError());
-            success = false;
-          }
-        }
-      } break;
-
-      case ApiWaitTimeout: {
-        const QString msg =
-            "DAQ: AlazarWaitAsyncBufferComplete timeout. Please make sure the "
-            "trigger is connected.";
-        qCritical() << msg;
-        emit messageBox(msg);
-      } break;
-
-      case ApiBufferOverflow: {
-        const QString msg =
-            "DAQ: AlazarWaitAsyncBufferComplete buffer overflow. The data "
-            "acquisition rate is higher than the transfer rate from on-board "
-            "memory to host memory.";
-        qCritical() << msg;
-        emit messageBox(msg);
-      } break;
-
-      default: {
-        const auto msg =
-            QString(
-                "DAQ: AlazarWaitAsyncBufferComplete returned unknown code %1\n")
-                .arg(ret);
-        qCritical() << msg;
-        emit messageBox(msg);
-      }
-      }
-
-      if (!success) {
-        emit acquisitionFailed();
-        break;
-      }
-
-      // Check for condition to stop acquiring
-      if (shouldStopAcquiring) {
-        // const QString msg = "DAQ: received stop acquisition signal";
-        // qInfo() << msg;
-        // emit messageBox(msg);
-        break;
-      }
-
-      // Add the buffer to the end of the list of available buffers.
-      ALAZAR_CALL(AlazarPostAsyncBuffer(board, pBuffer, bytesPerBuffer));
-
-      // Display progress
-      // qInfo("Completed %u buffers", buffersCompleted);
-    }
+  // Motor callback here
+  if (callback) {
+    callback();
   }
 
-  // Abort the acquisition
-  ALAZAR_CALL(AlazarAbortAsyncRead(board));
+  ALAZAR_CALL(AlazarStartCapture(board));
+  RETURN_BOOL_IF_FAIL();
 
-  return true;
+  qInfo("Capturing %d buffers ...", buffersPerAcquisition);
+
+  U32 buffersCompleted = 0;
+  U32 bufferIdx = 0;
+  while (buffersCompleted < buffersPerAcquisition) {
+    // Set a buffer timeout that is longer than the time required to capture
+    // all the records in one buffer.
+    constexpr U32 timeout_ms = 2000;
+
+    // Wait for the buffer at the head of the list of available buffers
+    // to be filled by the board.
+    bufferIdx = buffersCompleted % buffers.size();
+    auto &buf = buffers[bufferIdx];
+    const auto bytesPerBuffer = buf.size() * sizeof(uint16_t);
+
+    auto ret = AlazarWaitAsyncBufferComplete(board, buf.data(), timeout_ms);
+
+    success = false;
+    switch (ret) {
+    case ApiSuccess: {
+      success = true;
+      // The buffer is full and has been removed from the list
+      // of buffers available for the board
+      buffersCompleted++;
+
+      // Process sample data in this buffer.
+
+      // NOTE:
+      //
+      // While you are processing this buffer, the board is already filling
+      // the next available buffer(s).
+      //
+      // You MUST finish processing this buffer and post it back to the
+      // board before the board fills all of its available DMA buffers and
+      // on-board memory.
+      //
+      // Records are arranged in the buffer as follows: R0A, R1A, R2A ...
+      // RnA, R0B, R1B, R2B ... with RXY the record number X of channel Y
+      //
+      // Sample codes are unsigned by default. As a result:
+      // - a sample code of 0x0000 represents a negative full scale input
+      // signal.
+      // - a sample code of 0x8000 represents a ~0V signal.
+      // - a sample code of 0xFFFF represents a positive full scale input
+      // signal.
+
+      m_buffer->produce(
+          [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
+            data->frameIdx = buffersCompleted - 1 + indexOffset;
+
+            // Copy RF from Alazar buffer to our buffer
+            {
+              uspam::TimeIt timeit;
+              uspam::io::copyRFWithScaling(buf.data(), buf.size(), data->rf,
+                                           (int)recordsPerBuffer);
+              data->metrics.load_ms = timeit.get_ms();
+            }
+          });
+
+      if (m_fs.is_open()) {
+        // Write record to file
+        try {
+          uspam::TimeIt timeit;
+          m_fs.write((char *)buf.data(), bytesPerBuffer);
+
+          const auto time_ms = timeit.get_ms();
+          const auto speed_MBps = bytesPerBuffer / 1e3 / time_ms;
+          qInfo("Wrote %d bytes to file in %f ms (%f MB/s)", bytesPerBuffer,
+                time_ms, speed_MBps);
+        } catch (std::ios_base::failure &e) {
+          qCritical("Error: Write buffer %u failed -- %u", buffersCompleted,
+                    GetLastError());
+          success = false;
+        }
+      }
+    } break;
+
+    case ApiWaitTimeout: {
+      m_errMsg =
+          "DAQ: AlazarWaitAsyncBufferComplete timeout. Please make sure the "
+          "trigger is connected.";
+      qCritical() << m_errMsg;
+    } break;
+
+    case ApiBufferOverflow: {
+      m_errMsg =
+          "DAQ: AlazarWaitAsyncBufferComplete buffer overflow. The data "
+          "acquisition rate is higher than the transfer rate from on-board "
+          "memory to host memory.";
+      qCritical() << m_errMsg;
+
+    } break;
+
+    default: {
+      m_errMsg =
+          QString(
+              "DAQ: AlazarWaitAsyncBufferComplete returned unknown code %1\n")
+              .arg(ret);
+      qCritical() << m_errMsg;
+    }
+    }
+
+    if (!success || shouldStopAcquiring) {
+      break;
+    }
+
+    // Add the buffer to the end of the list of available buffers.
+    ALAZAR_CALL(AlazarPostAsyncBuffer(board, buf.data(), bytesPerBuffer));
+
+    // Display progress
+    // qInfo("Completed %u buffers", buffersCompleted);
+  }
+
+  return success;
 }
 
 DAQ::~DAQ() {
   // Note: Alazar board handles don't need to be explicitly closed.
 
   // Free all memory allocated
-  for (auto &pBuffer : buffers) {
-    if (pBuffer != nullptr) {
-      AlazarFreeBufferU16(board, pBuffer);
+  for (auto &buf : buffers) {
+    if (buf.size() >= 0) {
+      AlazarFreeBufferU16(board, buf.data());
     }
-    pBuffer = nullptr;
   }
 }
 

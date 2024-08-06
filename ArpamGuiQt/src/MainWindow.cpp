@@ -133,6 +133,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef ARPAM_HAS_ALAZAR
         dockAcquisitionController->show();
+
 #else
         dockAcquisitionController->hide();
 #endif
@@ -207,21 +208,36 @@ MainWindow::MainWindow(QWidget *parent)
             &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
             &CoregDisplay::setMaxIdx);
 
-    connect(acquisitionController->controller.daq(),
-            &daq::DAQ::finishedAcquiringBinfile, this,
-            [this](const fs::path &path) {
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::acquisitionFinished, this,
+            [this, acquisitionController] {
               // Log event
-              const auto strpath = path2QString(path);
-              {
+              const auto &path =
+                  acquisitionController->controller.daq().binpath();
+              if (!path.empty()) {
+                const auto strpath = path2QString(path);
                 const auto msg =
                     QString("Finished acquiring to %1").arg(strpath);
                 qInfo() << msg;
                 statusBar()->showMessage(msg);
                 logError(msg);
-              }
 
-              // Load binfile in frame controller
-              m_frameController->acceptBinfile(strpath);
+                // Load binfile in frame controller
+                m_frameController->acceptBinfile(strpath);
+              }
+            });
+
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::acquisitionStarted,
+            [this, acquisitionController] {
+              const auto &path =
+                  acquisitionController->controller.daq().binpath();
+
+              const auto msg =
+                  path.empty() ? "Display only"
+                               : QString("Acquiring to ") + path2QString(path);
+              qInfo() << msg;
+              statusBar()->showMessage(msg);
             });
 #endif // ARPAM_HAS_ALAZAR
   }
