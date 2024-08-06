@@ -11,12 +11,16 @@ This module implements a data acquisition interface
 #include <QString>
 #include <array>
 #include <atomic>
-#include <iostream>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <utility>
 
 namespace daq {
+
+namespace fs = std::filesystem;
+
 // Get DAQ board information
 std::string getDAQInfo();
 
@@ -34,11 +38,11 @@ public:
 
   ~DAQ();
 
+  // Initialize the DAQ board, including setting the clock, trigger, channel...
   bool initHardware();
+
   bool initialized() const { return board != nullptr; }
   bool isAcquiring() const { return acquiringData; };
-
-  void getBScan();
 
 signals:
   void messageBox(QString);
@@ -50,12 +54,16 @@ signals:
 
 public slots:
 
-  // 1. Allocates the alazar DMA buffers
-  // 2. Opens file pointer to write bin data
-  void prepareAcquisition();
+  // Acquire `buffersToAcquire` buffers (BScans)
+  bool startAcquisition(int buffersToAcquire, int indexOffset = 0);
 
-  bool startAcquisition(int buffersToAcquire);
-  void stopAcquisition();
+  // Signal the acquisition thread to exit.
+  void stopAcquisition() { shouldStopAcquiring = true; }
+
+  // Set whether to save raw data or not.
+  void setSaveData(bool save) { m_saveData = save; }
+
+  void setSavedir(fs::path savedir) { m_savedir = std::move(savedir); }
 
 private:
   // Buffer
@@ -74,8 +82,9 @@ private:
   double samplesPerSec = 0.0;
 
   // File pointer
-  bool saveData{true};
+  bool m_saveData{true};
   std::fstream m_fs;
+  fs::path m_savedir;
 };
 
 } // namespace daq

@@ -183,16 +183,24 @@ MainWindow::MainWindow(QWidget *parent)
 
   // Acquisition controller dock
   {
-    auto *dockFrameController = new QDockWidget("Acquisition Controller", this);
-    this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
+    dockAcquisitionController = new QDockWidget("Acquisition Controller", this);
+    this->addDockWidget(Qt::TopDockWidgetArea, dockAcquisitionController);
 
-    m_viewMenu->addAction(dockFrameController->toggleViewAction());
-#ifndef ARPAM_HAS_ALAZAR
+    m_viewMenu->addAction(dockAcquisitionController->toggleViewAction());
+    auto *acquisitionController = new AcquisitionController(buffer);
+    dockAcquisitionController->setWidget(acquisitionController);
+
+#ifdef ARPAM_HAS_ALAZAR
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::maxIndexChanged, m_frameController,
+            &FrameController::setMaxFrameNum);
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
+            &CoregDisplay::setMaxIdx);
+
+#else
     dockFrameController->hide();
 #endif // ARPAM_HAS_ALAZAR
-
-    auto *acquisitionController = new AcquisitionController(buffer);
-    dockFrameController->setWidget(acquisitionController);
   }
 
   // Tabify ReconParamsController dock and Annotations dock on the left

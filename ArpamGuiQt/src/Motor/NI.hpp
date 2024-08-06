@@ -52,26 +52,30 @@ public:
 
   MotorNI() = default;
 
-public slots:
-  static void setDirection(Direction direction);
+  void prepareMove();
+  void startMove();
+  void finishMove();
 
-  void move();
+public slots:
+  void setDirection(Direction direction);
+
+  void moveBlocking();
 
   void moveClockwise() {
     setDirection(Direction::CLOCKWISE);
-    move();
+    moveBlocking();
   }
 
   void moveAnticlockwise() {
     setDirection(Direction::ANTICLOCKWISE);
-    move();
+    moveBlocking();
   }
 
   void moveClockwiseThenAnticlockwise() {
     setDirection(Direction::CLOCKWISE);
-    move();
+    moveBlocking();
     setDirection(Direction::ANTICLOCKWISE);
-    move();
+    moveBlocking();
   }
 
 signals:
@@ -79,6 +83,9 @@ signals:
 
 private:
   std::vector<double> data; // Motor control signal
+  void *taskHandle{};
+  char errBuf[1024] = {'\0'};
+  int32_t ret = 0;
 };
 
 } // namespace motor

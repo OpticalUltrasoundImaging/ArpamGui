@@ -358,7 +358,10 @@ std::string getDAQInfo() {
 
 bool DAQ::initHardware() {
   /*
-   * Initialize and configure board
+   Initialize and configure board
+
+   Use Channel A for RF signal acquisition and Channel B to receive external
+   trigger
    */
 
   RETURN_CODE ret{ApiSuccess};
@@ -441,12 +444,19 @@ bool DAQ::initHardware() {
 
   emit initHardwareSuccessful();
 
-  prepareAcquisition();
+  if (m_saveData) {
+    const auto fname = datetime::datetimeFormat("%H%M%S") + ".bin";
+    const auto path = m_savedir / fname;
+    qDebug() << "Save file name fname: " << path.c_str();
+    m_fs = std::fstream(path, std::ios::out | std::ios::binary);
+  } else {
+    qDebug() << "Not saving data.";
+  }
 
   return true;
 }
 
-bool DAQ::startAcquisition(int buffersToAcquire) {
+bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset) {
   shouldStopAcquiring = false;
   acquiringData = true;
   emit acquisitionStarted();
@@ -480,8 +490,8 @@ bool DAQ::startAcquisition(int buffersToAcquire) {
       AlazarGetChannelInfo(board, &maxSamplesPerChannel, &bitsPerSample));
   RETURN_BOOL_IF_FAIL();
 
-  auto bytesPerSample = (float)((bitsPerSample + 7) / 8);
-  U32 samplesPerRecord = preTriggerSamples + postTriggerSamples;
+  const auto bytesPerSample = (float)((bitsPerSample + 7) / 8);
+  const U32 samplesPerRecord = preTriggerSamples + postTriggerSamples;
   U32 bytesPerRecord =
       (U32)(bytesPerSample * samplesPerRecord +
             0.5); // 0.5 compensates for double to integer conversion
@@ -548,9 +558,8 @@ bool DAQ::startAcquisition(int buffersToAcquire) {
   };
 
   if (success) {
-    qInfo("Capturing %d buffers ... \n", buffersPerAcquisition);
+    qInfo("Capturing %d buffers ...", buffersPerAcquisition);
 
-    U32 startTickCount = GetTickCount();
     U32 buffersCompleted = 0;
     INT64 bytesTransferred = 0;
     U32 bufferIdx = 0;
@@ -575,7 +584,7 @@ bool DAQ::startAcquisition(int buffersToAcquire) {
         buffersCompleted++;
         bytesTransferred += bytesPerBuffer;
 
-        // TODO: Process sample data in this buffer.
+        // Process sample data in this buffer.
 
         // NOTE:
         //
@@ -598,7 +607,7 @@ bool DAQ::startAcquisition(int buffersToAcquire) {
 
         m_buffer->produce(
             [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
-              data->frameIdx = buffersCompleted;
+              data->frameIdx = buffersCompleted + indexOffset;
 
               // Construct arma mat that shares memory with the input buffer
               arma::Mat inMat(pBuffer, bytesPerBuffer, recordsPerBuffer, false,
@@ -613,7 +622,7 @@ bool DAQ::startAcquisition(int buffersToAcquire) {
               }
             });
 
-        if (saveData) {
+        if (m_fs.is_open()) {
           // Write record to file
           try {
             uspam::TimeIt timeit;
@@ -666,39 +675,15 @@ bool DAQ::startAcquisition(int buffersToAcquire) {
 
       // Check for condition to stop acquiring
       if (shouldStopAcquiring) {
-        const QString msg = "DAQ: received stop acquisition signal";
-        qInfo() << msg;
-        emit messageBox(msg);
+        // const QString msg = "DAQ: received stop acquisition signal";
+        // qInfo() << msg;
+        // emit messageBox(msg);
         break;
       }
 
       // Display progress
-      qInfo("Completed %u buffers", buffersCompleted);
+      // qInfo("Completed %u buffers", buffersCompleted);
     }
-
-    // Display results
-    // {
-    //   const double transferTime_sec = (GetTickCount() - startTickCount) /
-    //   1000.; qInfo("Capture completed in %.2lf sec\n", transferTime_sec);
-
-    //   double buffersPerSec{};
-    //   double bytesPerSec{};
-    //   double recordsPerSec{};
-    //   U32 recordsTransferred = recordsPerBuffer * buffersCompleted;
-    //   if (transferTime_sec > 0.) {
-    //     buffersPerSec = buffersCompleted / transferTime_sec;
-    //     bytesPerSec = bytesTransferred / transferTime_sec;
-    //     recordsPerSec = recordsTransferred / transferTime_sec;
-    //   }
-
-    //   qInfo("Captured %u buffers (%.4g buffers per sec)\n", buffersCompleted,
-    //         buffersPerSec);
-    //   qInfo("Captured %u records (%.4g records per sec)\n",
-    //   recordsTransferred,
-    //         recordsPerSec);
-    //   qInfo("Transferred %d bytes (%.4g bytes per sec)\n", bytesTransferred,
-    //         bytesPerSec);
-    // }
   }
 
   return true;
@@ -714,14 +699,6 @@ DAQ::~DAQ() {
     }
     pBuffer = nullptr;
   }
-}
-
-void DAQ::stopAcquisition() { shouldStopAcquiring = true; };
-
-void DAQ::prepareAcquisition() {
-  const auto fname = datetime::datetimeFormat("%H%M%S");
-  qDebug() << "Generated fname: " << fname;
-  m_fs = std::fstream(fname + "bin", std::ios::out | std::ios::binary);
 }
 
 } // namespace daq
