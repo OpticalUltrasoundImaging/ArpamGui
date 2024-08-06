@@ -11,12 +11,16 @@ This module implements a data acquisition interface
 #include <QString>
 #include <array>
 #include <atomic>
-#include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <utility>
 
 namespace daq {
+
+namespace fs = std::filesystem;
+
 // Get DAQ board information
 std::string getDAQInfo();
 
@@ -34,20 +38,43 @@ public:
 
   ~DAQ();
 
+  // Initialize the DAQ board, including setting the clock, trigger, channel...
   bool initHardware();
+
   bool initialized() const { return board != nullptr; }
   bool isAcquiring() const { return acquiringData; };
 
-  void getBScan();
-
 signals:
   void messageBox(QString);
+
+  void initHardwareSuccessful();
+
   void acquisitionStarted();
   void acquisitionStopped();
 
+  void finishedAcquiringBinfile(fs::path);
+
 public slots:
-  bool startAcquisition();
-  void stopAcquisition();
+
+  // Acquire `buffersToAcquire` buffers (BScans)
+  bool startAcquisition(int buffersToAcquire, int indexOffset = 0);
+
+  // Signal the acquisition thread to exit.
+  void stopAcquisition() { shouldStopAcquiring = true; }
+
+  void finishAcquisition() {
+    if (m_fs.is_open()) {
+      // Close file handle
+      m_fs.close();
+
+      emit finishedAcquiringBinfile(m_lastBinfile);
+    }
+  }
+
+  // Set whether to save raw data or not.
+  void setSaveData(bool save) { m_saveData = save; }
+
+  void setSavedir(fs::path savedir) { m_savedir = std::move(savedir); }
 
 private:
   // Buffer
@@ -66,8 +93,10 @@ private:
   double samplesPerSec = 0.0;
 
   // File pointer
-  bool saveData{true};
-  FILE *fpData{};
+  bool m_saveData{true};
+  std::fstream m_fs;
+  fs::path m_savedir;
+  fs::path m_lastBinfile;
 };
 
 } // namespace daq

@@ -34,7 +34,7 @@ public slots:
   void openFileSelectDialog();
 
   // Accept a binfile
-  void acceptNewBinfile(const QString &filename);
+  void acceptBinfile(const QString &filename);
 
   [[nodiscard]] int frameNum() const;
   void setFrameNum(int frameNum);
@@ -62,7 +62,7 @@ public:
   auto get_actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
 
 private:
-  void saveFrameAnnotationsFromModelToDoc(int frame);
+  bool saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
 
   // RF producers

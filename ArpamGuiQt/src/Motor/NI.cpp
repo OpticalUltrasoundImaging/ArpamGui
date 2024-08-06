@@ -53,12 +53,56 @@ void squareWave(std::span<double> data, int sampleRate, double amplitude,
 
 } // namespace
 
-void motor::MotorNI::move() {
-  int32_t ret = 0;
-  char errBuf[1024] = {'\0'};
-
+void motor::MotorNI::prepareMove() {
   // Create a Task and Virtual Channels
-  void *taskHandle{};
+  DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
+  // Create AO voltage channel
+  const char *physicalChannel = "Dev1/ao0";
+  constexpr float64 minVal = 0.0;
+  constexpr float64 maxVal = 5.0;
+  constexpr int32 units = DAQmx_Val_Volts;
+  DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "", minVal,
+                                      maxVal, units, nullptr));
+
+  // Sampling options
+  constexpr float64 sampleRate =
+      1e6; //  sampling rate in samples/sec per channel
+  constexpr uInt64 sampsPerChan =
+      1e6; // num samples to acquire/generate for each channel
+  constexpr auto activeEdge = DAQmx_Val_Rising;
+  constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
+
+  DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", sampleRate, activeEdge,
+                                   sampleMode, sampsPerChan));
+
+  const float32 timeout =
+      10; // Time (s) to wait for the function to read/write all the samples
+  const bool32 autoStart = 0; // Whether or not this function automatically
+                              // starts the task if you do not start it
+  const bool32 dataLayout =
+      DAQmx_Val_GroupByChannel; // How data is arranged. Interleaved or
+                                // noninterleaved
+  if (data.size() != sampsPerChan) {
+    data.resize(sampsPerChan);
+    squareWave(data, 1600, 2.5, 2.5, 0.5);
+  }
+
+  DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
+                                 dataLayout, data.data(), nullptr, nullptr));
+}
+void motor::MotorNI::startMove() { DAQMX_CALL(DAQmxStartTask(taskHandle)); }
+void motor::MotorNI::finishMove() {
+  DAQMX_CALL(DAQmxWaitUntilTaskDone(taskHandle, 2));
+
+  // Stop and Clear the Task.
+  if (taskHandle != 0) {
+    DAQmxStopTask(taskHandle);
+    DAQmxClearTask(taskHandle);
+  }
+}
+
+void motor::MotorNI::moveBlocking() {
+  // Create a Task and Virtual Channels
   DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
 
   // Create AO voltage channel
@@ -128,10 +172,6 @@ void motor::MotorNI::move() {
 }
 
 void motor::MotorNI::setDirection(Direction direction) {
-
-  int32_t ret = 0;
-  char errBuf[1024] = {'\0'};
-
   void *taskHandle{};
 
   // Create a Task and Virtual Channels
