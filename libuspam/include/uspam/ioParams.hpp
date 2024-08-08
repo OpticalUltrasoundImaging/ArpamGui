@@ -74,31 +74,48 @@ public:
   }
 
   template <typename T1, typename T2>
-  auto splitRfPAUS(const arma::Mat<T1> &rf, PAUSpair<T2> &split) const {
+  void splitRfPAUS(const arma::Mat<T1> &rf, PAUSpair<T2> &split) const {
+    splitRfPAUS(rf, split.PA, split.US);
+  }
+
+  template <typename T1, typename T2>
+  void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
+                   arma::Mat<T2> &US) const {
     const auto USstart = this->rf_size_PA + this->rf_size_spacer;
     const auto USend = USstart + this->rf_size_US();
     const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
 
-    assert(split.PA.size() == this->rf_size_PA * rf.n_cols);
-    assert(split.US.size() == (USend - USstart) * rf.n_cols);
+    PA.resize(this->rf_size_PA, rf.n_cols);
+    US.resize(USend - USstart, rf.n_cols);
 
     for (int j = 0; j < rf.n_cols; ++j) {
-      for (int i = 0; i < this->rf_size_PA; ++i) {
-        split.PA(i, j) = static_cast<T2>(rf(i, j));
+      const auto *rfcol = rf.colptr(j);
+      auto *PAcol = PA.colptr(j);
+      auto *UScol = US.colptr(j);
+
+      for (int i = 0; i < rf_size_PA; ++i) {
+        PAcol[i] = static_cast<T2>(rfcol[i]);
       }
-      // US
-      for (int i = 0; i < this->rf_size_US(); ++i) {
-        split.US(i, j) = static_cast<T2>(rf(i + USstart, j));
+
+      for (int i = 0; i < rf_size_US(); ++i) {
+        UScol[i] = static_cast<T2>(rfcol[i + USstart]);
       }
 
       {
-        auto ptr = split.PA.colptr(j);
-        std::rotate(ptr, ptr + offsetPA, ptr + split.PA.n_rows);
+        int middle = offsetPA;
+        if (middle < 0) {
+          middle = PA.n_rows + middle;
+        }
+        std::rotate(PAcol, PAcol + middle, PAcol + PA.n_rows);
         // rfPA.rows(0, this->offset_PA - 1).zeros();
       }
+
       {
-        auto ptr = split.US.colptr(j);
-        std::rotate(ptr, ptr + this->offsetUS, ptr + split.US.n_rows);
+        int middle = offsetUS;
+        if (middle < 0) {
+          middle = US.n_rows + middle;
+        }
+        std::rotate(UScol, UScol + middle, UScol + US.n_rows);
         // rfUS.rows(0, this->offset_US - 1).zeros();
       }
     }

@@ -130,6 +130,7 @@ target_include_directories(${EXE_NAME} PRIVATE
 find_package(fmt CONFIG REQUIRED)
 find_package(FFTW3 CONFIG REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
+find_package(KFR CONFIG REQUIRED)
 
 target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
@@ -140,8 +141,17 @@ target_link_libraries(${EXE_NAME} PRIVATE
     ${QCUSTOMPLOT_LIBRARY}
     FFTW3::fftw3
     FFTW3::fftw3f
+    kfr
+    kfr_dsp
     #Vulkan::Vulkan
 )
+
+if(APPLE)  
+    # Assume M1 mac
+    target_link_libraries(${EXE_NAME} PRIVATE
+        kfr_dsp_neon64
+    )
+endif()
 
 set_target_properties(${EXE_NAME} PROPERTIES
     CXX_STANDARD 20

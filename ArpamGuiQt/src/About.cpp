@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <armadillo>
 #include <fftw3.h>
+#include <kfr/kfr.h>
 #include <oneapi/tbb/version.h>
 #include <opencv2/opencv.hpp>
 #include <qcustomplot.h>
@@ -28,6 +29,8 @@ auto aboutString() -> QString {
      << ARMA_VERSION_PATCH << "\n";
 
   ss << "OpenCV: " << cv::getVersionString() << "\n";
+
+  ss << "KFR: " << KFR_VERSION_STRING << "\n";
 
 #if defined(_WIN32) || defined(_WIN64)
 // Temp fix for Windows

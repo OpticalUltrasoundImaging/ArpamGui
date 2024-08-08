@@ -56,12 +56,12 @@ void reconBScan(BScanData<ArpamFloat> &data,
   Split and background
   */
   // Estimate background from current RF
-  const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
+  // const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
 
   // Split RF into PA and US scan lines
   {
     const uspam::TimeIt timeit;
-    ioparams.splitRfPAUS_sub(data.rf, background_aline, data.PA.rf, data.US.rf);
+    ioparams.splitRfPAUS(data.rf, data.PA.rf, data.US.rf);
     perfMetrics.split_ms = timeit.get_ms();
   }
 

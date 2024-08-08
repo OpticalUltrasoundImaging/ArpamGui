@@ -10,8 +10,10 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
   using json::serializeArray;
 
   rapidjson::Value obj(rapidjson::kObjectType);
-  obj.AddMember("filterFreq", serializeArray(filterFreq, allocator), allocator);
-  obj.AddMember("filterGain", serializeArray(filterGain, allocator), allocator);
+  // TODO
+  // obj.AddMember("filterFreq", serializeArray(filterFreq, allocator),
+  // allocator); obj.AddMember("filterGain", serializeArray(filterGain,
+  // allocator), allocator);
 
   obj.AddMember("noiseFloor", noiseFloor_mV, allocator);
   obj.AddMember("desiredDynamicRange", desiredDynamicRange, allocator);
@@ -25,14 +27,15 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
 
   ReconParams params;
 
-  if (const auto it = obj.FindMember("filterFreq"); it != obj.MemberEnd()) {
-    assert(it->value.IsArray());
-    deserializeArray(it->value, params.filterFreq);
-  }
-  if (const auto it = obj.FindMember("filterGain"); it != obj.MemberEnd()) {
-    assert(it->value.IsArray());
-    deserializeArray(it->value, params.filterGain);
-  }
+  // TODO
+  // if (const auto it = obj.FindMember("filterFreq"); it != obj.MemberEnd()) {
+  //   assert(it->value.IsArray());
+  //   deserializeArray(it->value, params.filterFreq);
+  // }
+  // if (const auto it = obj.FindMember("filterGain"); it != obj.MemberEnd()) {
+  //   assert(it->value.IsArray());
+  //   deserializeArray(it->value, params.filterGain);
+  // }
 
   params.rotateOffset = obj["rotateOffset"].GetInt();
   params.noiseFloor_mV = obj["noiseFloor"].GetFloat();

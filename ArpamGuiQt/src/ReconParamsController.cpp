@@ -99,9 +99,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return spinBox;
   };
 
-  const QString &help_Freq = "Parameters to the FIR filter.";
-  const QString &help_Gain = "Parameters to the FIR filter.";
-
   const QString &help_Truncate = "Truncate num points from the beginning to "
                                  "remove pulser/laser artifacts.";
   const QString &help_NoiseFloor =
@@ -122,35 +119,27 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       int row = 1;
 
       {
-        auto *label = new QLabel("Freq");
-        label->setToolTip(help_Freq);
+        auto *label = new QLabel("Bandpass low");
+        label->setToolTip("Bandpass low frequency");
         layout->addWidget(label, row, 0);
 
-        auto *filtFreq = new QLineEdit();
-        filtFreq->setValidator(doubleListValidator);
-        layout->addWidget(filtFreq, row++, 1);
-        filtFreq->setReadOnly(true);
+        auto *sp = makeQDoubleSpinBox({0.F, 1.F}, 0.01F, p.bpLowFreq);
+        layout->addWidget(sp, row++, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back([&p, filtFreq] {
-          filtFreq->setText(
-              QString::fromStdString(vectorToStdString(p.filterFreq)));
-        });
+        updateGuiFromParamsCallbacks.emplace_back(
+            [&p, sp] { sp->setValue(p.bpLowFreq); });
       }
 
       {
-        auto *label = new QLabel("Gain");
-        label->setToolTip(help_Gain);
+        auto *label = new QLabel("Bandpass high");
+        label->setToolTip("Bandpass high frequency");
         layout->addWidget(label, row, 0);
 
-        auto *filtGain = new QLineEdit();
-        filtGain->setValidator(doubleListValidator);
-        layout->addWidget(filtGain, row++, 1);
-        filtGain->setReadOnly(true);
+        auto *sp = makeQDoubleSpinBox({0.F, 1.F}, 0.01F, p.bpHighFreq);
+        layout->addWidget(sp, row++, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back([&p, filtGain] {
-          filtGain->setText(
-              QString::fromStdString(vectorToStdString(p.filterGain)));
-        });
+        updateGuiFromParamsCallbacks.emplace_back(
+            [&p, sp] { sp->setValue(p.bpHighFreq); });
       }
 
       {
