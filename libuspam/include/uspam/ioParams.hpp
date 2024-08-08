@@ -93,6 +93,7 @@ public:
       auto *PAcol = PA.colptr(j);
       auto *UScol = US.colptr(j);
 
+      // NOLINTBEGIN(*-pointer-arithmetic)
       for (int i = 0; i < rf_size_PA; ++i) {
         PAcol[i] = static_cast<T2>(rfcol[i]);
       }
@@ -100,6 +101,7 @@ public:
       for (int i = 0; i < rf_size_US(); ++i) {
         UScol[i] = static_cast<T2>(rfcol[i + USstart]);
       }
+      // NOLINTEND(*-pointer-arithmetic)
 
       {
         int middle = offsetPA;
