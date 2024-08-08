@@ -73,9 +73,9 @@ public:
   AcquisitionController &operator=(AcquisitionController &&) = delete;
   ~AcquisitionController() override;
 
-  auto actShowMotorTestPanel() const { return m_actShowMotorTestPanel; }
-
 #ifdef ARPAM_HAS_ALAZAR
+
+  auto actShowMotorTestPanel() const { return m_actShowMotorTestPanel; }
 
   void startAcquisitionBackAndForth();
 
