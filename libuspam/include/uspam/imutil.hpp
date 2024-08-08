@@ -29,17 +29,18 @@ auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
   cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
 
   const int r = std::min(cv_mat.rows, cv_mat.cols);
-  const cv::Size dsize{r * 2, r * 2};
-  const cv::Point2f center{static_cast<float>(r), static_cast<float>(r)};
-  const auto maxRadius{static_cast<double>(r)};
+  const cv::Size dsize{r, r};
+  const cv::Point2f center{static_cast<float>(r) / 2,
+                           static_cast<float>(r) / 2};
+  const auto maxRadius{static_cast<double>(r) / 2};
 
-  cv::resize(cv_mat, cv_mat, dsize);
   cv::warpPolar(cv_mat, cv_mat, dsize, center, maxRadius,
                 cv::WARP_INVERSE_MAP | cv::WARP_FILL_OUTLIERS);
   cv::rotate(cv_mat, cv_mat, cv::ROTATE_90_COUNTERCLOCKWISE);
 
-  final_size = final_size == 0 ? r : final_size;
-  cv::resize(cv_mat, cv_mat, {final_size, final_size});
+  if (final_size != 0) {
+    cv::resize(cv_mat, cv_mat, {final_size, final_size});
+  }
   return cv_mat;
 }
 

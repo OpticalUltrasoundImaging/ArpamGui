@@ -13,8 +13,14 @@ namespace fs = std::filesystem;
 using beamformer::BeamformerParams;
 using beamformer::BeamformerType;
 
+enum class FilterType { FIR, IIR };
+
 struct ReconParams {
-  int butterOrder;
+  FilterType filterType;
+
+  int firTaps;  // for FIR filter
+  int iirOrder; // for IIR filter
+
   float bpLowFreq;  // Bandpass low freq
   float bpHighFreq; // Bandpass high freq
 
@@ -40,11 +46,29 @@ struct ReconParams2 {
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline ReconParams2 system2024v1() {
     // NOLINTBEGIN(*-magic-numbers)
+    constexpr int taps = 95;
+    constexpr int order = 3;
     constexpr int rotateOffset = 25;
-    ReconParams PA{
-        3, 0.03, 0.22, 500, rotateOffset, 7.0F, 30.0F, BeamformerType::SAFT_CF};
-    ReconParams US{
-        3, 0.1, 0.3, 500, rotateOffset, 6.0F, 40.0F, BeamformerType::NONE};
+    ReconParams PA{FilterType::FIR,
+                   taps,
+                   order,
+                   0.03,
+                   0.22,
+                   500,
+                   rotateOffset,
+                   7.0F,
+                   30.0F,
+                   BeamformerType::SAFT_CF};
+    ReconParams US{FilterType::FIR,
+                   taps,
+                   order,
+                   0.1,
+                   0.3,
+                   500,
+                   rotateOffset,
+                   6.0F,
+                   40.0F,
+                   BeamformerType::NONE};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
@@ -53,8 +77,29 @@ struct ReconParams2 {
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline ReconParams2 system2024v2GUI() {
     // NOLINTBEGIN(*-magic-numbers)
-    ReconParams PA{3, 0.03, 0.22, 500, 0, 7.0F, 30.0F, BeamformerType::SAFT_CF};
-    ReconParams US{3, 0.1, 0.3, 500, 0, 6.0F, 40.0F, BeamformerType::NONE};
+    constexpr int taps = 95;
+    constexpr int order = 3;
+    constexpr int rotateOffset = 0;
+    ReconParams PA{FilterType::FIR,
+                   taps,
+                   order,
+                   0.03,
+                   0.22,
+                   500,
+                   rotateOffset,
+                   7.0F,
+                   30.0F,
+                   BeamformerType::SAFT_CF};
+    ReconParams US{FilterType::FIR,
+                   taps,
+                   order,
+                   0.1,
+                   0.3,
+                   500,
+                   rotateOffset,
+                   6.0F,
+                   40.0F,
+                   BeamformerType::NONE};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
