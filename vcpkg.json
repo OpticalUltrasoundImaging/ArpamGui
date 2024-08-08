@@ -10,33 +10,21 @@
     "glfw3",
     "armadillo",
     "fftconv",
+    "kfr",
     "tbb",
     {
       "name": "opencv4",
-      "features": [
-        "contrib",
-        "dnn",
-        "png",
-        "vulkan",
-        "tbb",
-        "png",
-        "world"
-      ]
+      "features": ["contrib", "dnn", "png", "vulkan", "tbb", "png", "world"]
     },
     {
       "name": "fftw3",
       "platform": "x64",
-      "features": [
-        "avx2",
-        "threads"
-      ]
+      "features": ["avx2", "threads"]
     },
     {
       "name": "fftw3",
       "platform": "!x64",
-      "features": [
-        "threads"
-      ]
+      "features": ["threads"]
     },
     "qcustomplot",
     "gtest",
