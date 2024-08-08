@@ -116,8 +116,9 @@ auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
 
     // compute IIR filter kernels
 
-    const kfr::zpk<T> filt = iir_bandpass(kfr::butterworth<T>(3),
-                                          params.bpLowFreq, params.bpHighFreq);
+    const kfr::zpk<T> filt =
+        iir_bandpass(kfr::butterworth<T>(params.butterOrder), params.bpLowFreq,
+                     params.bpHighFreq);
     const kfr::iir_params<T> bqs = to_sos(filt);
 
     // Apply filter and envelope

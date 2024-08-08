@@ -14,8 +14,10 @@ using beamformer::BeamformerParams;
 using beamformer::BeamformerType;
 
 struct ReconParams {
+  int butterOrder;
   float bpLowFreq;  // Bandpass low freq
   float bpHighFreq; // Bandpass high freq
+
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
   int rotateOffset;
   float noiseFloor_mV;
@@ -40,9 +42,9 @@ struct ReconParams2 {
     // NOLINTBEGIN(*-magic-numbers)
     constexpr int rotateOffset = 25;
     ReconParams PA{
-        0.03, 0.22, 500, rotateOffset, 7.0F, 30.0F, BeamformerType::SAFT_CF};
+        3, 0.03, 0.22, 500, rotateOffset, 7.0F, 30.0F, BeamformerType::SAFT_CF};
     ReconParams US{
-        0.1, 0.3, 500, rotateOffset, 6.0F, 40.0F, BeamformerType::NONE};
+        3, 0.1, 0.3, 500, rotateOffset, 6.0F, 40.0F, BeamformerType::NONE};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
@@ -51,8 +53,8 @@ struct ReconParams2 {
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline ReconParams2 system2024v2GUI() {
     // NOLINTBEGIN(*-magic-numbers)
-    ReconParams PA{0.03, 0.22, 500, 0, 7.0F, 30.0F, BeamformerType::SAFT_CF};
-    ReconParams US{0.1, 0.3, 500, 0, 6.0F, 40.0F, BeamformerType::NONE};
+    ReconParams PA{3, 0.03, 0.22, 500, 0, 7.0F, 30.0F, BeamformerType::SAFT_CF};
+    ReconParams US{3, 0.1, 0.3, 500, 0, 6.0F, 40.0F, BeamformerType::NONE};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)

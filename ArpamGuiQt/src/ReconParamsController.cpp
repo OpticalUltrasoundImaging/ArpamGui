@@ -119,6 +119,18 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       int row = 1;
 
       {
+        auto *label = new QLabel("IIR Order");
+        label->setToolTip("IIR filter order");
+        layout->addWidget(label, row, 0);
+
+        auto *spinBox = makeQSpinBox({1, 25}, p.butterOrder, this);
+        layout->addWidget(spinBox, row++, 1);
+
+        updateGuiFromParamsCallbacks.emplace_back(
+            [this, spinBox, &p] { spinBox->setValue(p.butterOrder); });
+      }
+
+      {
         auto *label = new QLabel("Bandpass low");
         label->setToolTip("Bandpass low frequency");
         layout->addWidget(label, row, 0);
