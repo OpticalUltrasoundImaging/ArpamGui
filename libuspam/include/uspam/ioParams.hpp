@@ -88,39 +88,39 @@ public:
     PA.resize(this->rf_size_PA, rf.n_cols);
     US.resize(USend - USstart, rf.n_cols);
 
-    for (int j = 0; j < rf.n_cols; ++j) {
-      const auto *rfcol = rf.colptr(j);
-      auto *PAcol = PA.colptr(j);
-      auto *UScol = US.colptr(j);
+    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
+      for (int j = range.start; j < range.end; ++j) {
+        const auto *rfcol = rf.colptr(j);
+        auto *PAcol = PA.colptr(j);
+        auto *UScol = US.colptr(j);
 
-      // NOLINTBEGIN(*-pointer-arithmetic)
-      for (int i = 0; i < rf_size_PA; ++i) {
-        PAcol[i] = static_cast<T2>(rfcol[i]);
-      }
-
-      for (int i = 0; i < rf_size_US(); ++i) {
-        UScol[i] = static_cast<T2>(rfcol[i + USstart]);
-      }
-      // NOLINTEND(*-pointer-arithmetic)
-
-      {
-        int middle = offsetPA;
-        if (middle < 0) {
-          middle = PA.n_rows + middle;
+        // NOLINTBEGIN(*-pointer-arithmetic)
+        for (int i = 0; i < rf_size_PA; ++i) {
+          PAcol[i] = static_cast<T2>(rfcol[i]);
         }
-        std::rotate(PAcol, PAcol + middle, PAcol + PA.n_rows);
-        // rfPA.rows(0, this->offset_PA - 1).zeros();
-      }
 
-      {
-        int middle = offsetUS;
-        if (middle < 0) {
-          middle = US.n_rows + middle;
+        for (int i = 0; i < rf_size_US(); ++i) {
+          UScol[i] = static_cast<T2>(rfcol[i + USstart]);
         }
-        std::rotate(UScol, UScol + middle, UScol + US.n_rows);
-        // rfUS.rows(0, this->offset_US - 1).zeros();
+        // NOLINTEND(*-pointer-arithmetic)
+
+        {
+          int middle = offsetPA;
+          if (middle < 0) {
+            middle = PA.n_rows + middle;
+          }
+          std::rotate(PAcol, PAcol + middle, PAcol + PA.n_rows);
+        }
+
+        {
+          int middle = offsetUS;
+          if (middle < 0) {
+            middle = US.n_rows + middle;
+          }
+          std::rotate(UScol, UScol + middle, UScol + US.n_rows);
+        }
       }
-    }
+    });
   }
 
   template <typename T1, typename Tb, typename Tout>
