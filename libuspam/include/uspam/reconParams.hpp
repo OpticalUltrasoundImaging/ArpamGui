@@ -56,10 +56,10 @@ struct ReconParams2 {
                    0.22,
                    500,
                    rotateOffset,
-                   7.0F,
+                   9.0F,
                    30.0F,
                    BeamformerType::SAFT_CF};
-    ReconParams US{FilterType::FIR,
+    ReconParams US{FilterType::IIR,
                    taps,
                    order,
                    0.1,
@@ -76,33 +76,12 @@ struct ReconParams2 {
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline ReconParams2 system2024v2GUI() {
+    auto params = system2024v1();
     // NOLINTBEGIN(*-magic-numbers)
-    constexpr int taps = 95;
-    constexpr int order = 3;
-    constexpr int rotateOffset = 0;
-    ReconParams PA{FilterType::FIR,
-                   taps,
-                   order,
-                   0.03,
-                   0.22,
-                   500,
-                   rotateOffset,
-                   7.0F,
-                   30.0F,
-                   BeamformerType::SAFT_CF};
-    ReconParams US{FilterType::FIR,
-                   taps,
-                   order,
-                   0.1,
-                   0.3,
-                   500,
-                   rotateOffset,
-                   6.0F,
-                   40.0F,
-                   BeamformerType::NONE};
-
-    return ReconParams2{PA, US};
+    params.PA.rotateOffset = 0;
+    params.US.rotateOffset = 0;
     // NOLINTEND(*-magic-numbers)
+    return params;
   }
 
   // Serialize to JSON

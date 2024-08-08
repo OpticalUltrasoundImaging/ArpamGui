@@ -112,37 +112,32 @@ auto procOne(const uspam::recon::ReconParams &params, BScanData_<T> &data,
   } break;
   case uspam::recon::FilterType::IIR: {
     // Recon (with IIR filter)
-    {
-      uspam::TimeIt timeit;
+    uspam::TimeIt timeit;
 
-      // compute IIR filter kernels
+    // compute IIR filter kernels
+    const kfr::zpk<T> filt = iir_bandpass(kfr::butterworth<T>(params.iirOrder),
+                                          params.bpLowFreq, params.bpHighFreq);
+    const kfr::iir_params<T> bqs = to_sos(filt);
 
-      const kfr::zpk<T> filt =
-          iir_bandpass(kfr::butterworth<T>(params.iirOrder), params.bpLowFreq,
-                       params.bpHighFreq);
-      const kfr::iir_params<T> bqs = to_sos(filt);
+    // Apply filter and envelope
+    const cv::Range range(0, static_cast<int>(rf.n_cols));
+    // cv::parallel_for_(range, [&](const cv::Range &range) {
+    kfr::univector<T> _filt;
+    for (int i = range.start; i < range.end; ++i) {
+      const auto _rf = rfBeamformed.colptr(i);
+      _filt = kfr::iir(kfr::make_univector(_rf, rfBeamformed.n_rows),
+                       kfr::iir_params{bqs});
 
-      // Apply filter and envelope
-      const cv::Range range(0, static_cast<int>(rf.n_cols));
-      kfr::univector<T> _filt;
-      for (int i = range.start; i < range.end; ++i) {
-        const auto _rf = rfBeamformed.unsafe_col(i);
-        auto _env = rfEnv.unsafe_col(i);
-
-        _filt = kfr::iir(kfr::make_univector(_rf.memptr(), _rf.size()),
-                         kfr::iir_params{bqs});
-
-        uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
-      }
-
-      // Log compress
-      constexpr float fct_mV2V = 1.0F / 1000;
-      uspam::recon::logCompress<T>(rfEnv, rfLog,
-                                   params.noiseFloor_mV * fct_mV2V,
-                                   params.desiredDynamicRange);
-
-      recon_ms = timeit.get_ms();
+      auto _env = rfEnv.unsafe_col(i);
+      uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
     }
+
+    // Log compress
+    constexpr float fct_mV2V = 1.0F / 1000;
+    uspam::recon::logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
+                                 params.desiredDynamicRange);
+    // });
+    recon_ms = timeit.get_ms();
   } break;
   }
 
