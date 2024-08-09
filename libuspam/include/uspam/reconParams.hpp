@@ -4,8 +4,6 @@
 #include <armadillo>
 #include <filesystem>
 #include <rapidjson/document.h>
-#include <tuple>
-#include <vector>
 
 namespace uspam::recon {
 namespace fs = std::filesystem;
