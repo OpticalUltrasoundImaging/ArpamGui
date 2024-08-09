@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Common.hpp"
 #include "CustomPlot.hpp"
-#include "DataProcWorker.hpp"
 #include "Metrics/FreqSpectrum.hpp"
+#include "RFBuffer.hpp"
 #include <QMouseEvent>
 #include <QString>
 #include <QVector>
@@ -72,7 +73,7 @@ public slots:
 
   void showPointToolTip(QMouseEvent *event);
 
-  void setData(std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
+  void setData(std::shared_ptr<BScanData<ArpamFloat>> data) {
     m_data = std::move(data);
   }
 
@@ -82,7 +83,7 @@ public slots:
 
 private:
   ReconParamsController *m_reconParams;
-  std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
+  std::shared_ptr<BScanData<ArpamFloat>> m_data;
 
   CustomPlot *customPlot;
   QVector<double> m_x;
@@ -93,6 +94,7 @@ private:
   int m_AScanPlotIdx{};        // Corrected for flip and rotation
 
   PlotType m_type{PlotType::RFRaw};
+  PlotType m_lastType{PlotType::Size};
 
   // Freq plot
   FreqSpectrum *m_freqSpectrum;

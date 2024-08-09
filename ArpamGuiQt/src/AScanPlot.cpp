@@ -54,6 +54,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
         y[i] = std::sin(x[i]); // plot sine wave
       }
       plot(x, y, {});
+      customPlot->resetZoom();
     }
   }
 
@@ -83,51 +84,8 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
       w->setLayout(layout);
       w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum);
 
-      // Horizontal control buttons
-      {
-        auto *hlayout = new QHBoxLayout;
-        layout->addLayout(hlayout);
-
-        // {
-        //   auto *btn = new QPushButton("Reset zoom");
-        //   hlayout->addWidget(btn);
-
-        //   connect(btn, &QPushButton::clicked, [this] {
-        //     customPlot->xAxis->setRange(m_plotMeta.xMin, m_plotMeta.xMax);
-        //     customPlot->yAxis->setRange(m_plotMeta.yMin, m_plotMeta.yMax);
-        //     customPlot->replot();
-        //   });
-        // }
-
-        // {
-        //   // Button to show/hide FWHM display on the plot
-        //   auto *btn = new QPushButton("Show FWHM");
-        //   btn->setCheckable(true);
-        //   btn->setChecked(true); // Show by default
-        //   connect(btn, &QPushButton::clicked, [this](bool checked) {
-        //     m_FWHMtracers.toggle();
-        //     customPlot->replot();
-        //   });
-        //   hlayout->addWidget(btn);
-        // }
-
-        // {
-        //   // Button to show/hide legend
-        //   auto *btn = new QPushButton("Show Legend");
-        //   btn->setCheckable(true);
-        //   btn->setChecked(true); // Show by default
-        //   connect(btn, &QPushButton::clicked, [this](bool checked) {
-        //     customPlot->legend->setVisible(checked);
-        //     customPlot->replot();
-        //   });
-        //   hlayout->addWidget(btn);
-        // }
-      }
-
-      {
-        // FWHM label element
-        layout->addWidget(customPlot->FWHMLabel());
-      }
+      // FWHM label element
+      layout->addWidget(customPlot->FWHMLabel());
 
       // Horizontal line separator
       {
@@ -139,7 +97,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
 
       // Plot Type Selectors
       {
-        auto *grid = new QGridLayout(this);
+        auto *grid = new QGridLayout;
         layout->addLayout(grid);
 
         // Create a button group
@@ -362,6 +320,11 @@ void AScanPlot::plotCurrentAScan() {
   case Size:
     // NOOP
     break;
+  }
+
+  if (m_type != m_lastType) {
+    customPlot->resetZoom();
+    m_lastType = m_type;
   }
 }
 

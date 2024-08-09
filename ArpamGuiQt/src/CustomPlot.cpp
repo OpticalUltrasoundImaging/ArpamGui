@@ -75,11 +75,7 @@ CustomPlot::CustomPlot(QWidget *parent)
   // Reset Zoom
   {
     m_actResetZoom = new QAction("Reset Zoom");
-    connect(m_actResetZoom, &QAction::triggered, [this] {
-      xAxis->setRange(m_meta.xMin, m_meta.xMax);
-      yAxis->setRange(m_meta.yMin, m_meta.yMax);
-      replot();
-    });
+    connect(m_actResetZoom, &QAction::triggered, this, &CustomPlot::resetZoom);
     addAction(m_actResetZoom);
   }
 
@@ -121,23 +117,6 @@ void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
   assert(x.size() == y.size());
   m_meta = meta;
 
-  // Compute FWHM
-  const auto fwhm = m_FWHMtracers->updateData(x, y);
-  // FWHM width in X
-  const auto width = fwhm.width();
-
-  // FWHM label
-  if (!meta.xUnit.isEmpty()) {
-    const auto xWidth = width * meta.xScaler;
-    m_FWHMLabel->setText(QString("FWHM: %1 samples, %2 %3")
-                             .arg(width)
-                             .arg(xWidth)
-                             .arg(meta.xUnit));
-
-  } else {
-    m_FWHMLabel->setText(QString("FWHM: %1 samples").arg(width));
-  }
-
   // Title
   graph(0)->setName(meta.name);
 
@@ -147,8 +126,6 @@ void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
   // x range
   m_meta.xMin = x.front();
   m_meta.xMax = x.back();
-  xAxis->setRange(m_meta.xMin, m_meta.xMax);
-  xAxis2->setRange(m_meta.xMin * m_meta.xScaler, m_meta.xMax * m_meta.xScaler);
 
   // y range
   if (m_meta.autoScaleY) {
@@ -156,8 +133,32 @@ void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
     m_meta.yMin = *min;
     m_meta.yMax = *max;
   }
-  yAxis->setRange(m_meta.yMin, m_meta.yMax);
 
+  // Compute FWHM and update tracer
+  const auto fwhm = m_FWHMtracers->updateData(x, y);
+  // FWHM width in X
+  const auto width = fwhm.width();
+
+  // FWHM label
+  if (!meta.xUnit.isEmpty()) {
+    const auto xWidth = width * meta.xScaler;
+    m_FWHMLabel->setText(QString("Peak: %1; FWHM: %3 samples, %4 %5")
+                             .arg(fwhm.maxY)
+                             .arg(width)
+                             .arg(xWidth)
+                             .arg(meta.xUnit));
+
+  } else {
+    m_FWHMLabel->setText(
+        QString("Peak: %1; FWHM: %2 samples").arg(fwhm.maxY).arg(width));
+  }
+
+  replot();
+}
+
+void CustomPlot::resetZoom() {
+  xAxis->setRange(m_meta.xMin, m_meta.xMax);
+  yAxis->setRange(m_meta.yMin, m_meta.yMax);
   replot();
 }
 

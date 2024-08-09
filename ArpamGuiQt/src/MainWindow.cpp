@@ -1,16 +1,20 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
+#include "AcquisitionController.hpp"
+#include "Common.hpp"
 #include "CoregDisplay.hpp"
-#include "DataProcWorker.hpp"
 #include "FrameController.hpp"
+#include "QMessageBox"
+#include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
+#include "ReconWorker.hpp"
+#include "strConvUtils.hpp"
 #include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QKeySequence>
 #include <QLabel>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QScrollArea>
 #include <QSizePolicy>
@@ -21,6 +25,7 @@
 #include <Qt>
 #include <QtDebug>
 #include <QtLogging>
+#include <memory>
 #include <opencv2/opencv.hpp>
 #include <qnamespace.h>
 #include <uspam/defer.h>
@@ -39,14 +44,21 @@ MainWindow::MainWindow(QWidget *parent)
       m_fileMenu(menuBar()->addMenu(tr("&File"))),
       m_viewMenu(menuBar()->addMenu(tr("&View"))),
 
-      worker(new DataProcWorker),
+      buffer(std::make_shared<RFBuffer<ArpamFloat>>()),
+
+      // Producers
+      rfProducerFile(new RFProducerFile(buffer)),
+
+      // Consumer
+      reconWorker(new ReconWorker(buffer)),
 
       textEdit(new QPlainTextEdit(this)),
       reconParamsController(new ReconParamsController),
       m_AScanPlot(new AScanPlot(reconParamsController)),
       m_coregDisplay(new CoregDisplay),
-      m_frameController(new FrameController(reconParamsController, worker,
-                                            m_AScanPlot, m_coregDisplay))
+      m_frameController(new FrameController(rfProducerFile, reconWorker,
+                                            reconParamsController, m_AScanPlot,
+                                            m_coregDisplay))
 
 {
   menuBar()->addMenu(m_frameController->frameMenu());
@@ -57,20 +69,21 @@ MainWindow::MainWindow(QWidget *parent)
   // Enable drop (bin files)
   setAcceptDrops(true);
 
-  /**
-   * Setup worker thread
-   */
+  /*
+  Setup RF producer thread
+  */
   {
-    worker->moveToThread(&workerThread);
+    rfProducerFile->moveToThread(&producerThreadFile);
+    producerThreadFile.start();
+  }
 
-    connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
-
-    connect(worker, &DataProcWorker::error, this, &MainWindow::logError);
-
-    // Note: worker's resultReady signal is connected inside FrameController
-
-    // Start the worker thread event loop
+  /*
+  Setup RF consumer thread
+  */
+  {
+    reconWorker->moveToThread(&workerThread);
     workerThread.start();
+    QMetaObject::invokeMethod(reconWorker, &ReconWorker::start);
   }
 
   /*
@@ -95,6 +108,8 @@ MainWindow::MainWindow(QWidget *parent)
         dockAnnotations->hide();
         dockAScanPlot->hide();
 
+        dockAcquisitionController->hide();
+
         actViewSimple->setChecked(true);
         actViewExpert->setChecked(false);
 
@@ -116,6 +131,13 @@ MainWindow::MainWindow(QWidget *parent)
 
         dockReconParams->raise();
 
+#ifdef ARPAM_HAS_ALAZAR
+        dockAcquisitionController->show();
+
+#else
+        dockAcquisitionController->hide();
+#endif
+
         actViewSimple->setChecked(false);
         actViewExpert->setChecked(true);
 
@@ -133,11 +155,8 @@ MainWindow::MainWindow(QWidget *parent)
    */
 
   m_viewMenu->addMenu(m_coregDisplay->viewMenu());
-
   m_viewMenu->addSeparator();
-
   m_viewMenu->addMenu(m_coregDisplay->cursorMenu());
-
   m_viewMenu->addSeparator();
 
   // Log dock widget
@@ -159,13 +178,13 @@ MainWindow::MainWindow(QWidget *parent)
     dockFrameController = new QDockWidget("Frame Controller", this);
     // dock->setFeatures(dock->features() ^ (QDockWidget::DockWidgetClosable));
     this->addDockWidget(Qt::TopDockWidgetArea, dockFrameController);
-    resizeDocks({dockFrameController},
-                {dockFrameController->sizeHint().height()},
-                Qt::Orientation::Vertical);
 
     // dockLayout->addWidget(m_frameController);
     dockFrameController->setWidget(m_frameController);
-    m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
+
+    m_fileMenu->addAction(m_frameController->actOpenFileSelectDialog());
+    m_fileMenu->addAction(m_frameController->actCloseBinfile());
+
     m_viewMenu->addAction(dockFrameController->toggleViewAction());
 
     connect(m_frameController, &FrameController::message, this,
@@ -173,6 +192,66 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_frameController, &FrameController::statusMessage, statusBar(),
             &QStatusBar::showMessage);
+  }
+
+  // Acquisition controller dock
+  {
+    dockAcquisitionController = new QDockWidget("Acquisition Controller", this);
+    this->addDockWidget(Qt::TopDockWidgetArea, dockAcquisitionController);
+
+    m_viewMenu->addAction(dockAcquisitionController->toggleViewAction());
+    auto *acquisitionController = new AcquisitionController(buffer);
+    dockAcquisitionController->setWidget(acquisitionController);
+
+#ifdef ARPAM_HAS_ALAZAR
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::maxIndexChanged, m_frameController,
+            &FrameController::setMaxFrameNum);
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
+            &CoregDisplay::setMaxIdx);
+
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::acquisitionFinished, this,
+            [this, acquisitionController] {
+              // Log event
+              const auto &path =
+                  acquisitionController->controller.daq().binpath();
+              if (!path.empty()) {
+                const auto strpath = path2QString(path);
+                const auto msg =
+                    QString("Finished acquiring to %1").arg(strpath);
+                qInfo() << msg;
+                statusBar()->showMessage(msg);
+                logError(msg);
+
+                // Load binfile in frame controller
+                m_frameController->acceptBinfile(strpath);
+              }
+            });
+
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::acquisitionStarted,
+            [this, acquisitionController] {
+              // Disable frame controller
+              m_frameController->setEnabled(false);
+
+              // Status message about save/display
+              const auto &path =
+                  acquisitionController->controller.daq().binpath();
+
+              const auto msg =
+                  path.empty() ? "Display only"
+                               : QString("Acquiring to ") + path2QString(path);
+              qInfo() << msg;
+              statusBar()->showMessage(msg);
+            });
+
+    {
+      auto *act = acquisitionController->actShowMotorTestPanel();
+      m_viewMenu->addAction(act);
+    }
+#endif // ARPAM_HAS_ALAZAR
   }
 
   // Tabify ReconParamsController dock and Annotations dock on the left
@@ -202,18 +281,18 @@ MainWindow::MainWindow(QWidget *parent)
       dockReconParams->setWidget(reconParamsScrollArea);
 
       connect(reconParamsController, &ReconParamsController::paramsUpdated,
+              this,
               [this](uspam::recon::ReconParams2 params,
                      uspam::io::IOParams ioparams) {
                 // Update params
-                this->worker->updateParams(std::move(params), ioparams);
+                rfProducerFile->setIOParams(ioparams);
+                reconWorker->reconstructor().setParams(params, ioparams);
 
                 // Only invoke "replayOne" if not currently worker is not
                 // playing
-                if (this->worker->isReady() && !this->worker->isPlaying()) {
-                  QMetaObject::invokeMethod(worker, &DataProcWorker::replayOne);
-
-                  // Save params to file
-                  this->worker->saveParamsToFile();
+                if (rfProducerFile->ready() && !rfProducerFile->producing()) {
+                  QMetaObject::invokeMethod(rfProducerFile,
+                                            &RFProducerFile::reproduceOne);
                 }
               });
 
@@ -254,11 +333,7 @@ MainWindow::MainWindow(QWidget *parent)
   fullscreenAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_F));
   fullscreenAction->setCheckable(true);
   connect(fullscreenAction, &QAction::triggered, [this](bool checked) {
-    if (checked) {
-      this->setWindowState(Qt::WindowFullScreen);
-    } else {
-      this->setWindowState(Qt::WindowMaximized);
-    }
+    this->setWindowState(checked ? Qt::WindowFullScreen : Qt::WindowMaximized);
   });
   m_viewMenu->addAction(fullscreenAction);
 
@@ -312,22 +387,37 @@ void MainWindow::dropEvent(QDropEvent *event) {
   if (mimeData->hasUrls()) {
     const auto &urls = mimeData->urls();
     const auto filepath = urls[0].toLocalFile();
-    m_frameController->acceptNewBinfile(filepath);
+    m_frameController->acceptBinfile(filepath);
 
     event->acceptProposedAction();
   }
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
-  // Stop the worker thread
-  if (workerThread.isRunning()) {
-    this->worker->pause();
-    workerThread.quit();
-    workerThread.wait();
-  }
-  event->accept();
-}
-
 void MainWindow::logError(QString message) {
   textEdit->appendPlainText(message);
+}
+
+void MainWindow::messageBox(const QString &title, const QString &message) {
+  QMessageBox::information(this, title, message);
+};
+
+MainWindow::~MainWindow() {}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+  buffer->exit();
+
+  if (workerThread.isRunning()) {
+    // To signal recon worker to stop, call buffer->exit()
+    workerThread.quit();
+  }
+
+  if (producerThreadFile.isRunning()) {
+    // Signal producer objects to stop
+    rfProducerFile->stopProducing();
+    producerThreadFile.quit();
+  }
+
+  // Wait for threads to join
+  producerThreadFile.wait();
+  workerThread.wait();
 }

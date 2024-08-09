@@ -98,6 +98,7 @@ void FreqSpectrum::setData(std::span<const T> data, const double Fs_MHz) {
   customPlot->xAxis->ticker()->setTickCount(10);
 
   customPlot->replot();
+  customPlot->resetZoom();
 }
 
 // Explicit instantiation of the member function template above

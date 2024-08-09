@@ -1,4 +1,5 @@
 #include "uspam/reconParams.hpp"
+#include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/json.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -10,12 +11,29 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
   using json::serializeArray;
 
   rapidjson::Value obj(rapidjson::kObjectType);
-  obj.AddMember("filterFreq", serializeArray(filterFreq, allocator), allocator);
-  obj.AddMember("filterGain", serializeArray(filterGain, allocator), allocator);
 
+  obj.AddMember("filterType", static_cast<int>(filterType), allocator);
+
+  obj.AddMember("firTaps", firTaps, allocator);
+  obj.AddMember("iirOrder", iirOrder, allocator);
+
+  obj.AddMember("bpHighFreq", bpHighFreq, allocator);
+  obj.AddMember("bpLowFreq", bpLowFreq, allocator);
+
+  obj.AddMember("truncate", truncate, allocator);
   obj.AddMember("noiseFloor", noiseFloor_mV, allocator);
   obj.AddMember("desiredDynamicRange", desiredDynamicRange, allocator);
   obj.AddMember("rotateOffset", rotateOffset, allocator);
+
+  {
+    rapidjson::Value v;
+    const auto sv = beamformer::BeamformerTypeToString(beamformerType);
+    v.SetString(sv.data(), static_cast<rapidjson::SizeType>(sv.size()),
+                allocator);
+    obj.AddMember("beamformerType", v, allocator);
+  }
+
+  // TODO beamformer params
 
   return obj;
 }
@@ -25,18 +43,22 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
 
   ReconParams params;
 
-  if (const auto it = obj.FindMember("filterFreq"); it != obj.MemberEnd()) {
-    assert(it->value.IsArray());
-    deserializeArray(it->value, params.filterFreq);
-  }
-  if (const auto it = obj.FindMember("filterGain"); it != obj.MemberEnd()) {
-    assert(it->value.IsArray());
-    deserializeArray(it->value, params.filterGain);
-  }
+  params.filterType = static_cast<FilterType>(obj["filterType"].GetInt());
 
+  params.firTaps = obj["firTaps"].GetInt();
+  params.iirOrder = obj["iirOrder"].GetInt();
+
+  params.bpHighFreq = obj["bpHighFreq"].GetFloat();
+  params.bpLowFreq = obj["bpLowFreq"].GetFloat();
+
+  params.truncate = obj["truncate"].GetInt();
   params.rotateOffset = obj["rotateOffset"].GetInt();
   params.noiseFloor_mV = obj["noiseFloor"].GetFloat();
   params.desiredDynamicRange = obj["desiredDynamicRange"].GetFloat();
+
+  params.beamformerType =
+      beamformer::BeamformerTypeFromString(obj["beamformerType"].GetString());
+
   return params;
 }
 

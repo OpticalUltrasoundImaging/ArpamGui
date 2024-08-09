@@ -24,9 +24,9 @@ SaftParamsController::SaftParamsController(QWidget *parent)
   int row{0};
 
   const auto labelledSpinBox =
-      [this, &row, layout, &makeQDoubleSpinBox]<typename FloatType>(
+      [this, &row, layout, &makeQDoubleSpinBox]<typename Float>(
           const QString &text, const std::pair<double, double> &range,
-          const double singleStep, FloatType &value, const QString &suffix = {},
+          const double singleStep, Float &value, const QString &suffix = {},
           const QString &tooltip = {}) {
         auto *label = new QLabel(text);
         layout->addWidget(label, row, 0);

@@ -1,7 +1,10 @@
 #include "About.hpp"
+#include "DAQ/DAQ.hpp"
+#include "Motor/NI.hpp"
 #include <QMessageBox>
 #include <armadillo>
 #include <fftw3.h>
+#include <kfr/kfr.h>
 #include <oneapi/tbb/version.h>
 #include <opencv2/opencv.hpp>
 #include <qcustomplot.h>
@@ -13,12 +16,12 @@ namespace arpam_about {
 auto aboutString() -> QString {
   std::stringstream ss;
 
-  ss << "ArpamGuiQt\n\n";
+  ss << "ArpamGuiQt. ";
+  ss << "(Build with " << ARPAM_COMPILER_NAME << " version "
+     << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE "-"
+     << ARPAM_COMPILE_TIME << ")\n\n";
 
-  ss << "Build with " << ARPAM_COMPILER_NAME << " version "
-     << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE " at "
-     << ARPAM_COMPILE_TIME << "\n";
-
+  ss << "-- Bundled Dependencies\n";
   ss << "Qt: " << QT_VERSION_STR << "\n";
   ss << "QCustomPlot: " << QCUSTOMPLOT_VERSION_STR << "\n";
 
@@ -27,8 +30,10 @@ auto aboutString() -> QString {
 
   ss << "OpenCV: " << cv::getVersionString() << "\n";
 
+  ss << "KFR: " << KFR_VERSION_STRING << "\n";
+
 #if defined(_WIN32) || defined(_WIN64)
-// Temp fix for Windows 
+// Temp fix for Windows
 // https://github.com/microsoft/vcpkg/issues/39719
 #else
   // NOLINTNEXTLINE(*-pointer-decay)
@@ -38,6 +43,23 @@ auto aboutString() -> QString {
   ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << "\n";
 
   ss << "oneTBB: " << TBB_VERSION_STRING << "\n";
+  ss << "-- Bundled Dependencies\n\n";
+
+  ss << "-- Data acquisition interface\n";
+#ifdef ARPAM_HAS_ALAZAR
+  ss << daq::getDAQInfo();
+#else
+  ss << "No DAQ support.\n";
+#endif
+  ss << "-- Data acquisition interface\n\n";
+
+  ss << "-- Motor control interface\n";
+#ifdef ARPAM_HAS_NI
+  ss << motor::getNIDAQInfo();
+#else
+  ss << "No motor control support.\n";
+#endif
+  ss << "-- Motor control interface\n";
 
   return QString::fromStdString(ss.str());
 }

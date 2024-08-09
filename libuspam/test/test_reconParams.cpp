@@ -1,11 +1,19 @@
+#include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/beamformer/SAFT.hpp"
 #include "uspam/beamformer/beamformer.hpp"
 #include "uspam/reconParams.hpp"
+#include <filesystem>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <variant>
 
 // NOLINTBEGIN(*-magic-numbers, *global*)
+
+namespace fs = std::filesystem;
+
+using uspam::beamformer::BeamformerType;
+using uspam::recon::ReconParams;
+using uspam::recon::ReconParams2;
 
 void Expect_EQ_BeamformerParams(
     const uspam::beamformer::BeamformerParams<float> &p1,
@@ -37,88 +45,82 @@ void Expect_EQ_BeamformerParams(
   }
 }
 
+#define ASSERT_PARAMS(assert_func, a, b)                                       \
+  assert_func((a).bpLowFreq, (b).bpLowFreq);                                   \
+  assert_func((a).bpHighFreq, (b).bpHighFreq);                                 \
+  assert_func((a).noiseFloor_mV, (b).noiseFloor_mV);                           \
+  assert_func((a).desiredDynamicRange, (b).desiredDynamicRange);               \
+  assert_func((a).rotateOffset, (b).rotateOffset);
+
+TEST(ReconParams2Serialize, ToString) {
+  const auto params_true = uspam::recon::ReconParams2::system2024v1();
+  {
+    const auto doc = params_true.serializeToDoc();
+
+    uspam::recon::ReconParams2 params{};
+
+    ASSERT_PARAMS(ASSERT_NE, params_true.PA, params.PA);
+    ASSERT_NE(params_true.PA.beamformerType, params.PA.beamformerType);
+    ASSERT_PARAMS(ASSERT_NE, params_true.US, params.US);
+    // US default beamformerType is None (0)
+    // ASSERT_NE(params_true.US.beamformerType, params.US.beamformerType);
+
+    params.deserialize(doc);
+
+    ASSERT_PARAMS(ASSERT_EQ, params_true.PA, params.PA);
+    ASSERT_EQ(params_true.PA.beamformerType, params.PA.beamformerType);
+    ASSERT_PARAMS(ASSERT_EQ, params_true.US, params.US);
+    ASSERT_EQ(params_true.US.beamformerType, params.US.beamformerType);
+    Expect_EQ_BeamformerParams(params_true.US.beamformerParams,
+                               params.US.beamformerParams);
+  }
+}
+
+TEST(ReconParams2Serialize, ToFile) {
+  const auto params_true = uspam::recon::ReconParams2::system2024v1();
+  fs::path jsonFile = "tmp.json";
+  {
+    ASSERT_TRUE(params_true.serializeToFile(jsonFile));
+
+    uspam::recon::ReconParams2 params{};
+
+    ASSERT_PARAMS(ASSERT_NE, params_true.PA, params.PA);
+    ASSERT_PARAMS(ASSERT_NE, params_true.US, params.US);
+
+    ASSERT_TRUE(params.deserializeFromFile(jsonFile));
+
+    ASSERT_PARAMS(ASSERT_EQ, params_true.PA, params.PA);
+    ASSERT_EQ(params_true.PA.beamformerType, params.PA.beamformerType);
+    ASSERT_PARAMS(ASSERT_EQ, params_true.US, params.US);
+    ASSERT_EQ(params_true.US.beamformerType, params.US.beamformerType);
+    Expect_EQ_BeamformerParams(params_true.US.beamformerParams,
+                               params.US.beamformerParams);
+  }
+  fs::remove(jsonFile);
+}
+
 // Test for ReconParams
 TEST(ReconParamsTest, CopyConstructor) {
+  const auto params = ReconParams2::system2024v2GUI();
+  const auto &params1 = params.PA;
+  ReconParams params2 = params1; // Copy constructor
 
-  uspam::recon::ReconParams params1{{0, 0.03, 0.035, 0.2, 0.22, 1},
-                                    {0, 0, 1, 1, 0, 0},
-                                    250,
-                                    25,
-                                    9.0F,
-                                    35.0F,
-                                    uspam::beamformer::BeamformerType::SAFT_CF};
-  uspam::recon::ReconParams params2 = params1; // Copy constructor
+  ASSERT_PARAMS(EXPECT_EQ, params1, params2);
 
-  EXPECT_EQ(params1.filterFreq, params2.filterFreq);
-  EXPECT_EQ(params1.filterGain, params2.filterGain);
-  EXPECT_EQ(params1.truncate, params2.truncate);
-  EXPECT_EQ(params1.rotateOffset, params2.rotateOffset);
-  EXPECT_EQ(params1.noiseFloor_mV, params2.noiseFloor_mV);
-  EXPECT_EQ(params1.desiredDynamicRange, params2.desiredDynamicRange);
-  EXPECT_EQ(params1.beamformerType, params2.beamformerType);
   Expect_EQ_BeamformerParams(params1.beamformerParams,
                              params2.beamformerParams);
 }
 
 TEST(ReconParamsTest, CopyAssignment) {
-  uspam::recon::ReconParams params1{{0, 0.03, 0.035, 0.2, 0.22, 1},
-                                    {0, 0, 1, 1, 0, 0},
-                                    250,
-                                    25,
-                                    9.0F,
-                                    35.0F,
-                                    uspam::beamformer::BeamformerType::SAFT_CF};
-  uspam::recon::ReconParams params2;
+  const auto params = ReconParams2::system2024v2GUI();
+  const auto &params1 = params.PA;
+
+  ReconParams params2;
   params2 = params1; // Copy assignment
 
-  EXPECT_EQ(params1.filterFreq, params2.filterFreq);
-  EXPECT_EQ(params1.filterGain, params2.filterGain);
-  EXPECT_EQ(params1.truncate, params2.truncate);
-  EXPECT_EQ(params1.rotateOffset, params2.rotateOffset);
-  EXPECT_EQ(params1.noiseFloor_mV, params2.noiseFloor_mV);
-  EXPECT_EQ(params1.desiredDynamicRange, params2.desiredDynamicRange);
   EXPECT_EQ(params1.beamformerType, params2.beamformerType);
   Expect_EQ_BeamformerParams(params1.beamformerParams,
                              params2.beamformerParams);
-}
-
-TEST(ReconParamsTest, MoveConstructor) {
-  uspam::recon::ReconParams params1{{0, 0.03, 0.035, 0.2, 0.22, 1},
-                                    {0, 0, 1, 1, 0, 0},
-                                    250,
-                                    25,
-                                    9.0F,
-                                    35.0F,
-                                    uspam::beamformer::BeamformerType::SAFT_CF};
-  uspam::recon::ReconParams params2 = std::move(params1); // Move constructor
-
-  EXPECT_EQ(params2.filterFreq,
-            std::vector<double>({0, 0.03, 0.035, 0.2, 0.22, 1}));
-  EXPECT_EQ(params2.filterGain, std::vector<double>({0, 0, 1, 1, 0, 0}));
-  EXPECT_EQ(params2.truncate, 250);
-  EXPECT_EQ(params2.rotateOffset, 25);
-  EXPECT_EQ(params2.noiseFloor_mV, 9.0F);
-  EXPECT_EQ(params2.desiredDynamicRange, 35.0F);
-  EXPECT_EQ(params2.beamformerType, uspam::beamformer::BeamformerType::SAFT_CF);
-  // TODO need to check the BeamformerParams
-}
-
-TEST(ReconParams2Test, MoveAssignment) {
-  uspam::recon::ReconParams2 params1 =
-      uspam::recon::ReconParams2::system2024v1();
-  uspam::recon::ReconParams2 params2;
-  params2 = std::move(params1); // Move assignment
-
-  EXPECT_EQ(params2.PA.filterFreq,
-            std::vector<double>({0, 0.03, 0.035, 0.2, 0.22, 1}));
-  EXPECT_EQ(params2.PA.filterGain, std::vector<double>({0, 0, 1, 1, 0, 0}));
-  EXPECT_EQ(params2.PA.truncate, 250);
-  EXPECT_EQ(params2.PA.rotateOffset, 25);
-  EXPECT_EQ(params2.PA.noiseFloor_mV, 9.0F);
-  EXPECT_EQ(params2.PA.desiredDynamicRange, 35.0F);
-  EXPECT_EQ(params2.PA.beamformerType,
-            uspam::beamformer::BeamformerType::SAFT_CF);
-  // TODO need to check the BeamformerParams
 }
 
 // NOLINTEND(*-magic-numbers, *global*)

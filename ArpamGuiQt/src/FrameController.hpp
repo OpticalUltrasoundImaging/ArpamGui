@@ -1,9 +1,11 @@
 #pragma once
 
 #include "AScanPlot.hpp"
+#include "Common.hpp"
 #include "CoregDisplay.hpp"
-#include "DataProcWorker.hpp"
+#include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
+#include "ReconWorker.hpp"
 #include <Annotation/AnnotationJsonFile.hpp>
 #include <QAction>
 #include <QMenu>
@@ -19,9 +21,10 @@ class FrameController : public QWidget {
 public:
   // FrameController does not own the worker or the coregDisplay (both are owned
   // by MainWindow). It merely keeps a reference to it for control
-  explicit FrameController(ReconParamsController *paramsController,
-                           DataProcWorker *worker, AScanPlot *ascanPlot,
-                           CoregDisplay *coregDisplay,
+  explicit FrameController(RFProducerFile *rfProducerFile,
+                           ReconWorker *reconWorker,
+                           ReconParamsController *paramsController,
+                           AScanPlot *ascanPlot, CoregDisplay *coregDisplay,
                            QWidget *parent = nullptr);
 
   [[nodiscard]] auto frameMenu() const { return m_menu; }
@@ -31,7 +34,8 @@ public slots:
   void openFileSelectDialog();
 
   // Accept a binfile
-  void acceptNewBinfile(const QString &filename);
+  void acceptBinfile(const QString &filename);
+  void closeBinfile();
 
   [[nodiscard]] int frameNum() const;
   void setFrameNum(int frameNum);
@@ -51,19 +55,24 @@ signals:
   void message(QString);
   void statusMessage(QString message, int timeout = 0);
   void sigBinfileSelected(QString);
-  void sigPlay();
-  void sigPause();
   void sigFrameNumUpdated(int);
 
 public:
-  auto get_actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
+  auto actOpenFileSelectDialog() { return m_actOpenFileSelectDialog; }
+  auto actCloseBinfile() { return m_actCloseBinfile; }
 
 private:
-  void saveFrameAnnotationsFromModelToDoc(int frame);
+  bool saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
 
+  // RF producers
+  RFProducerFile *m_producerFile;
+
+  // RF consumer
+  ReconWorker *m_reconWorker;
+
+  // Params controller
   ReconParamsController *m_reconParams;
-  DataProcWorker *m_worker;
 
   // Ptr to the coregDisplay for showing a pair of BScan images
   CoregDisplay *m_coregDisplay;
@@ -79,13 +88,15 @@ private:
   // Actions
   QMenu *m_menu;
   QAction *m_actOpenFileSelectDialog;
+  QAction *m_actCloseBinfile;
+
   QAction *m_actPlayPause;
   QAction *m_actNextFrame;
   QAction *m_actPrevFrame;
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here
-  std::shared_ptr<BScanData<DataProcWorker::FloatType>> m_data;
+  std::shared_ptr<BScanData<ArpamFloat>> m_data;
 
   // Annotation JSON document
   annotation::AnnotationJsonFile m_doc;

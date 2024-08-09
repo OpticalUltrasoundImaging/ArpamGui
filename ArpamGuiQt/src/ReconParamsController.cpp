@@ -65,8 +65,8 @@ auto vectorToStdString(const std::vector<T> &vec) -> std::string {
 // NOLINTBEGIN(*-magic-numbers)
 
 ReconParamsController::ReconParamsController(QWidget *parent)
-    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v1()),
-      ioparams(uspam::io::IOParams::system2024v1()) {
+    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v2GUI()),
+      ioparams(uspam::io::IOParams::system2024v2GUI()) {
   auto *layout = new QVBoxLayout();
   this->setLayout(layout);
 
@@ -84,24 +84,20 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return spinBox;
   };
 
-  const auto makeQDoubleSpinBox =
-      [this]<typename FloatType>(const std::pair<FloatType, FloatType> &range,
-                                 FloatType singleStep, FloatType &value) {
-        auto *spinBox = new QDoubleSpinBox;
-        spinBox->setRange(static_cast<double>(range.first),
-                          static_cast<double>(range.second));
-        spinBox->setValue(static_cast<double>(value));
-        spinBox->setSingleStep(static_cast<double>(singleStep));
-        connect(spinBox, &QDoubleSpinBox::valueChanged, this,
-                [&](double newValue) {
-                  value = static_cast<FloatType>(newValue);
-                  this->_paramsUpdatedInternal();
-                });
-        return spinBox;
-      };
-
-  const QString &help_Freq = "Parameters to the FIR filter.";
-  const QString &help_Gain = "Parameters to the FIR filter.";
+  const auto makeQDoubleSpinBox = [this]<typename Float>(
+                                      const std::pair<Float, Float> &range,
+                                      Float singleStep, Float &value) {
+    auto *spinBox = new QDoubleSpinBox;
+    spinBox->setRange(static_cast<double>(range.first),
+                      static_cast<double>(range.second));
+    spinBox->setValue(static_cast<double>(value));
+    spinBox->setSingleStep(static_cast<double>(singleStep));
+    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [&](double newValue) {
+      value = static_cast<Float>(newValue);
+      this->_paramsUpdatedInternal();
+    });
+    return spinBox;
+  };
 
   const QString &help_Truncate = "Truncate num points from the beginning to "
                                  "remove pulser/laser artifacts.";
@@ -122,36 +118,134 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       vlayout->addLayout(layout);
       int row = 1;
 
+      // Filter type and order control
       {
-        auto *label = new QLabel("Freq");
-        label->setToolTip(help_Freq);
+        auto *label = new QLabel("Filter type");
+        label->setToolTip("Select the filter type");
         layout->addWidget(label, row, 0);
 
-        auto *filtFreq = new QLineEdit();
-        filtFreq->setValidator(doubleListValidator);
-        layout->addWidget(filtFreq, row++, 1);
-        filtFreq->setReadOnly(true);
+        auto *filterTypeCBox = new QComboBox;
+        layout->addWidget(filterTypeCBox, row++, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back([&p, filtFreq] {
-          filtFreq->setText(
-              QString::fromStdString(vectorToStdString(p.filterFreq)));
+        auto *firTapsLabel = new QLabel("FIR Taps");
+        firTapsLabel->setToolTip("FIR num taps");
+        layout->addWidget(firTapsLabel, row, 0);
+
+        QSpinBox *firTapsSpinBox{};
+        {
+          const auto makeQSpinBox = [this](const std::pair<int, int> &range,
+                                           int &value, auto *context) {
+            auto *spinBox = new QSpinBox;
+            spinBox->setRange(range.first, range.second);
+            spinBox->setValue(value);
+            connect(spinBox, &QSpinBox::valueChanged, context,
+                    [=, this, &value](int newValue) {
+                      if (newValue % 2 == 0) {
+                        value = newValue + 1;
+                        spinBox->setValue(value);
+                      } else {
+                        value = newValue;
+                      }
+                      this->_paramsUpdatedInternal();
+                    });
+            return spinBox;
+          };
+
+          // Ensure firTaps value is odd
+          firTapsSpinBox = makeQSpinBox({3, 125}, p.firTaps, this);
+          layout->addWidget(firTapsSpinBox, row++, 1);
+          updateGuiFromParamsCallbacks.emplace_back([this, firTapsSpinBox, &p] {
+            firTapsSpinBox->setValue(p.firTaps);
+          });
+        }
+
+        auto *iirOrderLabel = new QLabel("IIR Order");
+        iirOrderLabel->setToolTip("IIR filter order");
+        layout->addWidget(iirOrderLabel, row, 0);
+
+        auto *iirOrderSpinBox = makeQSpinBox({1, 25}, p.iirOrder, this);
+        layout->addWidget(iirOrderSpinBox, row++, 1);
+        updateGuiFromParamsCallbacks.emplace_back([this, iirOrderSpinBox, &p] {
+          iirOrderSpinBox->setValue(p.iirOrder);
         });
+
+        {
+          using uspam::recon::FilterType;
+          filterTypeCBox->addItem("FIR", QVariant::fromValue(FilterType::FIR));
+          filterTypeCBox->addItem("IIR", QVariant::fromValue(FilterType::IIR));
+
+          connect(filterTypeCBox,
+                  QOverload<int>::of(&QComboBox::currentIndexChanged),
+                  [=, &p](int index) {
+                    p.filterType = qvariant_cast<FilterType>(
+                        filterTypeCBox->itemData(index));
+
+                    switch (p.filterType) {
+                    case FilterType::FIR: {
+                      firTapsLabel->show();
+                      firTapsSpinBox->show();
+                      iirOrderLabel->hide();
+                      iirOrderSpinBox->hide();
+                    } break;
+                    case FilterType::IIR: {
+                      firTapsLabel->hide();
+                      firTapsSpinBox->hide();
+                      iirOrderLabel->show();
+                      iirOrderSpinBox->show();
+                    } break;
+                    }
+
+                    this->_paramsUpdatedInternal();
+                  });
+
+          updateGuiFromParamsCallbacks.emplace_back([=, this, &p] {
+            for (int i = 0; i < filterTypeCBox->count(); ++i) {
+              if (qvariant_cast<FilterType>(filterTypeCBox->itemData(i)) ==
+                  p.filterType) {
+                filterTypeCBox->setCurrentIndex(i);
+              }
+            }
+
+            switch (p.filterType) {
+            case FilterType::FIR: {
+              firTapsLabel->show();
+              firTapsSpinBox->show();
+              iirOrderLabel->hide();
+              iirOrderSpinBox->hide();
+            } break;
+            case FilterType::IIR: {
+              firTapsLabel->hide();
+              firTapsSpinBox->hide();
+              iirOrderLabel->show();
+              iirOrderSpinBox->show();
+            } break;
+            }
+          });
+        }
       }
 
       {
-        auto *label = new QLabel("Gain");
-        label->setToolTip(help_Gain);
+        auto *label = new QLabel("Bandpass low");
+        label->setToolTip("Bandpass low frequency");
         layout->addWidget(label, row, 0);
 
-        auto *filtGain = new QLineEdit();
-        filtGain->setValidator(doubleListValidator);
-        layout->addWidget(filtGain, row++, 1);
-        filtGain->setReadOnly(true);
+        auto *sp = makeQDoubleSpinBox({0.F, 1.F}, 0.01F, p.bpLowFreq);
+        layout->addWidget(sp, row++, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back([&p, filtGain] {
-          filtGain->setText(
-              QString::fromStdString(vectorToStdString(p.filterGain)));
-        });
+        updateGuiFromParamsCallbacks.emplace_back(
+            [&p, sp] { sp->setValue(p.bpLowFreq); });
+      }
+
+      {
+        auto *label = new QLabel("Bandpass high");
+        label->setToolTip("Bandpass high frequency");
+        layout->addWidget(label, row, 0);
+
+        auto *sp = makeQDoubleSpinBox({0.F, 1.F}, 0.01F, p.bpHighFreq);
+        layout->addWidget(sp, row++, 1);
+
+        updateGuiFromParamsCallbacks.emplace_back(
+            [&p, sp] { sp->setValue(p.bpHighFreq); });
       }
 
       {
@@ -329,10 +423,19 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     auto *_layout = new QVBoxLayout;
     layout->addLayout(_layout);
 
-    auto *btn = new QPushButton("Reset params");
-    _layout->addWidget(btn);
-    connect(btn, &QPushButton::pressed, this,
-            &ReconParamsController::resetParams);
+    {
+      auto *btn = new QPushButton("Preset 2024v1 (Labview)");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v1);
+    }
+
+    {
+      auto *btn = new QPushButton("Preset 2024v2 (ArpamGui)");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v2GUI);
+    }
   }
 
   layout->addStretch();
@@ -340,9 +443,14 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   updateGuiFromParams();
 }
 
-void ReconParamsController::resetParams() {
+void ReconParamsController::resetParams2024v1() {
   params = uspam::recon::ReconParams2::system2024v1();
   ioparams = uspam::io::IOParams::system2024v1();
+  updateGuiFromParams();
+}
+void ReconParamsController::resetParams2024v2GUI() {
+  params = uspam::recon::ReconParams2::system2024v2GUI();
+  ioparams = uspam::io::IOParams::system2024v2GUI();
   updateGuiFromParams();
 }
 

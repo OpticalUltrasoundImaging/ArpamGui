@@ -1,6 +1,9 @@
 #include "FrameController.hpp"
 #include "AScanPlot.hpp"
+#include "Common.hpp"
 #include "CoregDisplay.hpp"
+#include "ReconParamsController.hpp"
+#include "ReconWorker.hpp"
 #include "strConvUtils.hpp"
 #include <QDebug>
 #include <QFileDialog>
@@ -8,31 +11,41 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
-#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QSpinBox>
+#include <QString>
+#include <QTextStream>
 #include <QToolTip>
 #include <QVBoxLayout>
 #include <Qt>
+#include <QtLogging>
 #include <cassert>
 #include <filesystem>
 #include <memory>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
-#include <string>
 #include <uspam/json.hpp>
 
-FrameController::FrameController(ReconParamsController *paramsController,
-                                 DataProcWorker *worker, AScanPlot *ascanPlot,
-                                 CoregDisplay *coregDisplay, QWidget *parent)
-    : QWidget(parent), m_reconParams(paramsController), m_worker(worker),
+FrameController::FrameController(
+
+    RFProducerFile *rfProducerFile, ReconWorker *reconWorker,
+
+    ReconParamsController *paramsController, AScanPlot *ascanPlot,
+    CoregDisplay *coregDisplay, QWidget *parent)
+    : QWidget(parent),
+
+      m_producerFile(rfProducerFile), m_reconWorker(reconWorker),
+
+      m_reconParams(paramsController),
 
       m_coregDisplay(coregDisplay), m_AScanPlot(ascanPlot),
       m_btnPlayPause(new QPushButton("Play", this)),
 
       m_menu(new QMenu("Frames", this)),
       m_actOpenFileSelectDialog(new QAction("Open binfile")),
+      m_actCloseBinfile(new QAction("Close binfile")),
+
       m_actPlayPause(new QAction("Play/Pause")),
       m_actNextFrame(new QAction("Next Frame")),
       m_actPrevFrame(new QAction("Prev Frame"))
@@ -44,15 +57,10 @@ FrameController::FrameController(ReconParamsController *paramsController,
   connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
           &FrameController::openFileSelectDialog);
 
-  // Result ready
-  connect(worker, &DataProcWorker::resultReady, this,
-          [this](std::shared_ptr<BScanData<DataProcWorker::FloatType>> data) {
-            m_AScanPlot->setData(data);
-            m_AScanPlot->plotCurrentAScan();
-
-            m_data = std::move(data);
-            plotCurrentBScan();
-          });
+  m_actCloseBinfile->setEnabled(false);
+  m_actCloseBinfile->setShortcut(Qt::CTRL | Qt::Key_W);
+  connect(m_actCloseBinfile, &QAction::triggered, this,
+          &FrameController::closeBinfile);
 
   // UI
   auto *vlayout = new QVBoxLayout;
@@ -77,7 +85,6 @@ FrameController::FrameController(ReconParamsController *paramsController,
       connect(m_frameSlider, &QSlider::sliderMoved, this, [&] {
         const auto val = m_frameSlider->value();
         QToolTip::showText(QCursor::pos(), QString::number(val));
-        // m_frameNumSpinBox->setValue(val);
       });
 
       connect(m_frameSlider, &QSlider::sliderReleased, this,
@@ -117,7 +124,6 @@ FrameController::FrameController(ReconParamsController *paramsController,
   // Connections
   // Frame controller signals
   {
-
     // Action for when a new binfile is selected
     connect(this, &FrameController::sigBinfileSelected,
             [this](const QString &filepath) {
@@ -125,8 +131,8 @@ FrameController::FrameController(ReconParamsController *paramsController,
               std::filesystem::path path(pathUtf8.constData());
 
               // Worker: load file
-              QMetaObject::invokeMethod(m_worker, &DataProcWorker::setBinfile,
-                                        path);
+              QMetaObject::invokeMethod(m_producerFile,
+                                        &RFProducerFile::setBinfile, path);
 
               // Update canvas dipslay
               {
@@ -138,34 +144,41 @@ FrameController::FrameController(ReconParamsController *paramsController,
 
     // When frameController's changes it's frame number (through the drag bar
     // or play), tell the worker to process the right image
-    connect(this, &FrameController::sigFrameNumUpdated, worker,
-            &DataProcWorker::playOne);
+    connect(this, &FrameController::sigFrameNumUpdated, rfProducerFile,
+            &RFProducerFile::produceOne);
 
-    // Signal to start playing
-    connect(this, &FrameController::sigPlay, this, [this] {
-      // Invoke worker::play in the worker thread
-      QMetaObject::invokeMethod(m_worker, &DataProcWorker::play);
-      m_coregDisplay->resetZoomOnNextImshow();
-    });
+    connect(m_producerFile, &RFProducerFile::maxFramesChanged, this,
+            &FrameController::setMaxFrameNum);
 
-    // Signal to pause playing
-    connect(this, &FrameController::sigPause, this, [&] {
-      // worker::pause is thread safe
-      m_worker->pause();
-    });
+    connect(m_producerFile, &RFProducerFile::maxFramesChanged, m_coregDisplay,
+            &CoregDisplay::setMaxIdx);
 
-    connect(m_worker, &DataProcWorker::maxFramesChanged, this,
-            [this](int maxIdx) {
-              this->setMaxFrameNum(maxIdx);
-              m_coregDisplay->setMaxIdx(maxIdx);
-            });
+    // Result ready
+    connect(
+        m_reconWorker, &ReconWorker::imagesReady, this,
+        [this](std::shared_ptr<BScanData<ArpamFloat>> data) {
+          m_AScanPlot->setData(data);
+          m_AScanPlot->plotCurrentAScan();
 
-    connect(m_worker, &DataProcWorker::frameIdxChanged, this, [this](int idx) {
-      this->setFrameNum(idx);
-      m_coregDisplay->setIdx(idx);
-    });
+          m_data = std::move(data);
+          plotCurrentBScan();
 
-    connect(worker, &DataProcWorker::finishedPlaying, this,
+          const auto idx = m_data->frameIdx;
+          this->setFrameNum(idx);
+          m_coregDisplay->setIdx(idx);
+          // qDebug() << "FrameController received idx =" << idx;
+
+          // Display metrics
+          {
+            auto msg =
+                QString("Frame %1/%2: ").arg(idx).arg(m_producerFile->size());
+            QTextStream stream(&msg);
+            stream << m_data->metrics;
+            emit message(msg);
+          }
+        });
+
+    connect(m_producerFile, &RFProducerFile::finishedProducing, this,
             [this] { this->updatePlayingState(false); });
   }
 
@@ -180,11 +193,12 @@ void FrameController::openFileSelectDialog() {
   const QString filename = QFileDialog::getOpenFileName(
       this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
 
-  acceptNewBinfile(filename);
+  acceptBinfile(filename);
 }
 
-void FrameController::acceptNewBinfile(const QString &filename) {
+void FrameController::acceptBinfile(const QString &filename) {
   // Update GUI
+  setEnabled(true);
   updatePlayingState(false);
 
   // Emit signal
@@ -203,8 +217,27 @@ void FrameController::acceptNewBinfile(const QString &filename) {
     loadFrameAnnotationsFromDocToModel(frameNum());
   } else {
     m_doc.init();
-    m_doc.writeToFile(m_annoPath);
   }
+
+  m_btnPlayPause->setEnabled(true);
+  m_frameSlider->setEnabled(true);
+  m_menu->setEnabled(true);
+
+  m_actCloseBinfile->setEnabled(true);
+}
+
+void FrameController::closeBinfile() {
+  m_producerFile->stopProducing();
+  m_producerFile->closeBinfile();
+
+  m_binPath.clear();
+  m_annoPath.clear();
+
+  m_btnPlayPause->setEnabled(false);
+  m_frameSlider->setEnabled(false);
+  m_menu->setEnabled(false);
+
+  m_actCloseBinfile->setEnabled(false);
 }
 
 int FrameController::frameNum() const {
@@ -215,32 +248,24 @@ int FrameController::frameNum() const {
 void FrameController::setFrameNum(int frame) {
   const auto oldFrame = frameNum();
   // Save old frames's labels
-  saveFrameAnnotationsFromModelToDoc(oldFrame);
+  if (saveFrameAnnotationsFromModelToDoc(oldFrame)) {
+    // If any annotations are present, save doc to file
+    m_doc.writeToFile(m_annoPath);
+  }
 
   // Load labels for new frame
   loadFrameAnnotationsFromDocToModel(frame);
 
-  // Save doc to file
-  m_doc.writeToFile(m_annoPath);
-
   // Update GUI
-  // m_frameNumSpinBox->setValue(frame);
   m_frameSlider->setValue(frame);
 }
 
-int FrameController::maxFrameNum() const {
-  // const auto val = m_frameNumSpinBox->maximum();
-  return m_frameSlider->maximum();
-}
+int FrameController::maxFrameNum() const { return m_frameSlider->maximum(); }
 
 void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   m_frameSlider->setMinimum(0);
   m_frameSlider->setMaximum(maxFrameNum - 1);
-
-  m_btnPlayPause->setEnabled(true);
-  m_frameSlider->setEnabled(true);
-  m_menu->setEnabled(true);
 }
 
 void FrameController::updatePlayingState(bool playing) {
@@ -252,11 +277,16 @@ void FrameController::updatePlayingState(bool playing) {
   if (playing) {
     // Now playing
     m_btnPlayPause->setText("Pause");
-    emit sigPlay();
+
+    // Invoke worker::play in the worker thread
+    QMetaObject::invokeMethod(m_producerFile, &RFProducerFile::beginProducing);
+    m_coregDisplay->resetZoomOnNextImshow();
+
   } else {
     // Now pausing
     m_btnPlayPause->setText("Play");
-    emit sigPause();
+
+    m_producerFile->stopProducing();
   }
 }
 
@@ -281,9 +311,14 @@ void FrameController::prevFrame() {
   }
 }
 
-void FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
-  auto *model = m_coregDisplay->model();
-  m_doc.setAnnotationForFrame(frame, model->annotations());
+bool FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
+  const auto *model = m_coregDisplay->model();
+  const auto &annotations = model->annotations();
+  if (!annotations.isEmpty()) {
+    m_doc.setAnnotationForFrame(frame, annotations);
+    return true;
+  }
+  return false;
 }
 
 void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {

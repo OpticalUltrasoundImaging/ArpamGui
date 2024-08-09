@@ -115,88 +115,91 @@ void reconOneScan(const ReconParams2 &params, io::PAUSpair<T> &rf,
 }
 
 // Beamform + FIR filter + Envelope detection + log compression for one
-template <Floating T>
-void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
-                  arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
-                  arma::Mat<uint8_t> &rfLog, bool flip) {
-  if (flip) {
-    // Do flip
-    imutil::fliplr_inplace(rf);
+// template <Floating T>
+// void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
+//                   arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
+//                   arma::Mat<uint8_t> &rfLog, bool flip) {
+//   if (flip) {
+//     // Do flip
+//     imutil::fliplr_inplace(rf);
 
-    // Do rotate
-    rf = arma::shift(rf, params.rotateOffset, 1);
-  }
+//     // Do rotate
+//     rf = arma::shift(rf, params.rotateOffset, 1);
+//   }
 
-  // Truncate the pulser/laser artifact
-  rf.head_rows(params.truncate - 1).zeros();
+//   // Truncate the pulser/laser artifact
+//   rf.head_rows(params.truncate - 1).zeros();
 
-  // Beamform
-  beamform(rf, rfBeamformed, params.beamformerType);
+//   // Beamform
+//   beamform(rf, rfBeamformed, params.beamformerType);
 
-  // compute filter kernels
-  const auto kernel = [&] {
-    constexpr int numtaps = 95;
-    if constexpr (std::is_same_v<T, double>) {
-      return signal::firwin2<double>(numtaps, params.filterFreq,
-                                     params.filterGain);
-    } else {
-      const auto _kernel = signal::firwin2<double>(numtaps, params.filterFreq,
-                                                   params.filterGain);
-      const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
-      return kernel;
-    }
-  }();
+//   // compute filter kernels
+//   const auto kernel = [&] {
+//     constexpr int numtaps = 95;
+//     if constexpr (std::is_same_v<T, double>) {
+//       return signal::firwin2<double>(numtaps, params.filterFreq,
+//                                      params.filterGain);
+//     } else {
+//       const auto _kernel = signal::firwin2<double>(numtaps,
+//       params.filterFreq,
+//                                                    params.filterGain);
+//       const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
+//       return kernel;
+//     }
+//   }();
 
-  if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
-    rfEnv.set_size(rf.n_rows, rf.n_cols);
-  }
+//   if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
+//     rfEnv.set_size(rf.n_rows, rf.n_cols);
+//   }
 
-  recon<T>(rfBeamformed, kernel, rfEnv);
+//   recon<T>(rfBeamformed, kernel, rfEnv);
 
-  constexpr float fct_mV2V = 1.0F / 1000;
-  rfLog.set_size(rf.n_rows, rf.n_cols);
-  logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
-                 params.desiredDynamicRange);
-}
+//   constexpr float fct_mV2V = 1.0F / 1000;
+//   rfLog.set_size(rf.n_rows, rf.n_cols);
+//   logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
+//                  params.desiredDynamicRange);
+// }
 
 // FIR filter + Envelope detection + log compression for one
-template <Floating T>
-void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
-                  arma::Mat<T> &rfEnv, arma::Mat<uint8_t> &rfLog, bool flip) {
-  if (flip) {
-    // Do flip
-    imutil::fliplr_inplace(rf);
+// template <Floating T>
+// void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
+//                   arma::Mat<T> &rfEnv, arma::Mat<uint8_t> &rfLog, bool flip)
+//                   {
+//   if (flip) {
+//     // Do flip
+//     imutil::fliplr_inplace(rf);
 
-    // Do rotate
-    rf = arma::shift(rf, params.rotateOffset, 1);
-  }
+//     // Do rotate
+//     rf = arma::shift(rf, params.rotateOffset, 1);
+//   }
 
-  // Truncate the pulser/laser artifact
-  rf.head_rows(params.truncate - 1).zeros();
+//   // Truncate the pulser/laser artifact
+//   rf.head_rows(params.truncate - 1).zeros();
 
-  // compute filter kernels
-  const auto kernel = [&] {
-    constexpr int numtaps = 95;
-    if constexpr (std::is_same_v<T, double>) {
-      return signal::firwin2<double>(numtaps, params.filterFreq,
-                                     params.filterGain);
-    } else {
-      const auto _kernel = signal::firwin2<double>(numtaps, params.filterFreq,
-                                                   params.filterGain);
-      const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
-      return kernel;
-    }
-  }();
+//   // compute filter kernels
+//   const auto kernel = [&] {
+//     constexpr int numtaps = 95;
+//     if constexpr (std::is_same_v<T, double>) {
+//       return signal::firwin2<double>(numtaps, params.filterFreq,
+//                                      params.filterGain);
+//     } else {
+//       const auto _kernel = signal::firwin2<double>(numtaps,
+//       params.filterFreq,
+//                                                    params.filterGain);
+//       const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
+//       return kernel;
+//     }
+//   }();
 
-  if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
-    rfEnv.set_size(rf.n_rows, rf.n_cols);
-  }
+//   if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
+//     rfEnv.set_size(rf.n_rows, rf.n_cols);
+//   }
 
-  recon<T>(rf, kernel, rfEnv);
+//   recon<T>(rf, kernel, rfEnv);
 
-  constexpr float fct_mV2V = 1.0F / 1000;
-  rfLog.set_size(rf.n_rows, rf.n_cols);
-  logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
-                 params.desiredDynamicRange);
-}
+//   constexpr float fct_mV2V = 1.0F / 1000;
+//   rfLog.set_size(rf.n_rows, rf.n_cols);
+//   logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
+//                  params.desiredDynamicRange);
+// }
 } // namespace uspam::recon
