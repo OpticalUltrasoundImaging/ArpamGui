@@ -162,7 +162,27 @@ public:
         constexpr T alpha =
             static_cast<T>(1) / static_cast<T>(1 << 15); // 1 / (2**15)
         constexpr T beta = -1;
-        parallel_convert<TypeInBin, T>(readBuffer, rf, alpha, beta);
+
+        // parallel_convert<TypeInBin, T>(readBuffer, rf, alpha, beta);
+        auto &input = readBuffer;
+        auto &output = rf;
+
+        // void parallel_convert(const arma::Mat<Tin> &input, arma::Mat<Tout>
+        // &output,
+        //                       const Tout alpha, const Tout beta) {
+        output.set_size(input.n_rows, input.n_cols);
+        cv::parallel_for_(
+            cv::Range(0, input.n_cols), [&](const cv::Range &range) {
+              for (int col = range.start; col < range.end; ++col) {
+                const auto *inptr = input.colptr(col);
+                auto *outptr = output.colptr(col);
+                for (int i = 0; i < input.n_rows; ++i) {
+                  // NOLINTNEXTLINE(*-pointer-arithmetic)
+                  outptr[i] = cv::saturate_cast<T>(inptr[i]) * alpha + beta;
+                }
+              }
+            });
+        // }
 
         return true;
       }

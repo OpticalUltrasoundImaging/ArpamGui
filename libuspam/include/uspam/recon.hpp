@@ -70,6 +70,7 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
   assert(x.size() == xLog.size());
 
   // Apply log compression with clipping in a single pass
+  // cv::Range range(0, x.n_cols);
   cv::parallel_for_(cv::Range(0, x.n_cols), [&](const cv::Range &range) {
     for (int j = range.start; j < range.end; ++j) {
 
@@ -91,7 +92,6 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
         }
       }
     }
-    //}(cv::Range(0, x.n_cols));
   });
 }
 
