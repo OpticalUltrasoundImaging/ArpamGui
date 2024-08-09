@@ -3,7 +3,6 @@
 #include "Common.hpp"
 #include "strConvUtils.hpp"
 #include "uspam/ioParams.hpp"
-#include "uspam/recon.hpp"
 #include "uspam/reconParams.hpp"
 #include <QImage>
 #include <QThreadPool>
@@ -58,7 +57,7 @@ public:
                              uspam::recon::ReconParams2::system2024v2GUI(),
                          const uspam::io::IOParams &ioparams =
                              uspam::io::IOParams::system2024v2GUI())
-      : m_params(std::move(params)), m_ioparams(ioparams) {}
+      : m_params(params), m_ioparams(ioparams) {}
 
   void recon(BScanData<ArpamFloat> &data) const {
     std::unique_lock<std::mutex> lock(m_mtx);
