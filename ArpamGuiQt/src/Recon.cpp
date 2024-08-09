@@ -75,11 +75,11 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
-    auto a1 = std::async(std::launch::async, procOne<ArpamFloat>,
-                         std::ref(paramsPA), std::ref(data.PA), flip);
+    auto a1 = std::async(std::launch::async, procOne, std::ref(paramsPA),
+                         std::ref(data.PA), flip);
 
-    auto a2 = std::async(std::launch::async, procOne<ArpamFloat>,
-                         std::ref(paramsUS), std::ref(data.US), flip);
+    auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
+                         std::ref(data.US), flip);
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] = a1.get();
@@ -99,7 +99,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne<ArpamFloat>(paramsPA, data.PA, flip);
+          procOne(paramsPA, data.PA, flip);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -107,7 +107,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne<ArpamFloat>(paramsUS, data.US, flip);
+          procOne(paramsUS, data.US, flip);
       perfMetrics.beamform_ms += beamform_ms;
       perfMetrics.recon_ms += recon_ms;
       perfMetrics.imageConversion_ms += imageConversion_ms;
@@ -184,6 +184,142 @@ void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {
     pool->start(new ImageWriteTask(data.PAUSradial_img, fname));
     // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
   }
+}
+
+std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
+                                        BScanData_<T> &data, bool flip) {
+  auto &rf = data.rf;
+  auto &rfBeamformed = data.rfBeamformed;
+  auto &rfEnv = data.rfEnv;
+  auto &rfLog = data.rfLog;
+
+  rfBeamformed.set_size(rf.n_rows, rf.n_cols);
+  rfEnv.set_size(rf.n_rows, rf.n_cols);
+  rfLog.set_size(rf.n_rows, rf.n_cols);
+
+  float beamform_ms{};
+  float recon_ms{};
+  float imageConversion_ms{};
+
+  /*
+  Flip
+  Beamform
+  Filter
+  Envelop detect
+  Log compress
+  */
+
+  // Preprocessing (flip, rotate)
+  if (flip) {
+    // Flip
+    uspam::imutil::fliplr_inplace(rf);
+
+    // Rotate
+    if (params.rotateOffset != 0) {
+      rf = arma::shift(rf, params.rotateOffset, 1);
+    }
+  }
+
+  // Beamform
+  {
+    uspam::TimeIt timeit;
+    beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams);
+    beamform_ms = timeit.get_ms();
+  }
+
+  switch (params.filterType) {
+  case uspam::recon::FilterType::FIR: {
+    // Recon (with FIR filter)
+    uspam::TimeIt timeit;
+
+    // compute FIR filter kernels
+    const auto kernel = [&] {
+      std::array<double, 6> freq = {0,
+                                    params.bpLowFreq,
+                                    params.bpLowFreq,
+                                    params.bpHighFreq,
+                                    params.bpHighFreq,
+                                    1};
+      std::array<double, 6> gain = {0, 0, 1, 1, 0, 0};
+
+      if constexpr (std::is_same_v<T, double>) {
+        return uspam::signal::firwin2<double>(params.firTaps, freq, gain);
+      } else {
+        const auto _kernel =
+            uspam::signal::firwin2<double>(params.firTaps, freq, gain);
+        const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
+        return kernel;
+      }
+    }();
+
+    // Apply filter and envelope
+    const cv::Range range(0, static_cast<int>(rf.n_cols));
+    std::vector<T> _filt(rf.n_rows);
+    for (int i = range.start; i < range.end; ++i) {
+      const auto _rf = rfBeamformed.unsafe_col(i);
+      auto _env = rfEnv.unsafe_col(i);
+      fftconv::oaconvolve_fftw_same<T>(_rf, kernel, _filt);
+      uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
+    }
+
+    // Log compress
+    constexpr float fct_mV2V = 1.0F / 1000;
+    uspam::recon::logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
+                                 params.desiredDynamicRange);
+
+    recon_ms = timeit.get_ms();
+  } break;
+  case uspam::recon::FilterType::IIR: {
+    // Recon (with IIR filter)
+    uspam::TimeIt timeit;
+
+    // compute IIR filter kernels
+    const kfr::zpk<T> filt = iir_bandpass(kfr::butterworth<T>(params.iirOrder),
+                                          params.bpLowFreq, params.bpHighFreq);
+    const kfr::iir_params<T> bqs = to_sos(filt);
+
+    // Apply filter and envelope
+    const cv::Range range(0, static_cast<int>(rf.n_cols));
+    // cv::parallel_for_(range, [&](const cv::Range &range) {
+    kfr::univector<T> _filt;
+    for (int i = range.start; i < range.end; ++i) {
+      const auto *const _rf = rfBeamformed.colptr(i);
+      _filt = kfr::iir(kfr::make_univector(_rf, rfBeamformed.n_rows),
+                       kfr::iir_params{bqs});
+
+      auto _env = rfEnv.unsafe_col(i);
+      uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
+    }
+
+    // Log compress
+    constexpr float fct_mV2V = 1.0F / 1000;
+    uspam::recon::logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
+                                 params.desiredDynamicRange);
+    // });
+    recon_ms = timeit.get_ms();
+  } break;
+  }
+
+  // {
+  //   uspam::TimeIt timeit;
+  //   uspam::recon::reconOneScan<T>(params, data.rfBeamformed, data.rfEnv,
+  //                                 data.rfLog, flip);
+  //   recon_ms = timeit.get_ms();
+  // }
+
+  // Truncate the pulser/laser artifact
+  if (params.truncate > 0) {
+    rfLog.head_rows(params.truncate - 1).zeros();
+  }
+
+  {
+    uspam::TimeIt timeit;
+    data.radial = uspam::imutil::makeRadial(data.rfLog);
+    data.radial_img = cvMatToQImage(data.radial);
+    imageConversion_ms = timeit.get_ms();
+  }
+
+  return std::tuple{beamform_ms, recon_ms, imageConversion_ms};
 }
 
 } // namespace Recon
