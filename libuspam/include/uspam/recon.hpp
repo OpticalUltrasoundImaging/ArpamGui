@@ -62,8 +62,8 @@ template <> inline consteval float logCompressFct<float, uint8_t>() {
 
 // Log compress to range of 0 - 1
 template <Floating T, typename Tout>
-void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
-                 const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
+void logCompress_par(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
+                     const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
   assert(!x.empty());
   assert(x.size() == xLog.size());
 
@@ -83,15 +83,19 @@ void logCompress(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
   });
 }
 
-template <Floating T>
-void logCompress(const std::span<const T> x, const std::span<T> xLog,
+template <Floating T, typename Tout>
+void logCompress(const std::span<const T> x, const std::span<Tout> xLog,
                  const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
   assert(!x.empty());
   assert(x.size() == xLog.size());
 
   // Apply log compression with clipping in a single pass
   std::transform(x.begin(), x.end(), xLog.begin(), [&](const T val) {
-    return logCompress(val, noiseFloor, desiredDynamicRangeDB);
+    if constexpr (std::is_same_v<T, Tout>) {
+      return logCompress(val, noiseFloor, desiredDynamicRangeDB);
+    }
+    return logCompress(val, noiseFloor, desiredDynamicRangeDB) *
+           logCompressFct<T, Tout>();
   });
 }
 

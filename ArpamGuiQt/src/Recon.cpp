@@ -2,6 +2,7 @@
 #include "uspam/ioParams.hpp"
 
 #include <future>
+#include <opencv2/imgproc.hpp>
 
 namespace Recon {
 
@@ -256,18 +257,32 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
 
     // Apply filter and envelope
     const cv::Range range(0, static_cast<int>(rf.n_cols));
-    std::vector<T> _filt(rf.n_rows);
-    for (int i = range.start; i < range.end; ++i) {
-      const auto _rf = rfBeamformed.unsafe_col(i);
-      auto _env = rfEnv.unsafe_col(i);
-      fftconv::oaconvolve_fftw_same<T>(_rf, kernel, _filt);
-      uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
-    }
+    cv::parallel_for_(range, [&](const cv::Range &range) {
+      std::vector<T> _filt(rf.n_rows);
+      const auto N = rf.n_rows;
+      for (int i = range.start; i < range.end; ++i) {
+        // Filter
+        const auto _rf = rfBeamformed.unsafe_col(i);
+        fftconv::oaconvolve_fftw_same<T>(_rf, kernel, _filt);
 
-    // Log compress
-    constexpr float fct_mV2V = 1.0F / 1000;
-    uspam::recon::logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
-                                 params.desiredDynamicRange);
+        // Envelope
+        auto _env = rfEnv.unsafe_col(i);
+        uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
+
+        // Log compress
+        auto *_rfLog = rfLog.colptr(i);
+        constexpr float fct_mV2V = 1.0F / 1000;
+        uspam::recon::logCompress<ArpamFloat, uint8_t>(
+            std::span{_env.memptr(), N}, std::span{_rfLog, N},
+            params.noiseFloor_mV * fct_mV2V, params.desiredDynamicRange);
+      }
+    });
+
+    // // Log compress
+    // constexpr float fct_mV2V = 1.0F / 1000;
+    // uspam::recon::logCompress_par(rfEnv, rfLog, params.noiseFloor_mV *
+    // fct_mV2V,
+    //                               params.desiredDynamicRange);
 
     recon_ms = timeit.get_ms();
   } break;
@@ -282,22 +297,33 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
 
     // Apply filter and envelope
     const cv::Range range(0, static_cast<int>(rf.n_cols));
-    // cv::parallel_for_(range, [&](const cv::Range &range) {
-    kfr::univector<T> _filt;
-    for (int i = range.start; i < range.end; ++i) {
-      const auto *const _rf = rfBeamformed.colptr(i);
-      _filt = kfr::iir(kfr::make_univector(_rf, rfBeamformed.n_rows),
-                       kfr::iir_params{bqs});
+    cv::parallel_for_(range, [&](const cv::Range &range) {
+      kfr::univector<T> _filt;
+      const auto N = rf.n_rows;
+      for (int i = range.start; i < range.end; ++i) {
+        // Filter
+        const auto *const _rf = rfBeamformed.colptr(i);
+        _filt = kfr::iir(kfr::make_univector(_rf, rfBeamformed.n_rows),
+                         kfr::iir_params{bqs});
 
-      auto _env = rfEnv.unsafe_col(i);
-      uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
-    }
+        // Envelope
+        auto _env = rfEnv.unsafe_col(i);
+        uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
+
+        // Log compress
+        auto *_rfLog = rfLog.colptr(i);
+        constexpr float fct_mV2V = 1.0F / 1000;
+        uspam::recon::logCompress<ArpamFloat, uint8_t>(
+            std::span{_env.memptr(), N}, std::span{_rfLog, N},
+            params.noiseFloor_mV * fct_mV2V, params.desiredDynamicRange);
+      }
+    });
 
     // Log compress
-    constexpr float fct_mV2V = 1.0F / 1000;
-    uspam::recon::logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
-                                 params.desiredDynamicRange);
-    // });
+    // constexpr float fct_mV2V = 1.0F / 1000;
+    // uspam::recon::logCompress_par<T>(rfEnv, rfLog, params.noiseFloor_mV *
+    // fct_mV2V,
+    //                              params.desiredDynamicRange);
     recon_ms = timeit.get_ms();
   } break;
   }
@@ -309,6 +335,10 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   //   recon_ms = timeit.get_ms();
   // }
 
+  /*
+  Post processing
+  */
+
   // Truncate the pulser/laser artifact
   if (params.truncate > 0) {
     rfLog.head_rows(params.truncate - 1).zeros();
@@ -317,6 +347,9 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   {
     uspam::TimeIt timeit;
     data.radial = uspam::imutil::makeRadial(data.rfLog);
+
+    cv::medianBlur(data.radial, data.radial, 3);
+
     data.radial_img = cvMatToQImage(data.radial);
     imageConversion_ms = timeit.get_ms();
   }
