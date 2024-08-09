@@ -3,7 +3,7 @@
 #include <QString>
 #include <QtLogging>
 
-void RFProducerFile::setBinpath(const fs::path &binfile) {
+void RFProducerFile::setBinfile(const fs::path &binfile) {
   try {
     // Init loader
     m_loader.setParams(m_ioparams);
@@ -19,6 +19,11 @@ void RFProducerFile::setBinpath(const fs::path &binfile) {
     qCritical() << msg;
     emit messageDialog(msg);
   }
+}
+
+void RFProducerFile::closeBinfile() {
+  stopProducing();
+  m_loader.close();
 }
 
 void RFProducerFile::beginProducing() {
@@ -51,18 +56,6 @@ void RFProducerFile::reproduceOne() {
       const uspam::TimeIt timeit;
       m_loader.get<ArpamFloat>(data->rf);
       metrics.load_ms = timeit.get_ms();
-    }
-
-    // Estimate background from current RF
-    const arma::Col<ArpamFloat> background_aline = arma::mean(data->rf, 1);
-
-    // Split RF into PA and US scan lines
-    {
-      std::unique_lock<std::mutex> lock(m_paramsMtx);
-      const uspam::TimeIt timeit;
-      m_ioparams.splitRfPAUS_sub(data->rf, background_aline, data->PA.rf,
-                                 data->US.rf);
-      metrics.split_ms = timeit.get_ms();
     }
   });
 };

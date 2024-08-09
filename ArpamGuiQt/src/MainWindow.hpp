@@ -58,6 +58,7 @@ private:
   QDockWidget *dockReconParams;
   QDockWidget *dockAnnotations;
   QDockWidget *dockAScanPlot;
+  QDockWidget *dockAcquisitionController;
 
   // Actions
   QAction *actViewSimple;

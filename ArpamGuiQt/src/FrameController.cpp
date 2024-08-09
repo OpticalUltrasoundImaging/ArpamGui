@@ -2,7 +2,6 @@
 #include "AScanPlot.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
-#include "Recon.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
 #include "strConvUtils.hpp"
@@ -26,7 +25,6 @@
 #include <memory>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
-#include <string>
 #include <uspam/json.hpp>
 
 FrameController::FrameController(
@@ -46,6 +44,8 @@ FrameController::FrameController(
 
       m_menu(new QMenu("Frames", this)),
       m_actOpenFileSelectDialog(new QAction("Open binfile")),
+      m_actCloseBinfile(new QAction("Close binfile")),
+
       m_actPlayPause(new QAction("Play/Pause")),
       m_actNextFrame(new QAction("Next Frame")),
       m_actPrevFrame(new QAction("Prev Frame"))
@@ -56,6 +56,11 @@ FrameController::FrameController(
   m_actOpenFileSelectDialog->setShortcut({Qt::CTRL | Qt::Key_O});
   connect(m_actOpenFileSelectDialog, &QAction::triggered, this,
           &FrameController::openFileSelectDialog);
+
+  m_actCloseBinfile->setEnabled(false);
+  m_actCloseBinfile->setShortcut(Qt::CTRL | Qt::Key_W);
+  connect(m_actCloseBinfile, &QAction::triggered, this,
+          &FrameController::closeBinfile);
 
   // UI
   auto *vlayout = new QVBoxLayout;
@@ -127,7 +132,7 @@ FrameController::FrameController(
 
               // Worker: load file
               QMetaObject::invokeMethod(m_producerFile,
-                                        &RFProducerFile::setBinpath, path);
+                                        &RFProducerFile::setBinfile, path);
 
               // Update canvas dipslay
               {
@@ -142,20 +147,9 @@ FrameController::FrameController(
     connect(this, &FrameController::sigFrameNumUpdated, rfProducerFile,
             &RFProducerFile::produceOne);
 
-    // Signal to start playing
-    connect(this, &FrameController::sigPlay, this, [this] {
-      // Invoke worker::play in the worker thread
-      QMetaObject::invokeMethod(m_producerFile,
-                                &RFProducerFile::beginProducing);
-      m_coregDisplay->resetZoomOnNextImshow();
-    });
-
-    // Signal to pause playing
-    connect(this, &FrameController::sigPause, this,
-            [&] { m_producerFile->stopProducing(); });
-
     connect(m_producerFile, &RFProducerFile::maxFramesChanged, this,
             &FrameController::setMaxFrameNum);
+
     connect(m_producerFile, &RFProducerFile::maxFramesChanged, m_coregDisplay,
             &CoregDisplay::setMaxIdx);
 
@@ -199,11 +193,12 @@ void FrameController::openFileSelectDialog() {
   const QString filename = QFileDialog::getOpenFileName(
       this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
 
-  acceptNewBinfile(filename);
+  acceptBinfile(filename);
 }
 
-void FrameController::acceptNewBinfile(const QString &filename) {
+void FrameController::acceptBinfile(const QString &filename) {
   // Update GUI
+  setEnabled(true);
   updatePlayingState(false);
 
   // Emit signal
@@ -222,8 +217,27 @@ void FrameController::acceptNewBinfile(const QString &filename) {
     loadFrameAnnotationsFromDocToModel(frameNum());
   } else {
     m_doc.init();
-    m_doc.writeToFile(m_annoPath);
   }
+
+  m_btnPlayPause->setEnabled(true);
+  m_frameSlider->setEnabled(true);
+  m_menu->setEnabled(true);
+
+  m_actCloseBinfile->setEnabled(true);
+}
+
+void FrameController::closeBinfile() {
+  m_producerFile->stopProducing();
+  m_producerFile->closeBinfile();
+
+  m_binPath.clear();
+  m_annoPath.clear();
+
+  m_btnPlayPause->setEnabled(false);
+  m_frameSlider->setEnabled(false);
+  m_menu->setEnabled(false);
+
+  m_actCloseBinfile->setEnabled(false);
 }
 
 int FrameController::frameNum() const {
@@ -234,32 +248,24 @@ int FrameController::frameNum() const {
 void FrameController::setFrameNum(int frame) {
   const auto oldFrame = frameNum();
   // Save old frames's labels
-  saveFrameAnnotationsFromModelToDoc(oldFrame);
+  if (saveFrameAnnotationsFromModelToDoc(oldFrame)) {
+    // If any annotations are present, save doc to file
+    m_doc.writeToFile(m_annoPath);
+  }
 
   // Load labels for new frame
   loadFrameAnnotationsFromDocToModel(frame);
 
-  // Save doc to file
-  m_doc.writeToFile(m_annoPath);
-
   // Update GUI
-  // m_frameNumSpinBox->setValue(frame);
   m_frameSlider->setValue(frame);
 }
 
-int FrameController::maxFrameNum() const {
-  // const auto val = m_frameNumSpinBox->maximum();
-  return m_frameSlider->maximum();
-}
+int FrameController::maxFrameNum() const { return m_frameSlider->maximum(); }
 
 void FrameController::setMaxFrameNum(int maxFrameNum) {
   assert(maxFrameNum > 0);
   m_frameSlider->setMinimum(0);
   m_frameSlider->setMaximum(maxFrameNum - 1);
-
-  m_btnPlayPause->setEnabled(true);
-  m_frameSlider->setEnabled(true);
-  m_menu->setEnabled(true);
 }
 
 void FrameController::updatePlayingState(bool playing) {
@@ -271,11 +277,16 @@ void FrameController::updatePlayingState(bool playing) {
   if (playing) {
     // Now playing
     m_btnPlayPause->setText("Pause");
-    emit sigPlay();
+
+    // Invoke worker::play in the worker thread
+    QMetaObject::invokeMethod(m_producerFile, &RFProducerFile::beginProducing);
+    m_coregDisplay->resetZoomOnNextImshow();
+
   } else {
     // Now pausing
     m_btnPlayPause->setText("Play");
-    emit sigPause();
+
+    m_producerFile->stopProducing();
   }
 }
 
@@ -300,9 +311,14 @@ void FrameController::prevFrame() {
   }
 }
 
-void FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
-  auto *model = m_coregDisplay->model();
-  m_doc.setAnnotationForFrame(frame, model->annotations());
+bool FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
+  const auto *model = m_coregDisplay->model();
+  const auto &annotations = model->annotations();
+  if (!annotations.isEmpty()) {
+    m_doc.setAnnotationForFrame(frame, annotations);
+    return true;
+  }
+  return false;
 }
 
 void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {

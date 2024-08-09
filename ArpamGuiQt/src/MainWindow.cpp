@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "About.hpp"
+#include "AcquisitionController.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
 #include "FrameController.hpp"
@@ -7,6 +8,7 @@
 #include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
+#include "strConvUtils.hpp"
 #include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
@@ -106,6 +108,8 @@ MainWindow::MainWindow(QWidget *parent)
         dockAnnotations->hide();
         dockAScanPlot->hide();
 
+        dockAcquisitionController->hide();
+
         actViewSimple->setChecked(true);
         actViewExpert->setChecked(false);
 
@@ -127,6 +131,13 @@ MainWindow::MainWindow(QWidget *parent)
 
         dockReconParams->raise();
 
+#ifdef ARPAM_HAS_ALAZAR
+        dockAcquisitionController->show();
+
+#else
+        dockAcquisitionController->hide();
+#endif
+
         actViewSimple->setChecked(false);
         actViewExpert->setChecked(true);
 
@@ -144,11 +155,8 @@ MainWindow::MainWindow(QWidget *parent)
    */
 
   m_viewMenu->addMenu(m_coregDisplay->viewMenu());
-
   m_viewMenu->addSeparator();
-
   m_viewMenu->addMenu(m_coregDisplay->cursorMenu());
-
   m_viewMenu->addSeparator();
 
   // Log dock widget
@@ -173,7 +181,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // dockLayout->addWidget(m_frameController);
     dockFrameController->setWidget(m_frameController);
-    m_fileMenu->addAction(m_frameController->get_actOpenFileSelectDialog());
+
+    m_fileMenu->addAction(m_frameController->actOpenFileSelectDialog());
+    m_fileMenu->addAction(m_frameController->actCloseBinfile());
+
     m_viewMenu->addAction(dockFrameController->toggleViewAction());
 
     connect(m_frameController, &FrameController::message, this,
@@ -181,6 +192,66 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_frameController, &FrameController::statusMessage, statusBar(),
             &QStatusBar::showMessage);
+  }
+
+  // Acquisition controller dock
+  {
+    dockAcquisitionController = new QDockWidget("Acquisition Controller", this);
+    this->addDockWidget(Qt::TopDockWidgetArea, dockAcquisitionController);
+
+    m_viewMenu->addAction(dockAcquisitionController->toggleViewAction());
+    auto *acquisitionController = new AcquisitionController(buffer);
+    dockAcquisitionController->setWidget(acquisitionController);
+
+#ifdef ARPAM_HAS_ALAZAR
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::maxIndexChanged, m_frameController,
+            &FrameController::setMaxFrameNum);
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
+            &CoregDisplay::setMaxIdx);
+
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::acquisitionFinished, this,
+            [this, acquisitionController] {
+              // Log event
+              const auto &path =
+                  acquisitionController->controller.daq().binpath();
+              if (!path.empty()) {
+                const auto strpath = path2QString(path);
+                const auto msg =
+                    QString("Finished acquiring to %1").arg(strpath);
+                qInfo() << msg;
+                statusBar()->showMessage(msg);
+                logError(msg);
+
+                // Load binfile in frame controller
+                m_frameController->acceptBinfile(strpath);
+              }
+            });
+
+    connect(&acquisitionController->controller,
+            &AcquisitionControllerObj::acquisitionStarted,
+            [this, acquisitionController] {
+              // Disable frame controller
+              m_frameController->setEnabled(false);
+
+              // Status message about save/display
+              const auto &path =
+                  acquisitionController->controller.daq().binpath();
+
+              const auto msg =
+                  path.empty() ? "Display only"
+                               : QString("Acquiring to ") + path2QString(path);
+              qInfo() << msg;
+              statusBar()->showMessage(msg);
+            });
+
+    {
+      auto *act = acquisitionController->actShowMotorTestPanel();
+      m_viewMenu->addAction(act);
+    }
+#endif // ARPAM_HAS_ALAZAR
   }
 
   // Tabify ReconParamsController dock and Annotations dock on the left
@@ -215,7 +286,7 @@ MainWindow::MainWindow(QWidget *parent)
                      uspam::io::IOParams ioparams) {
                 // Update params
                 rfProducerFile->setIOParams(ioparams);
-                reconWorker->reconstructor().setParams(std::move(params));
+                reconWorker->reconstructor().setParams(params, ioparams);
 
                 // Only invoke "replayOne" if not currently worker is not
                 // playing
@@ -316,7 +387,7 @@ void MainWindow::dropEvent(QDropEvent *event) {
   if (mimeData->hasUrls()) {
     const auto &urls = mimeData->urls();
     const auto filepath = urls[0].toLocalFile();
-    m_frameController->acceptNewBinfile(filepath);
+    m_frameController->acceptBinfile(filepath);
 
     event->acceptProposedAction();
   }

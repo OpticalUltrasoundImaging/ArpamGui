@@ -94,6 +94,12 @@ qt_add_executable(${EXE_NAME}
     src/RFProducerFile.hpp
     src/RFProducerFile.cpp
     src/ReconWorker.hpp
+    src/DAQ/DAQ.hpp
+    src/DAQ/DAQ.cpp
+    src/AcquisitionController.hpp
+    src/AcquisitionController.cpp
+    src/Motor/NI.hpp
+    src/Motor/NI.cpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
@@ -121,19 +127,31 @@ target_include_directories(${EXE_NAME} PRIVATE
     ${QCUSTOMPLOT_INCLUDE_DIR}
 )
 
+find_package(fmt CONFIG REQUIRED)
 find_package(FFTW3 CONFIG REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
+find_package(KFR CONFIG REQUIRED)
 
 target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
+    fmt::fmt
     Qt::Widgets
     Qt::Gui
     Qt::PrintSupport
     ${QCUSTOMPLOT_LIBRARY}
     FFTW3::fftw3
     FFTW3::fftw3f
+    kfr
+    kfr_dsp
     #Vulkan::Vulkan
 )
+
+if(APPLE)  
+    # Assume M1 mac
+    target_link_libraries(${EXE_NAME} PRIVATE
+        kfr_dsp_neon64
+    )
+endif()
 
 set_target_properties(${EXE_NAME} PROPERTIES
     CXX_STANDARD 20
@@ -141,6 +159,59 @@ set_target_properties(${EXE_NAME} PROPERTIES
     # INTERPROCEDURAL_OPTIMIZATION TRUE
 )
 
+
+### Configure AlazarTech ATS-SDK on supported platforms
+if (WIN32)
+
+    # Check if ATS-SDK is installed
+    set(ATS_C_SDK_ROOT "C:/AlazarTech/ATS-SDK/7.7.0/Samples_C")
+    set(ATS_SDK_INCLUDE_DIR "${ATS_C_SDK_ROOT}/Include")
+    set(ATS_SDK_LIB "${ATS_C_SDK_ROOT}/Library/x64/ATSApi.lib")
+
+    if (EXISTS ${ATS_SDK_LIB})
+        message(STATUS "Found ATS-SDK at ${ATS_C_SDK_ROOT}. ArpamGuiQt will build with AlazarTech DAQ support.")
+
+        target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_ALAZAR)
+        target_include_directories(${EXE_NAME} PRIVATE ${ATS_SDK_INCLUDE_DIR})
+        target_link_libraries(${EXE_NAME} PRIVATE ${ATS_SDK_LIB})
+    else()
+        message(WARNING "ATS-SDK not found at ${ATS_C_SDK_ROOT}. Please check your ATS-SDK installation.")
+    endif()
+
+endif()
+
+
+### Configure NI-DAQmx C library on supported platforms
+# https://forums.ni.com/t5/Multifunction-DAQ/64bit-NIDAQmx-ANSI-C-library-location/td-p/4319040
+if (WIN32)
+    set(NI_DAQMX_C_SDK_ROOT "C:/Program Files (x86)/National Instruments/Shared/ExternalCompilerSupport/C")
+    set(NI_DAQMX_INCLUDE_DIR "${NI_DAQMX_C_SDK_ROOT}/include")
+    set(NI_DAQMX_LIB_DIR "${NI_DAQMX_C_SDK_ROOT}/lib64/msvc")
+
+    if (EXISTS ${NI_DAQMX_C_SDK_ROOT})
+        message(STATUS "Found NI-DAQmx 64-bit C SDK at ${NI_DAQMX_C_SDK_ROOT}")
+        message(STATUS "ArpamGuiQt will build with NI support")
+        message(STATUS "NI_DAQMX_INCLUDE_DIR ${NI_DAQMX_INCLUDE_DIR}")
+
+        set(NI_DAQMX_LIBS 
+            ${NI_DAQMX_LIB_DIR}/NIDAQmx.lib
+            ${NI_DAQMX_LIB_DIR}/nip2p.lib
+            ${NI_DAQMX_LIB_DIR}/nisyscfg.lib
+            ${NI_DAQMX_LIB_DIR}/nivision.lib
+        )
+
+        target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_NI)
+        target_include_directories(${EXE_NAME} PRIVATE ${NI_DAQMX_INCLUDE_DIR})
+        target_link_libraries(${EXE_NAME} PRIVATE ${NI_DAQMX_LIBS})
+
+    else()
+        message(WARNING "NI-DAQmx 64-bit C SDK not found at ${NI_DAQMX_C_SDK_ROOT}.")
+    endif()
+
+endif()
+
+
+### Run Qt deploy script
 if (WIN32)
     add_compile_definitions(_USE_MATH_DEFINES)
 

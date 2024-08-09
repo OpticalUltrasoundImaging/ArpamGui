@@ -54,7 +54,7 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
   }
 
   sLogStream << localMsg.constData();
-  // sLogStream << "(" << file << ":" << context.line;
+  sLogStream << "(" << file << ":" << context.line;
   sLogStream << ")\n";
 }
 
@@ -63,7 +63,7 @@ auto main(int argc, char **argv) -> int {
   fftw_make_planner_thread_safe();
   fftwf_make_planner_thread_safe();
 
-  // qInstallMessageHandler(myMessageHandler);
+  qInstallMessageHandler(myMessageHandler);
 
   QApplication::setStyle("Fusion"); // Dark mode
   QApplication app(argc, argv);

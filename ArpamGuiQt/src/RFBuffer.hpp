@@ -35,7 +35,7 @@ struct PerformanceMetrics {
 template <uspam::Floating T> struct BScanData_ {
   // Buffers
   arma::Mat<T> rf;
-  arma::Mat<T> rfFilt;
+  // arma::Mat<T> rfFilt;
   arma::Mat<T> rfBeamformed;
   arma::Mat<T> rfEnv;
   arma::Mat<uint8_t> rfLog;
@@ -72,6 +72,11 @@ template <uspam::Floating T> struct BScanData {
   PerformanceMetrics metrics;
 };
 
+/*
+Thread safe buffer for the producer/consumer pattern
+
+Inspired by https://andrew128.github.io/ProducerConsumer/
+*/
 template <uspam::Floating T> class RFBuffer {
 public:
   RFBuffer() {

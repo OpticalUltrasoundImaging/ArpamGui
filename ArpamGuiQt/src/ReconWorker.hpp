@@ -6,7 +6,6 @@
 #include <QDebug>
 #include <QObject>
 #include <QtLogging>
-#include <atomic>
 #include <utility>
 
 class ReconWorker : public QObject {

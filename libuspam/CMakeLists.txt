@@ -41,6 +41,8 @@ set_target_properties(${LIB_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+target_compile_definitions(${LIB_NAME} PRIVATE RAPIDJSON_HAS_STDSTRING)
+
 if(WIN32)
     target_compile_definitions(${LIB_NAME} PRIVATE _USE_MATH_DEFINES)
 endif()
