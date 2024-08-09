@@ -27,6 +27,8 @@ struct ReconParams {
   float noiseFloor_mV;
   float desiredDynamicRange;
 
+  bool flipOnEven; // If true, flip on even. else flip on odd
+
   BeamformerType beamformerType;
   BeamformerParams<float> beamformerParams;
 
@@ -34,7 +36,10 @@ struct ReconParams {
   serialize(rapidjson::Document::AllocatorType &allocator) const;
   static ReconParams deserialize(const rapidjson::Value &obj);
 
-  static bool flip(int frameIdx) { return frameIdx % 2 == 0; }
+  [[nodiscard]] auto flip(int frameIdx) const {
+    const bool even = frameIdx % 2 == 0;
+    return flipOnEven ? even : !even;
+  }
 };
 
 struct ReconParams2 {
@@ -47,6 +52,7 @@ struct ReconParams2 {
     constexpr int taps = 95;
     constexpr int order = 3;
     constexpr int rotateOffset = 25;
+    constexpr bool flipOnEven = true;
     ReconParams PA{FilterType::FIR,
                    taps,
                    order,
@@ -56,6 +62,7 @@ struct ReconParams2 {
                    rotateOffset,
                    9.0F,
                    30.0F,
+                   flipOnEven,
                    BeamformerType::SAFT_CF};
     ReconParams US{FilterType::IIR,
                    taps,
@@ -66,6 +73,7 @@ struct ReconParams2 {
                    rotateOffset,
                    6.0F,
                    40.0F,
+                   flipOnEven,
                    BeamformerType::NONE};
 
     return ReconParams2{PA, US};

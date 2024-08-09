@@ -13,6 +13,7 @@
 #include <QVariant>
 #include <Qt>
 #include <qboxlayout.h>
+#include <qnamespace.h>
 #include <qpushbutton.h>
 #include <ranges>
 #include <sstream>
@@ -362,6 +363,29 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
     int row = 0;
+
+    {
+      auto *label = new QLabel("Flip on even");
+      label->setToolTip("Flip the image on even or odd indices.");
+      layout->addWidget(label, row, 0);
+      auto *cb = new QCheckBox();
+      layout->addWidget(cb, row++, 1);
+      using Qt::CheckState;
+
+      connect(cb, &QCheckBox::checkStateChanged, this,
+              [this, cb](CheckState state) {
+                const auto checked = state == CheckState::Checked;
+                this->params.PA.flipOnEven = checked;
+                this->params.US.flipOnEven = checked;
+                _paramsUpdatedInternal();
+              });
+
+      updateGuiFromParamsCallbacks.emplace_back([this, cb] {
+        cb->setCheckState(this->params.PA.flipOnEven
+                              ? Qt::CheckState::Checked
+                              : Qt::CheckState::Unchecked);
+      });
+    }
 
     {
       auto *label = new QLabel("Rotation offset");

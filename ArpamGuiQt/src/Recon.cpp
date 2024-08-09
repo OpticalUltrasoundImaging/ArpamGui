@@ -71,7 +71,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
   const auto &paramsPA = params.PA;
   const auto &paramsUS = params.US;
 
-  const bool flip = uspam::recon::ReconParams::flip(data.frameIdx);
+  const bool flip = paramsPA.flip(data.frameIdx);
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
@@ -234,6 +234,7 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
 
     // compute FIR filter kernels
     const auto kernel = [&] {
+      // NOLINTBEGIN(*-magic-numbers)
       std::array<double, 6> freq = {0,
                                     params.bpLowFreq,
                                     params.bpLowFreq,
@@ -241,6 +242,7 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
                                     params.bpHighFreq,
                                     1};
       std::array<double, 6> gain = {0, 0, 1, 1, 0, 0};
+      // NOLINTEND(*-magic-numbers)
 
       if constexpr (std::is_same_v<T, double>) {
         return uspam::signal::firwin2<double>(params.firTaps, freq, gain);
