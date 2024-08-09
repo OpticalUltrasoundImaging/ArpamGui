@@ -1,6 +1,5 @@
 #pragma once
 
-#include <concepts>
 #include <cstdint>
 #include <hwy/contrib/math/math-inl.h>
 #include <hwy/highway.h>
@@ -27,7 +26,7 @@ void logCompress(const T *x, uint8_t *xLog, size_t size, const T noiseFloor,
   const auto vDynamicRangeDBInv = Set(d, 1 / desiredDynamicRangeDB);
 
   for (int i = 0; i + L <= size; i += L) {
-    const auto val = Load(d, x + i);
+    const auto val = LoadU(d, x + i);
 
     // NOLINTNEXTLINE(*-magic-numbers)
     auto compressed = Set(d, 20.0) * Log10(d, val * vNoiseFloorInv);
@@ -44,12 +43,12 @@ void logCompress(const T *x, uint8_t *xLog, size_t size, const T noiseFloor,
         // float  -> i32 -> u8
         const auto v_i32 = ConvertTo(d_i32, compressed);
         const auto v_u8 = DemoteTo(d_u8, v_i32);
-        Store(v_u8, d_u8, xLog + i);
+        StoreU(v_u8, d_u8, xLog + i);
       } else { // double
         // double -> i32 -> u8
         const auto v_i32 = DemoteTo(ScalableTag<int32_t>(), compressed);
         const auto v_u8 = DemoteTo(ScalableTag<uint8_t>(), v_i32);
-        Store(v_u8, d_u8, xLog + i);
+        StoreU(v_u8, d_u8, xLog + i);
       }
     }
   }
