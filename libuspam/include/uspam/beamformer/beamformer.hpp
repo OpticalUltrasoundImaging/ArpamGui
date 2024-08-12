@@ -1,8 +1,8 @@
 #pragma once
 
-#include "uspam/beamformer/BeamformerType.hpp"
-#include "uspam/beamformer/SAFT.hpp"
 #include <type_traits>
+#include <uspam/beamformer/BeamformerType.hpp>
+#include <uspam/beamformer/SAFT.hpp>
 #include <variant>
 
 namespace uspam::beamformer {
@@ -44,7 +44,10 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
 
   case BeamformerType::NONE:
   default:
-    rfBeamformed = rf; // Copy
+    // Use "copy on write"
+    // NOLINTNEXTLINE(*-const-cast)
+    rfBeamformed = arma::Mat<T>(const_cast<T *>(rf.memptr()), rf.n_rows,
+                                rf.n_cols, false, true);
   }
 }
 
