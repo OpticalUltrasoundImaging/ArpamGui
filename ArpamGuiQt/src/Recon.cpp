@@ -1,8 +1,11 @@
 #include "Recon.hpp"
+#include "Common.hpp"
+#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/ioParams.hpp"
-
 #include <future>
 #include <opencv2/imgproc.hpp>
+#include <sys/signal.h>
+#include <variant>
 
 namespace Recon {
 
@@ -76,14 +79,12 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
-    auto a1 = std::async(std::launch::async, procOne, std::ref(paramsPA),
-                         std::ref(data.PA), flip);
-
     auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
                          std::ref(data.US), flip);
 
     {
-      const auto [beamform_ms, recon_ms, imageConversion_ms] = a1.get();
+      const auto [beamform_ms, recon_ms, imageConversion_ms] =
+          procOne(paramsPA, data.PA, flip);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -189,19 +190,6 @@ void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {
 
 std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
                                         BScanData_<T> &data, bool flip) {
-  auto &rf = data.rf;
-  auto &rfBeamformed = data.rfBeamformed;
-  auto &rfEnv = data.rfEnv;
-  auto &rfLog = data.rfLog;
-
-  rfBeamformed.set_size(rf.n_rows, rf.n_cols);
-  rfEnv.set_size(rf.n_rows, rf.n_cols);
-  rfLog.set_size(rf.n_rows, rf.n_cols);
-
-  float beamform_ms{};
-  float recon_ms{};
-  float imageConversion_ms{};
-
   /*
   Flip
   Beamform
@@ -209,6 +197,35 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   Envelop detect
   Log compress
   */
+
+  // Truncate the pulser/laser artifact
+  const size_t truncate = params.truncate;
+
+  // if (truncate > 0) {
+  //   data.rf.head_rows(truncate - 1).zeros();
+  // }
+
+  // Just remove `truncate` rows from RF.
+  arma::Mat<T> rf =
+      data.rf.submat(truncate, 0, data.rf.n_rows - 1, data.rf.n_cols - 1);
+  const size_t N = rf.n_rows;
+
+  auto &rfBeamformed = data.rfBeamformed;
+  auto &rfEnv = data.rfEnv;
+  auto &rfLog = data.rfLog;
+
+  // rfBeamformed.set_size(N, rf.n_cols);
+  // rfBeamformed.zeros();
+
+  rfEnv.set_size(N, rf.n_cols);
+  // rfEnv.zeros();
+
+  rfLog.set_size(data.rf.n_rows, rf.n_cols);
+  rfLog.zeros();
+
+  float beamform_ms{};
+  float recon_ms{};
+  float imageConversion_ms{};
 
   // Preprocessing (flip, rotate)
   if (flip) {
@@ -221,15 +238,17 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
     }
   }
 
-  // Truncate the pulser/laser artifact
-  if (params.truncate > 0) {
-    rf.head_rows(params.truncate - 1).zeros();
-  }
-
   // Beamform
   {
     uspam::TimeIt timeit;
-    beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams);
+    beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams,
+             params.truncate);
+
+    if (rfBeamformed.max() > 2) {
+      // Trap here
+      auto memptr = rfBeamformed.memptr();
+    }
+
     beamform_ms = timeit.get_ms();
   }
 
@@ -266,30 +285,20 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
     // Apply filter and envelope
     const cv::Range range(0, static_cast<int>(rf.n_cols));
     cv::parallel_for_(range, [&](const cv::Range &range) {
-      // Save params.truncate points in the compute
-      const auto truncate = params.truncate;
-      const auto N = rf.n_rows - truncate;
-
       // NOLINTBEGIN(*-pointer-arithmetic)
       std::vector<T> _filt(N);
       for (int i = range.start; i < range.end; ++i) {
 
         // Filter
         // const auto _rf = rfBeamformed.unsafe_col(i);
-        const auto _rf = std::span{rfBeamformed.colptr(i) + truncate, N};
+        const auto _rf = std::span{rfBeamformed.colptr(i), N};
         fftconv::oaconvolve_fftw_same<T>(_rf, kernel, _filt);
 
         // Envelope
-        auto _env = std::span{rfEnv.colptr(i) + truncate, N};
+        auto _env = std::span{rfEnv.colptr(i), N};
         uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
 
         // Log compress
-        // Clear truncate points
-        {
-          auto col = rfLog.unsafe_col(i);
-          std::fill(col.begin(), col.end(), 0);
-        }
-
         auto _rfLog = std::span{rfLog.colptr(i) + truncate, N};
         constexpr float fct_mV2V = 1.0F / 1000;
         uspam::recon::logCompress<ArpamFloat, uint8_t>(
@@ -328,15 +337,15 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
                          kfr::iir_params{bqs});
 
         // Envelope
-        auto _env = rfEnv.unsafe_col(i);
+        auto _env = std::span{rfEnv.colptr(i), N};
         uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
 
         // Log compress
-        auto *_rfLog = rfLog.colptr(i);
+        auto _rfLog = std::span{rfLog.colptr(i) + truncate, N};
         constexpr float fct_mV2V = 1.0F / 1000;
         uspam::recon::logCompress<ArpamFloat, uint8_t>(
-            std::span{_env.memptr(), N}, std::span{_rfLog, N},
-            params.noiseFloor_mV * fct_mV2V, params.desiredDynamicRange);
+            _env, _rfLog, params.noiseFloor_mV * fct_mV2V,
+            params.desiredDynamicRange);
       }
     });
 
@@ -362,7 +371,7 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
 
   {
     uspam::TimeIt timeit;
-    data.radial = uspam::imutil::makeRadial(data.rfLog);
+    data.radial = uspam::imutil::makeRadial_v2(data.rfLog);
 
     // cv::medianBlur(data.radial, data.radial, 3);
 

@@ -128,6 +128,7 @@ arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
 
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
-                               const arma::Mat<Float> &rf);
+                               const arma::Mat<Float> &rf,
+                               size_t truncated = 0);
 
 } // namespace uspam::beamformer

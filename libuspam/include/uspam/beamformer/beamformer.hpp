@@ -12,7 +12,8 @@ using BeamformerParams = std::variant<std::monostate, SaftDelayParams<T>>;
 
 template <typename T>
 void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
-              BeamformerType beamformer, BeamformerParams<T> beamformerParams)
+              BeamformerType beamformer, BeamformerParams<T> beamformerParams,
+              size_t truncate = 0)
   requires std::is_floating_point_v<T>
 {
   switch (beamformer) {
@@ -24,8 +25,8 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
-    rfBeamformed =
-        uspam::beamformer::apply_saft<T, BeamformerType::SAFT>(timeDelay, rf);
+    rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT>(
+        timeDelay, rf, truncate);
 
   } break;
 
@@ -39,7 +40,7 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
 
     rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT_CF>(
-        timeDelay, rf);
+        timeDelay, rf, truncate);
   } break;
 
   case BeamformerType::NONE:
@@ -47,7 +48,7 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
     // Use "copy on write"
     // NOLINTNEXTLINE(*-const-cast)
     rfBeamformed = arma::Mat<T>(const_cast<T *>(rf.memptr()), rf.n_rows,
-                                rf.n_cols, false, true);
+                                rf.n_cols, true, true);
   }
 }
 
