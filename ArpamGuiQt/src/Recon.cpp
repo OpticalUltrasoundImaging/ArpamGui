@@ -4,7 +4,6 @@
 #include "uspam/ioParams.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
-#include <sys/signal.h>
 #include <variant>
 
 namespace Recon {
