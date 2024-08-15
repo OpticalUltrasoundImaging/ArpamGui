@@ -178,9 +178,17 @@ template arma::Mat<float>
 apply_saft_v2<float, BeamformerType::SAFT>(const TimeDelay<float> &timeDelay,
                                            const arma::Mat<float> &rf,
                                            size_t truncated);
+template arma::Mat<double>
+apply_saft_v2<double, BeamformerType::SAFT>(const TimeDelay<double> &timeDelay,
+                                            const arma::Mat<double> &rf,
+                                            size_t truncated);
 
 template arma::Mat<float>
 apply_saft_v2<float, BeamformerType::SAFT_CF>(const TimeDelay<float> &timeDelay,
                                               const arma::Mat<float> &rf,
                                               size_t truncated);
+template arma::Mat<double> apply_saft_v2<double, BeamformerType::SAFT_CF>(
+    const TimeDelay<double> &timeDelay, const arma::Mat<double> &rf,
+    size_t truncated);
+
 } // namespace uspam::beamformer
