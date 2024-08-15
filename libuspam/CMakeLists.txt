@@ -20,6 +20,7 @@ add_library(${LIB_NAME} STATIC
     src/io.cpp
     src/ioParams.cpp
     src/json.cpp
+    src/beamformer/SAFT.cpp
 )
 target_include_directories(${LIB_NAME} PUBLIC 
     include

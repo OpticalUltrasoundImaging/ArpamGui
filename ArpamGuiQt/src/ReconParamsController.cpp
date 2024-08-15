@@ -254,7 +254,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         label->setToolTip(help_Truncate);
         layout->addWidget(label, row, 0);
 
-        auto *spinBox = makeQSpinBox({0, 1000}, p.truncate, this);
+        auto *spinBox = makeQSpinBox({0, 2000}, p.truncate, this);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
 

@@ -28,8 +28,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2",
-        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2"
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX"
       }
     },
     {

@@ -34,18 +34,28 @@ TEST(SaftTimeDelayParamTest, Correct) {
 }
 
 TEST(SaftApply, Correct) {
-  const auto saftParams = beamformer::SaftDelayParams<double>::make();
+  using T = float;
+
+  const auto saftParams = beamformer::SaftDelayParams<T>::make();
   const auto timeDelay =
       beamformer::computeSaftTimeDelay(saftParams, 769, 2450);
 
-  const arma::mat rf(2500, 1000, arma::fill::randn);
-  const auto rf_saft =
-      beamformer::apply_saft<double, double, beamformer::BeamformerType::SAFT>(
-          timeDelay, rf);
-  const auto rf_saft_cf =
-      beamformer::apply_saft<double, double,
-                             beamformer::BeamformerType::SAFT_CF>(timeDelay,
-                                                                  rf);
+  using beamformer::BeamformerType;
+  const arma::Mat<T> rf(2500, 1000, arma::fill::randn);
+
+  {
+    const auto rf_saft =
+        beamformer::apply_saft<T, BeamformerType::SAFT>(timeDelay, rf);
+    const auto rf_saft_cf =
+        beamformer::apply_saft<T, BeamformerType::SAFT_CF>(timeDelay, rf);
+  }
+  {
+    const auto rf_saft =
+        beamformer::apply_saft_v2<T, BeamformerType::SAFT>(timeDelay, rf);
+    const auto rf_saft_cf =
+        beamformer::apply_saft_v2<T, BeamformerType::SAFT_CF>(timeDelay, rf);
+  }
+
   // rf_saft_cf.save("rf_saft_cf.bin", arma::raw_binary);
   // TODO write tests
 }
