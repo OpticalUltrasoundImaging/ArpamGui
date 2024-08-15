@@ -36,8 +36,6 @@ public:
   explicit AScanPlot(ReconParamsController *reconParams,
                      QWidget *parent = nullptr);
 
-  auto getPlot() { return customPlot; }
-
   template <typename T>
   void plot(std::span<const T> y, const CustomPlot::PlotMeta &meta) {
     constexpr double Fs_MHz = 180;
