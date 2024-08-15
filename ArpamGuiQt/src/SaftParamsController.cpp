@@ -1,7 +1,8 @@
 #include "SaftParamsController.hpp"
 
-SaftParamsController::SaftParamsController(QWidget *parent)
-    : QWidget(parent), params(uspam::beamformer::SaftDelayParams<T>::make()) {
+SaftParamsController::SaftParamsController(
+    uspam::beamformer::SaftDelayParams<T> params)
+    : QWidget(nullptr), m_params(params) {
 
   const auto makeQDoubleSpinBox = [this](const std::pair<double, double> &range,
                                          double singleStep, T &value) {
@@ -47,17 +48,17 @@ SaftParamsController::SaftParamsController(QWidget *parent)
         };
       };
 
-  labelledSpinBox("Transducer offset", {0.0, 10.0}, 0.1, params.rt, " mm",
+  labelledSpinBox("Transducer offset", {0.0, 20.0}, 0.1, m_params.rt, " mm",
                   "Distance from axis of rotation to transducer surface");
-  labelledSpinBox("Sound speed", {1000.0, 2000.0}, 1.0, params.vs, " mm",
+  labelledSpinBox("Sound speed", {1000.0, 2000.0}, 1.0, m_params.vs, " mm",
                   "Sound speed");
 
-  labelledSpinBox("Focal length", {0.0, 25.0}, 0.1, params.f, " mm",
+  labelledSpinBox("Focal length", {0.0, 25.0}, 0.1, m_params.f, " mm",
                   "Transducer focal length");
 
-  labelledSpinBox("Diameter", {0.0, 25.0}, 0.1, params.d, " mm",
+  labelledSpinBox("Diameter", {0.0, 25.0}, 0.1, m_params.d, " mm",
                   "Transducer diameter");
 
-  labelledSpinBox("Illumination Angle", {0.0, 25.0}, 0.1, params.illumAngleDeg,
-                  " deg", "Illumination diameter");
+  labelledSpinBox("Illumination Angle", {0.0, 25.0}, 0.1,
+                  m_params.illumAngleDeg, " deg", "Illumination diameter");
 }

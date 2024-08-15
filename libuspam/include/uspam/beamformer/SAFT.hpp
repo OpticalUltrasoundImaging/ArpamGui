@@ -33,9 +33,11 @@ template <Floating Float> struct SaftDelayParams {
 
   Float illumAngleDeg; // [deg] illumination angle
 
+  Float PAUS = 1; // 1 trip for PA, 2 trips for US
+
   // [mm] spatial step size
   // NOLINTNEXTLINE(*-magic-numbers)
-  [[nodiscard]] Float dr() const { return vs * dt * 1e3; }
+  [[nodiscard]] Float dr() const { return vs * dt * 1e3 / PAUS; }
 
   // Transducer focus angle
   [[nodiscard]] Float angle() const {
@@ -46,14 +48,25 @@ template <Floating Float> struct SaftDelayParams {
     return static_cast<Float>(deg2rad(illumAngleDeg));
   }
 
-  static auto make(int numAlinesPerBScan = 1000) {
+  static auto make_PA(int numAlinesPerBScan = 1000) {
     // NOLINTBEGIN(*-magic-numbers)
-    SaftDelayParams<Float> saftParams{
-        6.2,  1.5e3, 1.0 / 180e6, 2 * std::numbers::pi / numAlinesPerBScan,
-        15.0, 8.5,   5.0,
+    const SaftDelayParams<Float> saftParams{
+        static_cast<Float>(6.2),
+        static_cast<Float>(1.5e3),
+        static_cast<Float>(1.0 / 180e6),
+        static_cast<Float>(2 * std::numbers::pi / numAlinesPerBScan),
+        static_cast<Float>(15.0),
+        static_cast<Float>(8.5),
+        static_cast<Float>(5.0),
     };
     // NOLINTEND(*-magic-numbers)
     return saftParams;
+  }
+
+  static auto make_US(int numAlinesPerBscan = 1000) {
+    auto params = make_PA(numAlinesPerBscan);
+    params.PAUS = 2;
+    return params;
   }
 };
 

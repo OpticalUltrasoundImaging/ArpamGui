@@ -36,7 +36,7 @@ TEST(SaftTimeDelayParamTest, Correct) {
 TEST(SaftApply, Correct) {
   using T = float;
 
-  const auto saftParams = beamformer::SaftDelayParams<T>::make();
+  const auto saftParams = beamformer::SaftDelayParams<T>::make_PA();
   const auto timeDelay =
       beamformer::computeSaftTimeDelay(saftParams, 769, 2450);
 

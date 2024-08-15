@@ -1,7 +1,10 @@
 #include "ReconParamsController.hpp"
+#include "Common.hpp"
 #include "SaftParamsController.hpp"
+#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/beamformer/beamformer.hpp"
 #include "uspam/reconParams.hpp"
+#include <QBoxLayout>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -12,13 +15,12 @@
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
-#include <qboxlayout.h>
-#include <qnamespace.h>
-#include <qpushbutton.h>
 #include <ranges>
 #include <sstream>
 #include <string>
+#include <variant>
 #include <vector>
+
 
 namespace {
 
@@ -327,8 +329,18 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
     // Beamformer Params
     {
+      SaftParamsController *saftParamsController{};
+      if (std::holds_alternative<
+              uspam::beamformer::SaftDelayParams<ArpamFloat>>(
+              p.beamformerParams)) {
+        const auto &params =
+            std::get<uspam::beamformer::SaftDelayParams<ArpamFloat>>(
+                p.beamformerParams);
+        saftParamsController = new SaftParamsController(params);
+      } else {
+        saftParamsController = new SaftParamsController;
+      }
 
-      auto *saftParamsController = new SaftParamsController;
       vlayout->addWidget(saftParamsController);
 
       connect(btnShowReconParams, &QPushButton::pressed,

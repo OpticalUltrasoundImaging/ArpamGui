@@ -111,10 +111,15 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
     // for (int j = 0; j < nScans; ++j) {
     //   for (int iz = range.start; iz < range.end; ++iz) {
     for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
+      const int iz_truncated = iz - truncated;
+      if (iz_truncated < 0) {
+        continue;
+      }
+
       const auto NLines = timeDelay.saftLines.at(iz - timeDelay.zStart);
 
       for (int dj_saft = 0; dj_saft < NLines; ++dj_saft) {
-        const auto dt = timeDelay.timeDelay.at(iz - timeDelay.zStart, dj_saft);
+        const auto dt = timeDelay.timeDelay(iz - timeDelay.zStart, dj_saft);
         const int iz_delayed =
             static_cast<int>(std::round(iz + dt)) - truncated;
 
@@ -124,20 +129,19 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
 
         const auto val = rf(iz_delayed, j);
         const auto valSq = val * val;
-        const int iz_truncated = iz - truncated;
 
         {
           const auto j_saft = (j - dj_saft + nScans) % nScans;
-          rf_saft.at(iz_truncated, j_saft) += val;
-          CF_denom.at(iz_truncated, j_saft) += valSq;
-          n_saft.at(iz_truncated, j_saft) += 1;
+          rf_saft(iz_truncated, j_saft) += val;
+          CF_denom(iz_truncated, j_saft) += valSq;
+          n_saft(iz_truncated, j_saft) += 1;
         }
 
         {
           const auto j_saft = (j + dj_saft + nScans) % nScans;
-          rf_saft.at(iz_truncated, j_saft) += val;
-          CF_denom.at(iz_truncated, j_saft) += valSq;
-          n_saft.at(iz_truncated, j_saft) += 1;
+          rf_saft(iz_truncated, j_saft) += val;
+          CF_denom(iz_truncated, j_saft) += valSq;
+          n_saft(iz_truncated, j_saft) += 1;
         }
       }
     }
@@ -150,8 +154,8 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
   // Apply coherence factor
   for (int col = 0; col < rf_saft.n_cols; ++col) {
     for (int row = 0; row < rf_saft.n_rows; ++row) {
-      const auto rf_saft_ = rf_saft.at(row, col);
-      auto n_saft_ = n_saft.at(row, col);
+      const auto rf_saft_ = rf_saft(row, col);
+      auto n_saft_ = n_saft(row, col);
 
       if (n_saft_ <= 0) {
         // Trap here
@@ -163,7 +167,7 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
 
       } else { // BfType == BeamformerType::SAFT_CF
         const auto nom = rf_saft_ * rf_saft_;
-        const auto denom = CF_denom.at(row, col) * n_saft_;
+        const auto denom = CF_denom(row, col) * n_saft_;
 
         const auto CF_ = denom != 0 ? nom / denom : 1;
         rf_saft.at(row, col) = rf_saft_ * CF_ / n_saft_;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/beamformer/beamformer.hpp"
 #include <armadillo>
 #include <filesystem>
@@ -53,6 +54,7 @@ struct ReconParams2 {
     constexpr int order = 3;
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
+    ;
     ReconParams PA{FilterType::FIR,
                    taps,
                    order,
@@ -63,7 +65,8 @@ struct ReconParams2 {
                    9.0F,
                    30.0F,
                    flipOnEven,
-                   BeamformerType::SAFT_CF};
+                   BeamformerType::SAFT_CF,
+                   beamformer::SaftDelayParams<float>::make_PA()};
     ReconParams US{FilterType::IIR,
                    taps,
                    order,
@@ -74,7 +77,8 @@ struct ReconParams2 {
                    6.0F,
                    40.0F,
                    flipOnEven,
-                   BeamformerType::NONE};
+                   BeamformerType::NONE,
+                   beamformer::SaftDelayParams<float>::make_US()};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)

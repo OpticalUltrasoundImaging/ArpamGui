@@ -21,7 +21,7 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
     const auto saftParams =
         std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
             ? std::get<SaftDelayParams<T>>(beamformerParams)
-            : SaftDelayParams<T>::make();
+            : SaftDelayParams<T>::make_PA();
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
@@ -34,7 +34,7 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
     const auto saftParams =
         std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
             ? std::get<SaftDelayParams<T>>(beamformerParams)
-            : SaftDelayParams<T>::make();
+            : SaftDelayParams<T>::make_PA();
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);

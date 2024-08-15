@@ -76,7 +76,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
   const bool flip = paramsPA.flip(data.frameIdx);
 
-  constexpr bool USE_ASYNC = true;
+  constexpr bool USE_ASYNC = false;
   if constexpr (USE_ASYNC) {
     auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
                          std::ref(data.US), flip);

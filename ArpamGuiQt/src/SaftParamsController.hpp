@@ -1,6 +1,5 @@
 #pragma once
 
-#include "SaftParamsController.hpp"
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QLabel>
@@ -13,13 +12,15 @@ class SaftParamsController : public QWidget {
 public:
   using T = float;
 
-  explicit SaftParamsController(QWidget *parent = nullptr);
+  explicit SaftParamsController(
+      uspam::beamformer::SaftDelayParams<T> params =
+          uspam::beamformer::SaftDelayParams<T>::make_PA());
 
 signals:
   void paramsUpdated(uspam::beamformer::SaftDelayParams<T>);
 
 private:
-  inline void _paramsUpdatedInternal() { emit paramsUpdated(params); }
+  inline void _paramsUpdatedInternal() { emit paramsUpdated(m_params); }
 
-  uspam::beamformer::SaftDelayParams<T> params;
+  uspam::beamformer::SaftDelayParams<T> m_params;
 };
