@@ -123,17 +123,12 @@ inline bool isPrefix(std::string_view prefix, const std::string_view str) {
 template <typename TypeInBin> class BinfileLoader {
 public:
   BinfileLoader() = default;
-  BinfileLoader(const IOParams &ioparams, const fs::path filename,
-                int alinesPerBscan = NUM_ALINES_DETAULT) {
+  BinfileLoader(const IOParams &ioparams, const fs::path filename)
+      : m_params(ioparams) {
     open(filename);
-    setParams(ioparams, alinesPerBscan);
   }
 
-  void setParams(const IOParams &ioparams,
-                 int alinesPerBscan = NUM_ALINES_DETAULT) {
-    this->m_byteOffset = ioparams.byte_offset;
-    this->m_alinesPerBscan = alinesPerBscan;
-  }
+  void setParams(const IOParams &ioparams) { m_params = ioparams; }
 
   void open(const fs::path &filename) {
     // Open file and seek to end
@@ -147,11 +142,11 @@ public:
     const std::streamsize fsize = m_file.tellg();
 
     if (isPrefix("ARPAM", filename.stem().string())) {
-      this->m_byteOffset = 0;
+      m_params.byteOffset = 0;
     }
 
-    m_numScans = (fsize - this->m_byteOffset) / scanSizeBytes();
-    m_file.seekg(this->m_byteOffset, std::ios::beg);
+    m_numScans = (fsize - m_params.byteOffset) / scanSizeBytes();
+    m_file.seekg(this->m_params.byteOffset, std::ios::beg);
   }
 
   [[nodiscard]] bool isOpen() const { return m_file.is_open(); }
@@ -163,12 +158,12 @@ public:
 
   // (bytes) Raw RF size of one PAUS scan
   auto scanSizeBytes() const {
-    return RF_ALINE_SIZE * m_alinesPerBscan * sizeof(TypeInBin);
+    return RF_ALINE_SIZE * m_params.alinesPerBscan * sizeof(TypeInBin);
   }
 
   auto size() const { return isOpen() ? m_numScans : 0; }
 
-  auto alinesPerBscan() const { return m_alinesPerBscan; }
+  auto alinesPerBscan() const { return m_params.alinesPerBscan; }
 
   auto idx() const { return m_scanIdx; }
   inline void setIdx(int idx) {
@@ -190,11 +185,11 @@ public:
     assert(m_scanIdx < m_numScans);
 
     const auto sizeBytes = scanSizeBytes();
-    const auto start_pos = this->m_byteOffset + sizeBytes * m_scanIdx;
+    const auto start_pos = m_params.byteOffset + sizeBytes * m_scanIdx;
     m_file.seekg(start_pos, std::ios::beg);
 
-    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != m_alinesPerBscan) {
-      rf.set_size(RF_ALINE_SIZE, m_alinesPerBscan);
+    if (rf.n_rows != RF_ALINE_SIZE || rf.n_cols != m_params.alinesPerBscan) {
+      rf.set_size(RF_ALINE_SIZE, m_params.alinesPerBscan);
     }
 
     if constexpr (std::is_same_v<T, TypeInBin>) {
@@ -206,8 +201,8 @@ public:
       // Type stored in bin different from the given buffer.
       // Read into readBuffer first then convert
       if (m_readBuffer.n_rows != RF_ALINE_SIZE ||
-          m_readBuffer.n_cols != m_alinesPerBscan) {
-        m_readBuffer.resize(RF_ALINE_SIZE, m_alinesPerBscan);
+          m_readBuffer.n_cols != m_params.alinesPerBscan) {
+        m_readBuffer.resize(RF_ALINE_SIZE, m_params.alinesPerBscan);
       }
 
       // Read file
@@ -256,9 +251,8 @@ public:
 
 private:
   std::ifstream m_file;
-  int m_byteOffset = 0;
+  IOParams m_params;
   int m_numScans = 0;
-  int m_alinesPerBscan = 0;
   int m_scanIdx = 0;
 
   arma::Mat<TypeInBin> m_readBuffer;

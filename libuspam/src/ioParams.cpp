@@ -9,24 +9,24 @@ rapidjson::Document IOParams::serializeToDoc() const {
   doc.SetObject();
   rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
 
-  doc.AddMember("rfSizePA", this->rf_size_PA, allocator);
-  doc.AddMember("rfSizeSpacer", this->rf_size_spacer, allocator);
+  doc.AddMember("rfSizePA", this->rfSizePA, allocator);
+  doc.AddMember("rfSizeSpacer", this->rfSizeSpacer, allocator);
 
   doc.AddMember("offsetUS", this->offsetUS, allocator);
   doc.AddMember("offsetPA", this->offsetPA, allocator);
 
-  doc.AddMember("byteOffset", this->byte_offset, allocator);
+  doc.AddMember("byteOffset", this->byteOffset, allocator);
   return doc;
 }
 
 bool IOParams::deserialize(const rapidjson::Document &doc) {
-  this->rf_size_PA = doc["rfSizePA"].GetInt();
-  this->rf_size_spacer = doc["rfSizeSpacer"].GetInt();
+  this->rfSizePA = doc["rfSizePA"].GetInt();
+  this->rfSizeSpacer = doc["rfSizeSpacer"].GetInt();
 
   this->offsetPA = doc["offsetPA"].GetInt();
   this->offsetUS = doc["offsetUS"].GetInt();
 
-  this->byte_offset = doc["byteOffset"].GetInt();
+  this->byteOffset = doc["byteOffset"].GetInt();
   return true;
 }
 

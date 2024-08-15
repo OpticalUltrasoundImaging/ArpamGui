@@ -21,7 +21,6 @@
 #include <variant>
 #include <vector>
 
-
 namespace {
 
 class DoubleListValidator : public QValidator {
@@ -415,16 +414,29 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
+      auto *label = new QLabel("Alines Per Bscan");
+      label->setToolTip("");
+      layout->addWidget(label, row, 0);
+      auto *spinBox = makeQSpinBox({500, 2000}, ioparams.alinesPerBscan, this);
+      spinBox->setSingleStep(100);
+      layout->addWidget(spinBox, row++, 1);
+      // spinBox->setSuffix("");
+
+      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
+        spinBox->setValue(this->ioparams.alinesPerBscan);
+      });
+    }
+
+    {
       auto *label = new QLabel("PAUS spacer");
       label->setToolTip("");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({0, 200}, ioparams.rf_size_spacer, this);
+      auto *spinBox = makeQSpinBox({0, 200}, ioparams.rfSizeSpacer, this);
       layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" pts");
 
-      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
-        spinBox->setValue(this->ioparams.rf_size_spacer);
-      });
+      updateGuiFromParamsCallbacks.emplace_back(
+          [this, spinBox] { spinBox->setValue(this->ioparams.rfSizeSpacer); });
     }
 
     {

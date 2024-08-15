@@ -20,7 +20,6 @@ public:
   explicit RFProducerFile(std::shared_ptr<RFBuffer<ArpamFloat>> buffer)
       : m_buffer(std::move(buffer)),
         m_ioparams(uspam::io::IOParams::system2024v1()) {}
-  void resetParams() { m_ioparams = uspam::io::IOParams::system2024v1(); }
 
   bool ready() { return m_loader.isOpen(); }
 
