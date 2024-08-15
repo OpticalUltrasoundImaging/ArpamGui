@@ -4,7 +4,7 @@
 #include "Annotation/GraphicsItemBase.hpp"
 #include "CanvasCursorState.hpp"
 #include "CanvasOverlay.hpp"
-#include "CanvasTicks.hpp"
+// #include "CanvasTicks.hpp"
 #include <QAbstractListModel>
 #include <QCursor>
 #include <QEvent>
@@ -83,6 +83,10 @@ public slots: // NOLINT
   void undo();
 
   void resetZoomOnNextImshow() { m_resetZoomOnNextImshow = true; }
+
+  void setAlinesPerBscan(int alinesPerBscan) {
+    m_alinesPerBscan = alinesPerBscan;
+  }
 
 signals:
   void error(QString err);
@@ -164,6 +168,9 @@ private:
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::SelectAScan};
+
+  //
+  int m_alinesPerBscan{1000};
 
   // The graphics item currently being drawn by the cursor
   annotation::GraphicsItemBase *m_currItem{nullptr};

@@ -6,7 +6,6 @@
 void RFProducerFile::setBinfile(const fs::path &binfile) {
   try {
     // Init loader
-    m_loader.setParams(m_ioparams);
     m_loader.open(binfile);
     emit maxFramesChanged(m_loader.size());
 
@@ -63,5 +62,5 @@ void RFProducerFile::reproduceOne() {
 void RFProducerFile::setIOParams(const uspam::io::IOParams &ioparams) {
   std::unique_lock<std::mutex> lock(m_paramsMtx);
   // IOParams is trivially copiable so std::move === memcpy
-  m_ioparams = ioparams;
+  m_loader.setParams(ioparams);
 }

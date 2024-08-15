@@ -17,9 +17,11 @@ namespace fs = std::filesystem;
 class RFProducerFile : public QObject {
   Q_OBJECT
 public:
-  explicit RFProducerFile(std::shared_ptr<RFBuffer<ArpamFloat>> buffer)
-      : m_buffer(std::move(buffer)),
-        m_ioparams(uspam::io::IOParams::system2024v1()) {}
+  explicit RFProducerFile(std::shared_ptr<RFBuffer<ArpamFloat>> buffer,
+                          const uspam::io::IOParams &ioparams)
+      : m_buffer(std::move(buffer)) {
+    m_loader.setParams(ioparams);
+  }
 
   bool ready() { return m_loader.isOpen(); }
 
@@ -46,8 +48,6 @@ private:
 
   // IO Params. Can be concurrently accessed
   std::mutex m_paramsMtx;
-  uspam::io::IOParams m_ioparams;
-
   // File loader
   uspam::io::BinfileLoader<uint16_t> m_loader;
 
