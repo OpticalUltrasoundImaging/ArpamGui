@@ -147,7 +147,7 @@ void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
 // Compute the distance between two points in the scaled pixmap domain
 double Canvas::computeDistance_mm(QPointF pt1, QPointF pt2) const {
   const auto distance = geometry::calcMagnitude(pt1 - pt2);
-  const auto distance_mm = distance * m_pix2m * 1000;
+  const auto distance_mm = distance * m_pix2m * 1000; // 1000 converts m to mm
   return distance_mm;
 }
 

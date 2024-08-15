@@ -16,6 +16,7 @@
 class AScanPlot : public QWidget {
   Q_OBJECT
 public:
+  // Sound speed: 1500m/s. 1000 mm/m. 180e6 samples/second
   static constexpr double MM_PER_PIXEL_PA = (1500.0 * 1000) / (180e6);
   static constexpr double MM_PER_PIXEL_US = (1500.0 / 2 * 1000) / (180e6);
 

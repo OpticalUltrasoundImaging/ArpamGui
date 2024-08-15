@@ -46,10 +46,11 @@ template <Floating Float> struct SaftDelayParams {
     return static_cast<Float>(deg2rad(illumAngleDeg));
   }
 
-  static auto make() {
+  static auto make(int numAlinesPerBScan = 1000) {
     // NOLINTBEGIN(*-magic-numbers)
     SaftDelayParams<Float> saftParams{
-        6.2, 1.5e3, 1.0 / 180e6, 2 * std::numbers::pi / 1000, 15.0, 8.5, 5.0,
+        6.2,  1.5e3, 1.0 / 180e6, 2 * std::numbers::pi / numAlinesPerBScan,
+        15.0, 8.5,   5.0,
     };
     // NOLINTEND(*-magic-numbers)
     return saftParams;
