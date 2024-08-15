@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AScanPlot.hpp"
 #include "Annotation/AnnotationModel.hpp"
 #include "Annotation/AnnotationView.hpp"
 #include "Canvas.hpp"
@@ -28,6 +27,11 @@ public:
 
   [[nodiscard]] auto actionResetZoom() const { return actResetZoom; }
   [[nodiscard]] auto actionShowUSCanvas() const { return actShowUSCanvas; }
+
+  void setAlinesPerBscan(int alinesPerBscan) {
+    m_canvasPAUS->setAlinesPerBscan(alinesPerBscan);
+    m_canvasUS->setAlinesPerBscan(alinesPerBscan);
+  }
 
 signals:
   void message(const QString &msg);

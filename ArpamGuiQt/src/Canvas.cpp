@@ -207,7 +207,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       // Add a graphics item represending the AScan
       // Emit a signal to tell the AScan plot
 
-      const auto [idx, line] = m_cursor.selectAScan(m_Pixmap.rect());
+      const auto [idx, line] =
+          m_cursor.selectAScan(m_Pixmap.rect(), m_alinesPerBscan);
 
       // Insert ALine graphics here in canvas
       const auto color = Qt::green;
@@ -292,7 +293,8 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
       break;
 
     case (CursorMode::SelectAScan): {
-      const auto [idx, line] = m_cursor.selectAScan(m_Pixmap.rect());
+      const auto [idx, line] =
+          m_cursor.selectAScan(m_Pixmap.rect(), m_alinesPerBscan);
 
       // Move ALine graphics here in canvas
       if (auto *lineItem = dynamic_cast<annotation::LineItem *>(m_currItem);

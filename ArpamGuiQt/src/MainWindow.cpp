@@ -46,14 +46,16 @@ MainWindow::MainWindow(QWidget *parent)
 
       buffer(std::make_shared<RFBuffer<ArpamFloat>>()),
 
+      textEdit(new QPlainTextEdit(this)),
+      reconParamsController(new ReconParamsController),
+
       // Producers
-      rfProducerFile(new RFProducerFile(buffer)),
+      rfProducerFile(
+          new RFProducerFile(buffer, reconParamsController->ioparams)),
 
       // Consumer
       reconWorker(new ReconWorker(buffer)),
 
-      textEdit(new QPlainTextEdit(this)),
-      reconParamsController(new ReconParamsController),
       m_AScanPlot(new AScanPlot(reconParamsController)),
       m_coregDisplay(new CoregDisplay),
       m_frameController(new FrameController(rfProducerFile, reconWorker,
@@ -287,6 +289,8 @@ MainWindow::MainWindow(QWidget *parent)
                 // Update params
                 rfProducerFile->setIOParams(ioparams);
                 reconWorker->reconstructor().setParams(params, ioparams);
+
+                m_coregDisplay->setAlinesPerBscan(ioparams.alinesPerBscan);
 
                 // Only invoke "replayOne" if not currently worker is not
                 // playing

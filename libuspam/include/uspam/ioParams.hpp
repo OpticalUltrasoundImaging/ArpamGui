@@ -8,7 +8,6 @@
 namespace uspam::io {
 namespace fs = std::filesystem;
 
-constexpr int NUM_ALINES_DETAULT = 1000;
 constexpr int RF_ALINE_SIZE = 8192;
 
 // Container that holds coregistered PA and US data
@@ -31,29 +30,32 @@ template <typename T> struct PAUSpair {
 };
 
 struct IOParams {
-  int rf_size_PA{};
-  int rf_size_spacer{};
+  int alinesPerBscan{};
+  int rfSizePA{};
+  int rfSizeSpacer{};
 
   int offsetUS{};
   // Number of points
   int offsetPA{};
 
   // Byte offset at beginning of file.
-  int byte_offset = 0;
+  int byteOffset = 0;
 
 public:
-  [[nodiscard]] auto rf_size_US() const { return rf_size_PA * 2; }
+  [[nodiscard]] auto rf_size_US() const { return rfSizePA * 2; }
 
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{2650, 87, -100, -200, 1};
+    return IOParams{1000, 2650, 87, -100, -200, 1};
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{2650, 87, -100, -200, 1};
+    auto params = system2024v1();
+    params.byteOffset = 0;
+    return params;
   }
 
   // Serialize to JSON
@@ -65,11 +67,9 @@ public:
   bool deserialize(const rapidjson::Document &doc);
   bool deserializeFromFile(const fs::path &path);
 
-  template <typename T>
-  PAUSpair<T>
-  allocateSplitPair(int alines_per_bscan = NUM_ALINES_DETAULT) const {
-    arma::Mat<T> rfPA(this->rf_size_PA, alines_per_bscan, arma::fill::none);
-    arma::Mat<T> rfUS(this->rf_size_US(), alines_per_bscan, arma::fill::none);
+  template <typename T> PAUSpair<T> allocateSplitPair() const {
+    arma::Mat<T> rfPA(rfSizePA, alinesPerBscan, arma::fill::none);
+    arma::Mat<T> rfUS(rf_size_US(), alinesPerBscan, arma::fill::none);
     return {rfPA, rfUS};
   }
 
@@ -81,11 +81,11 @@ public:
   template <typename T1, typename T2>
   void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
                    arma::Mat<T2> &US) const {
-    const auto USstart = this->rf_size_PA + this->rf_size_spacer;
+    const auto USstart = this->rfSizePA + this->rfSizeSpacer;
     const auto USend = USstart + this->rf_size_US();
     const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
 
-    PA.resize(this->rf_size_PA, rf.n_cols);
+    PA.resize(this->rfSizePA, rf.n_cols);
     US.resize(USend - USstart, rf.n_cols);
 
     cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
@@ -95,7 +95,7 @@ public:
         auto *UScol = US.colptr(j);
 
         // NOLINTBEGIN(*-pointer-arithmetic)
-        for (int i = 0; i < rf_size_PA; ++i) {
+        for (int i = 0; i < rfSizePA; ++i) {
           PAcol[i] = static_cast<T2>(rfcol[i]);
         }
 
@@ -127,7 +127,7 @@ public:
   auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
                        arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS) const {
 
-    const auto USstart = this->rf_size_PA + this->rf_size_spacer;
+    const auto USstart = this->rfSizePA + this->rfSizeSpacer;
     const auto USend = USstart + this->rf_size_US();
     auto offsetUS = this->offsetUS;
     while (offsetUS < 0) {
@@ -135,12 +135,12 @@ public:
     }
     auto offsetPA = this->offsetUS / 2 + this->offsetPA;
     while (offsetPA < 0) {
-      offsetPA = this->rf_size_PA + offsetPA;
+      offsetPA = this->rfSizePA + offsetPA;
     }
 
     // Ensure rfPA and rfUS have enough space
-    if (rfPA.n_rows != this->rf_size_PA || rfPA.n_cols != rf.n_cols) {
-      rfPA.set_size(this->rf_size_PA, rf.n_cols);
+    if (rfPA.n_rows != this->rfSizePA || rfPA.n_cols != rf.n_cols) {
+      rfPA.set_size(this->rfSizePA, rf.n_cols);
     }
     if (rfUS.n_rows != this->rf_size_US() || rfUS.n_cols != rf.n_cols) {
       rfUS.set_size(this->rf_size_US(), rf.n_cols);
@@ -151,7 +151,7 @@ public:
       for (int j = range.start; j < range.end; ++j) {
 
         // PA
-        for (int i = 0; i < this->rf_size_PA; ++i) {
+        for (int i = 0; i < this->rfSizePA; ++i) {
           // split.PA(i, j) = static_cast<Tout>(rf(i, j));
           rfPA(i, j) =
               static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
@@ -196,8 +196,7 @@ public:
   //              int alines_per_bscan = 1000) const -> arma::Mat<T>;
   template <typename T>
   auto load_rf(const fs::path &filename, arma::Mat<T> &storage, int i,
-               int nscans = 1, int alines_per_bscan = NUM_ALINES_DETAULT) const
-      -> bool {
+               int nscans = 1) const -> bool {
     // Only support nscans=1 for now
     assert(nscans >= 1);
 
@@ -208,14 +207,13 @@ public:
     }
 
     constexpr auto byte_width = static_cast<int>(sizeof(T));
-    const auto scan_size =
-        RF_ALINE_SIZE * alines_per_bscan * nscans * byte_width;
-    const auto start_pos = this->byte_offset + scan_size * i;
+    const auto scan_size = RF_ALINE_SIZE * alinesPerBscan * nscans * byte_width;
+    const auto start_pos = this->byteOffset + scan_size * i;
 
     file.seekg(start_pos, std::ios::beg);
 
     // Read file
-    const auto matrix_size = RF_ALINE_SIZE * alines_per_bscan * byte_width;
+    const auto matrix_size = RF_ALINE_SIZE * alinesPerBscan * byte_width;
 
     // NOLINTNEXTLINE(*-reinterpret-cast)
     if (!file.read(reinterpret_cast<char *>(storage.memptr()), matrix_size)) {
@@ -226,9 +224,7 @@ public:
   }
 
   template <typename T>
-  [[nodiscard]] int
-  get_num_scans(const fs::path &filename,
-                int alines_per_bscan = NUM_ALINES_DETAULT) const {
+  [[nodiscard]] int get_num_scans(const fs::path &filename) const {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
       std::cerr << "Failed to open file\n";
@@ -237,8 +233,8 @@ public:
     file.seekg(0, std::ios::end);
     const std::streamsize fsize = file.tellg();
     constexpr auto byte_width = static_cast<int>(sizeof(T));
-    const int numScans = (static_cast<int>(fsize) - this->byte_offset) /
-                         (RF_ALINE_SIZE * alines_per_bscan * byte_width);
+    const int numScans = (static_cast<int>(fsize) - this->byteOffset) /
+                         (RF_ALINE_SIZE * alinesPerBscan * byte_width);
     return numScans;
   }
 };

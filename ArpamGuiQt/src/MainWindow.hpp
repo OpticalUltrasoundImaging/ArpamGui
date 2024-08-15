@@ -64,6 +64,12 @@ private:
   QAction *actViewSimple;
   QAction *actViewExpert;
 
+  // Log text box
+  QPlainTextEdit *textEdit;
+
+  // Recon params and IO params UI
+  ReconParamsController *reconParamsController;
+
   // Shared thread safe Buffer
   std::shared_ptr<RFBuffer<ArpamFloat>> buffer;
 
@@ -74,9 +80,6 @@ private:
   // Recon Worker (consumer)
   QThread workerThread;
   ReconWorker *reconWorker;
-
-  QPlainTextEdit *textEdit;
-  ReconParamsController *reconParamsController;
 
   // AScan plot
   AScanPlot *m_AScanPlot;
