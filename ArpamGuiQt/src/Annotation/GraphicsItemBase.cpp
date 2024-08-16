@@ -11,7 +11,7 @@ GraphicsItemBase::GraphicsItemBase()
 GraphicsItemBase::GraphicsItemBase(const Annotation &annotation,
                                    QGraphicsItem *parent)
     : QGraphicsItem(parent), m_textGraphic(new QGraphicsSimpleTextItem(this)),
-      m_color(annotation.color()) {
+      m_color(annotation.color) {
   setSelected(true);
   setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
            QGraphicsItem::ItemIsMovable);

@@ -7,8 +7,8 @@ void LineItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
   const auto line = anno.line();
   setLine(line);
-  setColor(anno.color());
-  setText(anno.name());
+  setColor(anno.color);
+  setText(anno.name);
 }
 
 void LineItem::setLine(const QLineF &line) {
@@ -52,8 +52,8 @@ QPainterPath LineItem::shape() const {
 void RectItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
   setRect(anno.rect());
-  setColor(anno.color());
-  setText(anno.name());
+  setColor(anno.color);
+  setText(anno.name);
 
   textItem()->setBrush(color());
 }
@@ -81,8 +81,8 @@ void FanItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
   setArc(anno.arc());
   setRect(anno.rect());
-  setColor(anno.color());
-  setText(anno.name());
+  setColor(anno.color);
+  setText(anno.name);
 }
 
 QPainterPath FanItem::getFanPainterPath() const {
@@ -150,9 +150,9 @@ void FanItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 
 void PolygonItem::updateAnno(const Annotation &anno) {
   prepareGeometryChange();
-  setPolygon(anno.polygon());
-  setColor(anno.color());
-  setText(anno.name());
+  setPolygon(anno.polygon);
+  setColor(anno.color);
+  setText(anno.name);
 }
 
 QRectF FanItem::boundingRect() const { return m_rect; }
@@ -186,7 +186,7 @@ static_assert(makeFuncs.size() == Annotation::Type::Size);
 } // namespace details
 
 GraphicsItemBase *makeGraphicsItem(const Annotation &anno) {
-  const auto type = anno.type();
+  const auto type = anno.type;
   assert(type >= 0);
   assert(type < Annotation::Type::Size);
   return details::makeFuncs.at(type)(anno);

@@ -10,6 +10,7 @@
 
 namespace annotation {
 
+// Common base class for all QGraphicsItem representation of Annotation
 class GraphicsItemBase : public QGraphicsItem {
 public:
   inline const static QColor COLOR_HOVER = Qt::green;

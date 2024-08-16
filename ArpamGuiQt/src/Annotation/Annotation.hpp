@@ -38,16 +38,19 @@ struct Arc {
 
 // Points are stored in a QPolygonF, which is just a QList<QPointF>
 // https://doc.qt.io/qt-6/qpolygonf.html#details
-class Annotation {
-public:
+struct Annotation {
   enum Type { Line, Rect, Fan, Polygon, Size };
+
+  Type type{Line};
+  QPolygonF polygon;
+  QColor color;
+  QString name;
+
   inline const static std::array<QString, Size> TypeToString = {
       QString("Line"), QString("Rect"), QString("Fan"), QString("Polygon")};
 
   /* Constructors */
   Annotation() = default;
-  Annotation(Type type, const QList<QPointF> &points, const QColor &color,
-             QString name = {});
   Annotation(const QLineF &line, const QColor &color, QString name = {});
   Annotation(const QRectF &rect, const QColor &color, QString name = {});
   /* For arc, the Polygon contains 3 points that store
@@ -67,36 +70,24 @@ public:
 
   ~Annotation() = default;
 
-  [[nodiscard]] auto type() const { return m_type; }
-  void setType(Type type) { m_type = type; }
-
   // For Line, the 2 points are {p1, p2}
   [[nodiscard]] auto line() const -> QLineF {
-    assert(m_polygon.size() == 2);
-    return {m_polygon[0], m_polygon[1]};
+    assert(polygon.size() == 2);
+    return {polygon[0], polygon[1]};
   };
 
   // For Rect, the 2 points are {top_left, bottom_right}
   [[nodiscard]] auto rect() const -> QRectF {
-    assert(m_polygon.size() >= 2);
-    return {m_polygon[0], m_polygon[1]};
+    assert(polygon.size() >= 2);
+    return {polygon[0], polygon[1]};
   };
 
   // For arc, the 3rd point stores the startAngle (x) and spanAngle (y)
   [[nodiscard]] auto arc() const -> Arc {
-    assert(m_polygon.size() == 3);
-    const auto pt = m_polygon[2];
+    assert(polygon.size() == 3);
+    const auto pt = polygon[2];
     return Arc{pt.x(), pt.y()};
   }
-
-  [[nodiscard]] auto polygon() const -> QPolygonF { return m_polygon; };
-  void setPolygon(const QPolygonF &polygon) { m_polygon = polygon; }
-
-  [[nodiscard]] auto color() const -> QColor { return m_color; }
-  void setColor(QColor color) { m_color = color; }
-
-  [[nodiscard]] auto name() const { return m_name; }
-  void setName(QString name) { m_name = std::move(name); }
 
   static QString typeToString(Type type) {
     if (type < Type::Size) {
@@ -118,12 +109,6 @@ public:
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
   [[nodiscard]] static Annotation
   deserializeFromJson(const rapidjson::Value &value);
-
-private:
-  Type m_type;
-  QPolygonF m_polygon;
-  QColor m_color;
-  QString m_name;
 };
 
 } // namespace annotation

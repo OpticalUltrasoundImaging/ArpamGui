@@ -42,11 +42,11 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
     return HEADER_DATA.at(index.column()).getter(annotation);
 
   case TypeRole:
-    return annotation.type();
+    return annotation.type;
   case NameRole:
-    return annotation.name();
+    return annotation.name;
   case ColorRole:
-    return annotation.color();
+    return annotation.color;
   default:
     return {};
   }
