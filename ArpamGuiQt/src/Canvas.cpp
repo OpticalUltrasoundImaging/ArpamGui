@@ -403,9 +403,9 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         // If annotation is too small, ignore
         if (!anno.tooSmall()) {
           m_model->addAnnotation(anno);
-          m_scene->removeItem(m_currItem);
         }
 
+        m_scene->removeItem(m_currItem);
         delete m_currItem;
         m_currItem = nullptr;
       }
@@ -422,19 +422,25 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
 void Canvas::mouseDoubleClickEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
+    const auto pos = event->pos();
+    auto *item_ = itemAt(pos);
+    const auto idx = m_graphicsItems.indexOf(item_);
+
     // NOLINTNEXTLINE(*-reinterpret-cast)
-    if (auto *item = reinterpret_cast<annotation::GraphicsItemBase *>(
-            itemAt(event->pos()));
+    if (auto *item = reinterpret_cast<annotation::GraphicsItemBase *>(item_);
         item != nullptr) {
+
       bool ok{true};
       const auto inp = QInputDialog::getText(this, "Update annotation", "Name",
                                              QLineEdit::Normal,
                                              item->annotation().name, &ok);
       if (ok) {
         item->setText(inp);
+        if (idx >= 0) {
+          m_model->at(idx).name = inp;
+        }
       }
     }
-
   } else {
     QGraphicsView::mouseDoubleClickEvent(event);
   }
@@ -575,7 +581,7 @@ void Canvas::onDataChanged(const QModelIndex &topLeft,
 
 void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
-  for (int row = last; row >= first; --row) {
+  for (int row = first; row <= last; ++row) {
     addGraphicsItemFromModel(row);
   }
 }

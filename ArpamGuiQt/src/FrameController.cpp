@@ -107,11 +107,13 @@ FrameController::FrameController(
     // Frame navigation actions
     {
       m_actPrevFrame->setShortcut({Qt::Key_Comma});
-      connect(m_actPrevFrame, &QAction::triggered, [this]() { prevFrame(); });
+      connect(m_actPrevFrame, &QAction::triggered, this,
+              &FrameController::prevFrame);
       m_menu->addAction(m_actPrevFrame);
 
       m_actNextFrame->setShortcut({Qt::Key_Period});
-      connect(m_actNextFrame, &QAction::triggered, [this]() { nextFrame(); });
+      connect(m_actNextFrame, &QAction::triggered, this,
+              &FrameController::nextFrame);
       m_menu->addAction(m_actNextFrame);
     }
 
@@ -247,6 +249,7 @@ int FrameController::frameNum() const {
 
 void FrameController::setFrameNum(int frame) {
   const auto oldFrame = frameNum();
+
   // Save old frames's labels
   if (saveFrameAnnotationsFromModelToDoc(oldFrame)) {
     // If any annotations are present, save doc to file
@@ -312,8 +315,7 @@ void FrameController::prevFrame() {
 }
 
 bool FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
-  const auto *model = m_coregDisplay->model();
-  const auto &annotations = model->annotations();
+  const auto &annotations = m_coregDisplay->model()->annotations();
   if (!annotations.isEmpty()) {
     m_doc.setAnnotationForFrame(frame, annotations);
     return true;

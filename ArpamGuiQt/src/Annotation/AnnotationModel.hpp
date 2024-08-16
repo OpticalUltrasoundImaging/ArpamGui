@@ -71,6 +71,11 @@ public:
     return m_annotations[row];
   }
 
+  [[nodiscard]] Annotation &at(int row) { return m_annotations[row]; }
+  [[nodiscard]] const Annotation &at(int row) const {
+    return m_annotations[row];
+  }
+
   [[nodiscard]] auto size() { return m_annotations.size(); }
 
   void clear();
