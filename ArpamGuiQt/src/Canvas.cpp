@@ -7,6 +7,7 @@
 #include <QGraphicsWidget>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QInputDialog>
 #include <QPainter>
 #include <QPinchGesture>
 #include <QVBoxLayout>
@@ -14,6 +15,7 @@
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
+#include <qinputdialog.h>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)
@@ -202,7 +204,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       QGraphicsView::mousePressEvent(event);
       break;
 
-    case (CursorMode::SelectAScan): {
+    case CursorMode::SelectAScan: {
       // Select an AScan with the cursor
       // Add a graphics item represending the AScan
       // Emit a signal to tell the AScan plot
@@ -225,7 +227,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       panStartEvent(event);
       break;
 
-    case (CursorMode::MeasureLine): {
+    case CursorMode::MeasureLine: {
       event->accept();
 
       const auto line = m_cursor.line();
@@ -247,6 +249,7 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       m_scene->addItem(m_currItem);
 
     } break;
+
     case CursorMode::LabelFan: {
       event->accept();
 
@@ -255,8 +258,9 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
       m_cursor.lastAngle = 180.0; // NOLINT(*-magic-numbers)
       const auto angle = m_cursor.angleDeg(m_Pixmap.rect());
 
-      m_currItem = new annotation::FanItem(
-          Annotation(annotation::Arc{angle, 0}, m_Pixmap.rect(), Qt::white));
+      const auto anno =
+          Annotation(annotation::Arc{angle, 0}, m_Pixmap.rect(), Qt::white);
+      m_currItem = new annotation::FanItem(anno);
       m_currItem->updateScaleFactor(m_scaleFactor);
       m_scene->addItem(m_currItem);
 
@@ -309,10 +313,9 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
     case CursorMode::Pan: {
       panMoveEvent(event);
-      break;
-    }
+    } break;
 
-    case CursorMode::MeasureLine:
+    case CursorMode::MeasureLine: {
       event->accept();
 
       if (auto *item = dynamic_cast<annotation::LineItem *>(m_currItem);
@@ -324,17 +327,17 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
         // NOLINTNEXTLINE(*-magic-numbers)
         item->setText(QString("%1 mm").arg(dist, 5, 'f', 2));
       }
+    } break;
 
-      break;
-
-    case CursorMode::LabelRect:
+    case CursorMode::LabelRect: {
       event->accept();
       if (auto *item = dynamic_cast<annotation::RectItem *>(m_currItem);
           item != nullptr) [[likely]] {
         item->setRect(m_cursor.rect());
       }
-      break;
-    case CursorMode::LabelFan:
+    } break;
+
+    case CursorMode::LabelFan: {
       event->accept();
       if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
           item != nullptr) [[likely]] {
@@ -354,7 +357,7 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 
         item->setSpanAngle(angle + m_cursor.angleOffset - item->startAngle());
       }
-      break;
+    } break;
     }
 
   } else if (m_cursor.middleButtonDown) {
@@ -388,48 +391,52 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
       panEndEvent(event);
       break;
 
-    case CursorMode::MeasureLine: {
+    case CursorMode::MeasureLine:
+    case CursorMode::LabelRect:
+    case CursorMode::LabelFan: {
+
       // Save annotation to the data model
       // Saving to the model automatically triggers the creation of the correct
       // graphics items, so we can delete the current working item.
-      Annotation anno(m_cursor.line(), m_currItem->color(), m_currItem->text());
-      m_model->addAnnotation(anno);
+      if (m_currItem != nullptr) {
+        const auto anno = m_currItem->annotation();
 
-      m_scene->removeItem(m_currItem);
-      delete m_currItem;
-      m_currItem = nullptr;
+        // If annotation is too small, ignore
+        if (!anno.tooSmall()) {
+          m_model->addAnnotation(anno);
+          m_scene->removeItem(m_currItem);
+        }
 
-    } break;
-    case CursorMode::LabelRect: {
-      Annotation anno(m_cursor.rect(), m_currItem->color(), m_currItem->text());
-      m_model->addAnnotation(anno);
-
-      m_scene->removeItem(m_currItem);
-      delete m_currItem;
-      m_currItem = nullptr;
-
-    } break;
-    case CursorMode::LabelFan:
-
-      if (auto *item = dynamic_cast<annotation::FanItem *>(m_currItem);
-          item != nullptr) [[likely]] {
-        Annotation anno(item->arc(), item->rect(), item->color(), item->text());
-        m_model->addAnnotation(anno);
-
-        m_scene->removeItem(m_currItem);
         delete m_currItem;
         m_currItem = nullptr;
       }
-      break;
+    } break;
     }
-
   } else if (event->button() == Qt::MiddleButton) {
     m_cursor.middleButtonDown = false;
     panEndEvent(event);
-
   } else if (event->button() == Qt::RightButton) {
     m_cursor.rightButtonDown = false;
     QGraphicsView::mouseReleaseEvent(event);
+  }
+}
+
+void Canvas::mouseDoubleClickEvent(QMouseEvent *event) {
+  if (event->button() == Qt::LeftButton) {
+    auto *item =
+        reinterpret_cast<annotation::GraphicsItemBase *>(itemAt(event->pos()));
+    if (item != nullptr) {
+      bool ok{true};
+      const auto inp = QInputDialog::getText(this, "Update annotation", "Name",
+                                             QLineEdit::Normal,
+                                             item->annotation().name, &ok);
+      if (ok) {
+        item->setText(inp);
+      }
+    }
+
+  } else {
+    QGraphicsView::mouseDoubleClickEvent(event);
   }
 }
 
@@ -492,12 +499,12 @@ void Canvas::panEndEvent(QMouseEvent *event) { setCursor(m_panLastCursor); }
 
 void Canvas::updateTransform() {
   // Update transform for the QGraphicsView
-  QTransform transform;
-  transform.scale(m_scaleFactor, m_scaleFactor);
+  m_transform = QTransform();
+  m_transform.scale(m_scaleFactor, m_scaleFactor);
 
   const auto anchor = transformationAnchor();
   setTransformationAnchor(AnchorUnderMouse);
-  setTransform(transform);
+  setTransform(m_transform);
   setTransformationAnchor(anchor);
 
   // Update font factor for the annotation text labels
@@ -540,7 +547,7 @@ void Canvas::addGraphicsItemFromModel(int row) {
 void Canvas::updateGraphicsItemFromModel(int row) {
   auto *item = m_graphicsItems[row];
   const auto &annotation = m_model->getAnnotation(row);
-  item->updateAnno(annotation);
+  item->updateAnnotation(annotation);
 }
 
 void Canvas::removeGraphicsItem(int row) {

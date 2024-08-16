@@ -28,9 +28,9 @@ Annotation::Annotation(const QRectF &rect, const QColor &color, QString name)
 
 Annotation::Annotation(const Arc &arc, const QRectF &rect, const QColor &color,
                        QString name)
-    : type(Fan), polygon({rect.topLeft(), rect.bottomRight(),
-                          QPointF{arc.startAngle, arc.spanAngle}}),
-      color(color), name(std::move(name)) {}
+    : type(Fan), color(color), name(std::move(name)) {
+  setArc(arc, rect);
+}
 
 rapidjson::Value Annotation::serializeToJson(
     rapidjson::Document::AllocatorType &allocator) const {

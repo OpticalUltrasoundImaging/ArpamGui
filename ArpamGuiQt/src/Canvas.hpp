@@ -108,6 +108,8 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
 
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
+
   void wheelEvent(QWheelEvent *event) override;
 
   void resizeEvent(QResizeEvent *event) override;
@@ -151,6 +153,8 @@ private:
   CanvasOverlay *m_overlay;
 
   // Transform
+  QTransform
+      m_transform; // Updated by internal functions. Don't update directly
   double m_scaleFactor{1.0}; // factor for global transform
   double m_scaleFactorMin{1.0};
   bool m_resetZoomOnNextImshow{true};
