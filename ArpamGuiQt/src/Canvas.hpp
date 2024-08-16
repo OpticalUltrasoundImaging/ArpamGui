@@ -173,7 +173,7 @@ private:
   CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::SelectAScan};
 
-  //
+  // NOLINTNEXTLINE(*-magic-numbers)
   int m_alinesPerBscan{1000};
 
   // The graphics item currently being drawn by the cursor

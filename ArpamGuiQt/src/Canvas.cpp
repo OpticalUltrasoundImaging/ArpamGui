@@ -15,7 +15,6 @@
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
-#include <qinputdialog.h>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)
@@ -423,9 +422,10 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
 
 void Canvas::mouseDoubleClickEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
-    auto *item =
-        reinterpret_cast<annotation::GraphicsItemBase *>(itemAt(event->pos()));
-    if (item != nullptr) {
+    // NOLINTNEXTLINE(*-reinterpret-cast)
+    if (auto *item = reinterpret_cast<annotation::GraphicsItemBase *>(
+            itemAt(event->pos()));
+        item != nullptr) {
       bool ok{true};
       const auto inp = QInputDialog::getText(this, "Update annotation", "Name",
                                              QLineEdit::Normal,
@@ -582,7 +582,7 @@ void Canvas::onRowsInserted(const QModelIndex &parent, int first, int last) {
 
 void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
   Q_UNUSED(parent);
-  assert(first >= 0 && first <= last);
+  assert((first >= 0) && (first <= last)); // NOLINT
   assert(last < m_graphicsItems.size());
   for (int row = last; row >= first; --row) {
     removeGraphicsItem(row);

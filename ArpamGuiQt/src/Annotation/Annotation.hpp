@@ -89,12 +89,12 @@ struct Annotation {
 
   // For Rect, the 2 points are {top_left, bottom_right}
   [[nodiscard]] auto rect() const -> QRectF {
-    assert(type == Line || type == Rect || type == Fan);
+    assert(type == Line || type == Rect || type == Fan); // NOLINT
     assert(polygon.size() >= 2);
     return QRectF{polygon[0], polygon[1]}.normalized();
   };
   void setRect(const QRectF &rect) {
-    assert(type == Rect || type == Fan);
+    assert(type == Rect || type == Fan); // NOLINT
     assert(polygon.size() >= 2);
     polygon[0] = rect.topLeft();
     polygon[1] = rect.bottomRight();
@@ -139,10 +139,8 @@ struct Annotation {
   }
 
   static const QString &typeToString(Type type) {
-    if (type < Type::Size) {
-      return TypeToString.at(type);
-    }
-    return {};
+    assert(type < Type::Size);
+    return TypeToString.at(type);
   }
 
   [[nodiscard]] bool tooSmall() const {
@@ -153,10 +151,13 @@ struct Annotation {
     case Rect:
     case Fan: {
       r = rect();
-    }
+    } break;
     case Polygon: {
       r = polygon.boundingRect();
-    }
+    } break;
+    case Size:
+    default:
+      break;
     }
 
     const auto span = r.bottomRight() - r.topLeft();

@@ -68,7 +68,7 @@ protected:
   void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override;
   void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
 
-  Annotation m_annotation;
+  Annotation m_annotation; // NOLINT(*non-private*)
 
 private:
   QGraphicsSimpleTextItem *m_textItem{}; // Child item

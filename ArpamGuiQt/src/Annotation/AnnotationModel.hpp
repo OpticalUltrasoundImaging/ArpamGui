@@ -14,7 +14,6 @@
 #include <Qt>
 #include <array>
 #include <functional>
-#include <qvariant.h>
 #include <rapidjson/document.h>
 
 namespace annotation {
