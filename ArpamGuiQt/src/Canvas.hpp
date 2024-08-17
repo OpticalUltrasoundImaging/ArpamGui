@@ -146,6 +146,8 @@ private:
   // [mm] Get distance between 2 points in the original pixmap space.
   [[nodiscard]] double computeDistance_mm(QPointF pt1, QPointF pt2) const;
 
+  void openDialogToUpdateAnnotationName(int rowIdx);
+
   // Scene
   QGraphicsScene *m_scene;
 

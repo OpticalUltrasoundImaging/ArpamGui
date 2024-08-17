@@ -1,4 +1,5 @@
 #include "Canvas.hpp"
+#include "Annotation/AnnotationModel.hpp"
 #include "Annotation/GraphicsItemBase.hpp"
 #include "Annotation/GraphicsItems.hpp"
 #include "geometryUtils.hpp"
@@ -15,6 +16,7 @@
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
+#include <qabstractitemmodel.h>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)
@@ -68,17 +70,24 @@ void Canvas::setModel(AnnotationModel *model) {
   this->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(this, &QGraphicsView::customContextMenuRequested,
           [this](const QPoint &pos) {
-            QMenu contextMenu;
-            QAction deleteAction("Delete", &contextMenu);
-            contextMenu.addAction(&deleteAction);
-
             // Item under cursor
             if (const int rowIdx =
                     static_cast<int>(m_graphicsItems.indexOf(itemAt(pos)));
                 rowIdx >= 0) {
 
+              // Create context menu
+              QMenu contextMenu;
+
+              QAction deleteAction("Delete", &contextMenu);
+              contextMenu.addAction(&deleteAction);
               connect(&deleteAction, &QAction::triggered,
                       [this, rowIdx] { m_model->removeRow(rowIdx); });
+
+              QAction renameAction("Rename", &contextMenu);
+              contextMenu.addAction(&renameAction);
+              connect(&renameAction, &QAction::triggered, [this, rowIdx] {
+                openDialogToUpdateAnnotationName(rowIdx);
+              });
 
               contextMenu.exec(viewport()->mapToGlobal(pos));
             }
@@ -420,29 +429,30 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
   }
 }
 
+void Canvas::openDialogToUpdateAnnotationName(int rowIdx) {
+  auto anno = m_model->getAnnotation(rowIdx);
+
+  bool ok{true};
+  const auto inp = QInputDialog::getText(this, "Update annotation", "Name",
+                                         QLineEdit::Normal, anno.name, &ok);
+  if (ok) {
+    anno.name = inp;
+    using annotation::AnnotationModel;
+    const auto index = m_model->index(rowIdx);
+    m_model->setData(index, inp, AnnotationModel::NameRole);
+  }
+}
+
 void Canvas::mouseDoubleClickEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     const auto pos = event->pos();
-    auto *item_ = itemAt(pos);
-    const auto idx = m_graphicsItems.indexOf(item_);
-    if (idx >= 0) {
-      // NOLINTNEXTLINE(*-reinterpret-cast)
-      if (auto *item = reinterpret_cast<annotation::GraphicsItemBase *>(item_);
-          item != nullptr) {
 
-        bool ok{true};
-        const auto inp = QInputDialog::getText(this, "Update annotation",
-                                               "Name", QLineEdit::Normal,
-                                               item->annotation().name, &ok);
-        if (ok) {
-          item->setText(inp);
-          if (idx >= 0) {
-            m_model->at(idx).name = inp;
-          }
-        }
-      }
+    // Item under cursor
+    if (const int rowIdx =
+            static_cast<int>(m_graphicsItems.indexOf(itemAt(pos)));
+        rowIdx >= 0) {
+      openDialogToUpdateAnnotationName(rowIdx);
     }
-
   } else {
     QGraphicsView::mouseDoubleClickEvent(event);
   }

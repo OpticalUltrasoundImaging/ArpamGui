@@ -9,7 +9,9 @@
 #include <QString>
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <rapidjson/document.h>
+
 
 namespace annotation {
 
@@ -151,10 +153,10 @@ struct Annotation {
     case Rect: {
       const auto r = rect();
       const auto span = r.bottomRight() - r.topLeft();
-      return (span.x() + span.y()) <= rectThresh;
+      return std::abs(span.x() + span.y()) <= rectThresh;
     } break;
     case Fan: {
-      return arc().spanAngle <= angleThresh;
+      return std::abs(arc().spanAngle) <= angleThresh;
     }
     case Polygon: {
       const auto r = polygon.boundingRect();

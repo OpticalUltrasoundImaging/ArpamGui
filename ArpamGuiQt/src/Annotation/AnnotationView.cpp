@@ -21,11 +21,11 @@ AnnotationTableView::AnnotationTableView(QWidget *parent) : QTableView(parent) {
   setContextMenuPolicy(Qt::CustomContextMenu);
   connect(this, &QTableView::customContextMenuRequested,
           [this](const QPoint &pos) {
-            QMenu contextMenu;
-            QAction deleteAction("Delete Row", &contextMenu);
-            contextMenu.addAction(&deleteAction);
-
             if (const auto index = indexAt(pos); index.isValid()) {
+              QMenu contextMenu;
+              QAction deleteAction("Delete Row", &contextMenu);
+              contextMenu.addAction(&deleteAction);
+
               connect(&deleteAction, &QAction::triggered,
                       [this, index]() { model()->removeRow(index.row()); });
               contextMenu.exec(viewport()->mapToGlobal(pos));
@@ -47,7 +47,7 @@ void AnnotationTableView::keyPressEvent(QKeyEvent *event) {
 void AnnotationTableView::deleteSelectedRows() {
   for (const auto &idx :
        selectionModel()->selectedRows() | std::views::reverse) {
-    model()->removeRow(idx.row());
+    model()->removeRows(idx.row(), 1);
   }
 };
 

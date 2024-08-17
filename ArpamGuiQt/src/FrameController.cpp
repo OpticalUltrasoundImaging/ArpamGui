@@ -87,8 +87,11 @@ FrameController::FrameController(
         QToolTip::showText(QCursor::pos(), QString::number(val));
       });
 
-      connect(m_frameSlider, &QSlider::sliderReleased, this,
-              [&] { emit sigFrameNumUpdated(m_frameSlider->value()); });
+      connect(m_frameSlider, &QSlider::sliderReleased, this, [&] {
+        const auto idx = m_frameSlider->value();
+        saveCurrAnnotationAndLoadNewFrame(idx);
+        emit sigFrameNumUpdated(idx);
+      });
     }
 
     // Play/pause action and button
@@ -166,7 +169,7 @@ FrameController::FrameController(
           plotCurrentBScan();
 
           const auto idx = m_data->frameIdx;
-          this->setFrameNum(idx);
+          setFrameNum(idx);
           m_coregDisplay->setIdx(idx);
           // qDebug() << "FrameController received idx =" << idx;
 
@@ -242,22 +245,8 @@ void FrameController::closeBinfile() {
   m_actCloseBinfile->setEnabled(false);
 }
 
-int FrameController::frameNum() const {
-  // const auto val = m_frameNumSpinBox->value();
-  return m_frameSlider->value();
-}
-
 void FrameController::setFrameNum(int frame) {
-  const auto oldFrame = frameNum();
-
-  // Save old frames's labels
-  if (saveFrameAnnotationsFromModelToDoc(oldFrame)) {
-    // If any annotations are present, save doc to file
-    m_doc.writeToFile(m_annoPath);
-  }
-
-  // Load labels for new frame
-  loadFrameAnnotationsFromDocToModel(frame);
+  saveCurrAnnotationAndLoadNewFrame(frame);
 
   // Update GUI
   m_frameSlider->setValue(frame);
@@ -315,8 +304,9 @@ void FrameController::prevFrame() {
 }
 
 bool FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
-  const auto &annotations = m_coregDisplay->model()->annotations();
-  if (!annotations.isEmpty()) {
+  const auto *model = m_coregDisplay->model();
+  if (model->dirty()) {
+    const auto &annotations = m_coregDisplay->model()->annotations();
     m_doc.setAnnotationForFrame(frame, annotations);
     return true;
   }
@@ -326,6 +316,18 @@ bool FrameController::saveFrameAnnotationsFromModelToDoc(int frame) {
 void FrameController::loadFrameAnnotationsFromDocToModel(int frame) {
   auto *model = m_coregDisplay->model();
   model->setAnnotations(m_doc.getAnnotationForFrame(frame));
+}
+
+void FrameController::saveCurrAnnotationAndLoadNewFrame(int newFrame) {
+  // Save old frames's labels
+  if (const auto oldFrame = frameNum();
+      saveFrameAnnotationsFromModelToDoc(oldFrame)) {
+    // If any annotations are present, save doc to file
+    m_doc.writeToFile(m_annoPath);
+  }
+
+  // Load labels for new frame
+  loadFrameAnnotationsFromDocToModel(newFrame);
 }
 
 void FrameController::plotCurrentBScan() {

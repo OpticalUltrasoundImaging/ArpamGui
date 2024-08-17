@@ -13,7 +13,6 @@
 #include <QVariant>
 #include <Qt>
 #include <array>
-#include <functional>
 #include <rapidjson/document.h>
 
 namespace annotation {
@@ -22,6 +21,9 @@ class AnnotationModel : public QAbstractListModel {
   Q_OBJECT
 public:
   enum AnnotationRoles { TypeRole = Qt::UserRole + 1, NameRole, ColorRole };
+
+  [[nodiscard]] bool dirty() const { return m_dirty; }
+  void setDirty(bool state = true) { m_dirty = state; }
 
   [[nodiscard]] auto &annotations() const { return m_annotations; }
   void setAnnotations(QList<Annotation> annotations);
@@ -86,6 +88,7 @@ public:
 
 private:
   QList<Annotation> m_annotations;
+  bool m_dirty{false};
 };
 
 #undef ANNO_GETTER
