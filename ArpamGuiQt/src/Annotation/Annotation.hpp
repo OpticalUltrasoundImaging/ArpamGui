@@ -144,24 +144,26 @@ struct Annotation {
   }
 
   [[nodiscard]] bool tooSmall() const {
-    constexpr int thresh = 20;
-    QRectF r;
+    constexpr int rectThresh = 20;
+    constexpr int angleThresh = 2;
     switch (type) {
     case Line:
-    case Rect:
-    case Fan: {
-      r = rect();
+    case Rect: {
+      const auto r = rect();
+      const auto span = r.bottomRight() - r.topLeft();
+      return (span.x() + span.y()) <= rectThresh;
     } break;
+    case Fan: {
+      return arc().spanAngle <= angleThresh;
+    }
     case Polygon: {
-      r = polygon.boundingRect();
+      const auto r = polygon.boundingRect();
     } break;
     case Size:
     default:
       break;
     }
-
-    const auto span = r.bottomRight() - r.topLeft();
-    return (span.x() + span.y()) <= thresh;
+    return true;
   }
 
   static Type typeFromString(const QString &type) {

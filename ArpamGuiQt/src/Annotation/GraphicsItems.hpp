@@ -36,14 +36,7 @@ public:
              QWidget *widget) override;
 };
 
-// Pair of angles (each 0-360) that denote a fan shape center at the center of
-// the square image. The fan is drawn clockwise
-
-// Draws the arc defined by the given rectangle, startAngle and spanAngle.
-// The startAngle and spanAngle must be specified in 1/16th of a degree, i.e.
-// a full circle equals 5760 (16 * 360). Positive values for the angles mean
-// counter-clockwise while negative values mean the clockwise direction. Zero
-// degrees is at the 3 o'clock position.
+// See comments for Arc
 class FanItem : public GraphicsItemBase {
 public:
   explicit FanItem(const Annotation &anno) : GraphicsItemBase(anno) {}

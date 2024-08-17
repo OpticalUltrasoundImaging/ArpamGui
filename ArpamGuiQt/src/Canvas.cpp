@@ -425,22 +425,24 @@ void Canvas::mouseDoubleClickEvent(QMouseEvent *event) {
     const auto pos = event->pos();
     auto *item_ = itemAt(pos);
     const auto idx = m_graphicsItems.indexOf(item_);
+    if (idx >= 0) {
+      // NOLINTNEXTLINE(*-reinterpret-cast)
+      if (auto *item = reinterpret_cast<annotation::GraphicsItemBase *>(item_);
+          item != nullptr) {
 
-    // NOLINTNEXTLINE(*-reinterpret-cast)
-    if (auto *item = reinterpret_cast<annotation::GraphicsItemBase *>(item_);
-        item != nullptr) {
-
-      bool ok{true};
-      const auto inp = QInputDialog::getText(this, "Update annotation", "Name",
-                                             QLineEdit::Normal,
-                                             item->annotation().name, &ok);
-      if (ok) {
-        item->setText(inp);
-        if (idx >= 0) {
-          m_model->at(idx).name = inp;
+        bool ok{true};
+        const auto inp = QInputDialog::getText(this, "Update annotation",
+                                               "Name", QLineEdit::Normal,
+                                               item->annotation().name, &ok);
+        if (ok) {
+          item->setText(inp);
+          if (idx >= 0) {
+            m_model->at(idx).name = inp;
+          }
         }
       }
     }
+
   } else {
     QGraphicsView::mouseDoubleClickEvent(event);
   }
