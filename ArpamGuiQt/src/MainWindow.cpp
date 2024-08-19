@@ -97,7 +97,7 @@ MainWindow::MainWindow(QWidget *parent)
   {
     actViewSimple = new QAction("Physician view", this);
     actViewSimple->setCheckable(true);
-    actViewSimple->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_1);
+    actViewSimple->setShortcut(Qt::CTRL | Qt::Key_1);
     connect(actViewSimple, &QAction::toggled, this, [this](bool checked) {
       if (checked) {
         dockLog->hide();
@@ -122,7 +122,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     actViewExpert = new QAction("Engineer view", this);
     actViewExpert->setCheckable(true);
-    actViewExpert->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_2);
+    actViewExpert->setShortcut(Qt::CTRL | Qt::Key_2);
     connect(actViewExpert, &QAction::toggled, this, [this](bool checked) {
       if (checked) {
         dockLog->show();
