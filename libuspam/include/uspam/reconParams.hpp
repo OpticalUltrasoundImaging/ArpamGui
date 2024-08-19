@@ -54,7 +54,7 @@ struct ReconParams2 {
     constexpr int order = 3;
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
-    ;
+
     ReconParams PA{FilterType::FIR,
                    taps,
                    order,

@@ -19,44 +19,36 @@ auto deserializeListOfPoints(const rapidjson::Value &jsonArray) {
 
 namespace annotation {
 
-Annotation::Annotation(Type type, const QList<QPointF> &points,
-                       const QColor &color, QString name)
-    : m_type(type), m_polygon(points), m_color(color), m_name(std::move(name)) {
-}
-
 Annotation::Annotation(const QLineF &line, const QColor &color, QString name)
-    : m_type(Line), m_polygon({line.p1(), line.p2()}), m_color(color),
-      m_name(std::move(name)) {}
+    : polygon({line.p1(), line.p2()}), color(color), name(std::move(name)) {}
 
 Annotation::Annotation(const QRectF &rect, const QColor &color, QString name)
-    : m_type(Rect), m_polygon({rect.topLeft(), rect.bottomRight()}),
-      m_color(color), m_name(std::move(name)) {}
+    : type(Rect), polygon({rect.topLeft(), rect.bottomRight()}), color(color),
+      name(std::move(name)) {}
 
 Annotation::Annotation(const Arc &arc, const QRectF &rect, const QColor &color,
                        QString name)
-    : m_type(Fan), m_polygon({rect.topLeft(), rect.bottomRight(),
-                              QPointF{arc.startAngle, arc.spanAngle}}),
-      m_color(color), m_name(std::move(name)) {}
+    : type(Fan), color(color), name(std::move(name)) {
+  setArc(arc, rect);
+}
 
 rapidjson::Value Annotation::serializeToJson(
     rapidjson::Document::AllocatorType &allocator) const {
   rapidjson::Value obj(rapidjson::kObjectType);
 
   obj.AddMember("type",
-                jsonUtils::serializeString(typeToString(m_type), allocator),
+                jsonUtils::serializeString(typeToString(type), allocator),
                 allocator);
 
-  obj.AddMember("points",
-                jsonUtils::serializeListOfPoints(m_polygon, allocator),
+  obj.AddMember("points", jsonUtils::serializeListOfPoints(polygon, allocator),
                 allocator);
 
   obj.AddMember(
       "color",
-      jsonUtils::serializeString(m_color.name(QColor::HexRgb), allocator),
+      jsonUtils::serializeString(color.name(QColor::HexRgb), allocator),
       allocator);
 
-  obj.AddMember("name", jsonUtils::serializeString(m_name, allocator),
-                allocator);
+  obj.AddMember("name", jsonUtils::serializeString(name, allocator), allocator);
 
   return obj;
 }
@@ -65,20 +57,20 @@ Annotation Annotation::deserializeFromJson(const rapidjson::Value &value) {
   Annotation anno;
 
   if (const auto it = value.FindMember("type"); it != value.MemberEnd()) {
-    anno.m_type = typeFromString(it->value.GetString());
+    anno.type = typeFromString(it->value.GetString());
   }
 
   if (const auto it = value.FindMember("points"); it != value.MemberEnd()) {
-    anno.m_polygon = deserializeListOfPoints(it->value);
+    anno.polygon = deserializeListOfPoints(it->value);
   }
 
   if (const auto it = value.FindMember("color"); it != value.MemberEnd()) {
-    anno.m_color = QColor::fromString(it->value.GetString());
+    anno.color = QColor::fromString(it->value.GetString());
   }
 
   if (const auto it = value.FindMember("name"); it != value.MemberEnd()) {
     const auto s = QString::fromLocal8Bit(it->value.GetString());
-    anno.m_name = s;
+    anno.name = s;
   }
 
   return anno;

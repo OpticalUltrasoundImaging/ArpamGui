@@ -1,39 +1,34 @@
 #include "Annotation/GraphicsItemBase.hpp"
+#include <QAction>
 #include <QFont>
 #include <Qt>
+#include <utility>
 
 namespace annotation {
 
-GraphicsItemBase::GraphicsItemBase()
-    : m_color(COLOR_DEFAULT), m_textGraphic(new QGraphicsSimpleTextItem(this)) {
-}
+GraphicsItemBase::GraphicsItemBase(Annotation annotation)
+    :
 
-GraphicsItemBase::GraphicsItemBase(const Annotation &annotation,
-                                   QGraphicsItem *parent)
-    : QGraphicsItem(parent), m_textGraphic(new QGraphicsSimpleTextItem(this)),
-      m_color(annotation.color()) {
+      m_annotation(std::move(annotation)),
+      m_textItem(new QGraphicsSimpleTextItem(this))
+
+{
   setSelected(true);
   setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
            QGraphicsItem::ItemIsMovable);
   setAcceptHoverEvents(true);
-}
 
-GraphicsItemBase::GraphicsItemBase(const QColor &color, QGraphicsItem *parent)
-    : QGraphicsItem(parent), m_textGraphic(new QGraphicsSimpleTextItem(this)),
-      m_color(color) {
-  setSelected(true);
-  setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
-           QGraphicsItem::ItemIsMovable);
-  setAcceptHoverEvents(true);
+  // By default the text is positioned at the first point in the polygon
+  m_textItem->setPos(m_annotation.polygon[0]);
+  m_textItem->setText(m_annotation.name);
+  m_textItem->setBrush(m_annotation.color);
 }
-
-GraphicsItemBase::~GraphicsItemBase() = default;
 
 void GraphicsItemBase::updateScaleFactor(double scaleFactor) {
   prepareGeometryChange();
   QFont font;
   font.setPointSizeF(FONT_SIZE_BASE / scaleFactor);
-  textItem()->setFont(font);
+  m_textItem->setFont(font);
 
   m_penWidth = PEN_WIDTH_BASE / scaleFactor;
 }

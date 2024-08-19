@@ -9,7 +9,9 @@
 #include <QString>
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <rapidjson/document.h>
+
 
 namespace annotation {
 
@@ -38,71 +40,132 @@ struct Arc {
 
 // Points are stored in a QPolygonF, which is just a QList<QPointF>
 // https://doc.qt.io/qt-6/qpolygonf.html#details
-class Annotation {
-public:
+struct Annotation {
   enum Type { Line, Rect, Fan, Polygon, Size };
+
+  Type type{Line};
+  QPolygonF polygon;
+  QColor color;
+  QString name;
+
   inline const static std::array<QString, Size> TypeToString = {
       QString("Line"), QString("Rect"), QString("Fan"), QString("Polygon")};
 
   /* Constructors */
   Annotation() = default;
-  Annotation(Type type, const QList<QPointF> &points, const QColor &color,
-             QString name = {});
+  /* Copy/move constructor/assignment */
+  Annotation(const Annotation &other) = default;
+  Annotation &operator=(const Annotation &other) = default;
+  Annotation(Annotation &&) = default;
+  Annotation &operator=(Annotation &&) = default;
+
+  /*
+   * For line, the polygon contains 2 points: {p1, p2}
+   */
   Annotation(const QLineF &line, const QColor &color, QString name = {});
+
+  /*
+   * For rect, the polygon contains 2 points: {topLeft, bottomRight}
+   */
   Annotation(const QRectF &rect, const QColor &color, QString name = {});
-  /* For arc, the Polygon contains 3 points that store
+
+  /*
+   * For arc, the Polygon contains 3 points:
    * {rect.topLeft, rect.bottomRight, {startAngle, spanAngle}}
    */
   Annotation(const Arc &arc, const QRectF &rect, const QColor &color,
              QString name = {});
 
-  /* Copy constructor */
-  Annotation(const Annotation &other) = default;
-  /* Copy assignment */
-  Annotation &operator=(const Annotation &other) = default;
-  /* Move constructor */
-  Annotation(Annotation &&) = default;
-  /* Move assignment */
-  Annotation &operator=(Annotation &&) = default;
-
   ~Annotation() = default;
-
-  [[nodiscard]] auto type() const { return m_type; }
-  void setType(Type type) { m_type = type; }
 
   // For Line, the 2 points are {p1, p2}
   [[nodiscard]] auto line() const -> QLineF {
-    assert(m_polygon.size() == 2);
-    return {m_polygon[0], m_polygon[1]};
+    assert(type == Line);
+    assert(polygon.size() == 2);
+    return {polygon[0], polygon[1]};
   };
+  void setLine(const QLineF &line) {
+    assert(type == Line);
+    polygon = {line.p1(), line.p2()};
+  }
 
   // For Rect, the 2 points are {top_left, bottom_right}
   [[nodiscard]] auto rect() const -> QRectF {
-    assert(m_polygon.size() >= 2);
-    return {m_polygon[0], m_polygon[1]};
+    assert(type == Line || type == Rect || type == Fan); // NOLINT
+    assert(polygon.size() >= 2);
+    return QRectF{polygon[0], polygon[1]}.normalized();
   };
+  void setRect(const QRectF &rect) {
+    assert(type == Rect || type == Fan); // NOLINT
+    assert(polygon.size() >= 2);
+    polygon[0] = rect.topLeft();
+    polygon[1] = rect.bottomRight();
+  }
 
   // For arc, the 3rd point stores the startAngle (x) and spanAngle (y)
   [[nodiscard]] auto arc() const -> Arc {
-    assert(m_polygon.size() == 3);
-    const auto pt = m_polygon[2];
+    assert(type == Fan);
+    assert(polygon.size() == 3);
+    const auto pt = polygon[2];
     return Arc{pt.x(), pt.y()};
   }
+  void setArc(const Arc &arc, const QRectF &rect) {
+    assert(type == Fan);
+    polygon = {rect.topLeft(), rect.bottomRight(),
+               QPointF{arc.startAngle, arc.spanAngle}};
+  }
+  void setArc(const Arc &arc) {
+    assert(type == Fan);
+    assert(polygon.size() == 3);
+    polygon[2] = QPointF{arc.startAngle, arc.spanAngle};
+  }
+  [[nodiscard]] auto startAngle() const {
+    assert(type == Fan);
+    assert(polygon.size() == 3);
+    return polygon[2].x();
+  }
+  void setStartAngle(double startAngle) {
+    assert(type == Fan);
+    assert(polygon.size() == 3);
+    polygon[2].setX(startAngle);
+  }
+  [[nodiscard]] auto spanAngle() const {
+    assert(type == Fan);
+    assert(polygon.size() == 3);
+    return polygon[2].y();
+  }
+  void setSpanAngle(double spanAngle) {
+    assert(type == Fan);
+    assert(polygon.size() == 3);
+    polygon[2].setY(spanAngle);
+  }
 
-  [[nodiscard]] auto polygon() const -> QPolygonF { return m_polygon; };
-  void setPolygon(const QPolygonF &polygon) { m_polygon = polygon; }
+  static const QString &typeToString(Type type) {
+    assert(type < Type::Size);
+    return TypeToString.at(type);
+  }
 
-  [[nodiscard]] auto color() const -> QColor { return m_color; }
-  void setColor(QColor color) { m_color = color; }
-
-  [[nodiscard]] auto name() const { return m_name; }
-  void setName(QString name) { m_name = std::move(name); }
-
-  static QString typeToString(Type type) {
-    if (type < Type::Size) {
-      return TypeToString.at(type);
+  [[nodiscard]] bool tooSmall() const {
+    constexpr int rectThresh = 20;
+    constexpr int angleThresh = 2;
+    switch (type) {
+    case Line:
+    case Rect: {
+      const auto r = rect();
+      const auto span = r.bottomRight() - r.topLeft();
+      return std::abs(span.x() + span.y()) <= rectThresh;
+    } break;
+    case Fan: {
+      return std::abs(arc().spanAngle) <= angleThresh;
     }
-    return {};
+    case Polygon: {
+      const auto r = polygon.boundingRect();
+    } break;
+    case Size:
+    default:
+      break;
+    }
+    return true;
   }
 
   static Type typeFromString(const QString &type) {
@@ -118,12 +181,6 @@ public:
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
   [[nodiscard]] static Annotation
   deserializeFromJson(const rapidjson::Value &value);
-
-private:
-  Type m_type;
-  QPolygonF m_polygon;
-  QColor m_color;
-  QString m_name;
 };
 
 } // namespace annotation

@@ -42,11 +42,11 @@ AnnotationModel::columnCount(const QModelIndex &parent) const {
     return HEADER_DATA.at(index.column()).getter(annotation);
 
   case TypeRole:
-    return annotation.type();
+    return annotation.type;
   case NameRole:
-    return annotation.name();
+    return annotation.name;
   case ColorRole:
-    return annotation.color();
+    return annotation.color;
   default:
     return {};
   }
@@ -61,6 +61,13 @@ bool AnnotationModel::setData(const QModelIndex &index, const QVariant &value,
   auto &annotation = m_annotations[index.row()];
   if (role == Qt::EditRole) {
     HEADER_DATA.at(index.column()).setter(annotation, value);
+    setDirty();
+    emit dataChanged(index, index, {});
+    return true;
+  }
+  if (role == NameRole) {
+    annotation.name = value.toString();
+    setDirty();
     emit dataChanged(index, index, {});
     return true;
   }
@@ -85,7 +92,7 @@ bool AnnotationModel::removeRows(int row, int count,
   if (row < 0 || count <= 0 || (row + count) > m_annotations.size()) {
     return false;
   }
-
+  setDirty();
   beginRemoveRows(parent, row, row + count - 1);
   m_annotations.remove(row, count);
   endRemoveRows();
@@ -93,6 +100,7 @@ bool AnnotationModel::removeRows(int row, int count,
 }
 
 void AnnotationModel::addAnnotation(const Annotation &annotation) {
+  setDirty();
   beginInsertRows(QModelIndex(), static_cast<int>(m_annotations.size()),
                   static_cast<int>(m_annotations.size()));
   m_annotations.append(annotation);
@@ -100,6 +108,7 @@ void AnnotationModel::addAnnotation(const Annotation &annotation) {
 }
 
 void AnnotationModel::clear() {
+  setDirty(false);
   if (size() > 0) {
     beginRemoveRows(QModelIndex(), 0,
                     static_cast<int>(m_annotations.size()) - 1);

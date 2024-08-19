@@ -53,10 +53,9 @@ void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir);
 
 class Reconstructor {
 public:
-  explicit Reconstructor(const uspam::recon::ReconParams2 &params =
-                             uspam::recon::ReconParams2::system2024v2GUI(),
-                         const uspam::io::IOParams &ioparams =
-                             uspam::io::IOParams::system2024v2GUI())
+  Reconstructor() = default;
+  Reconstructor(const uspam::recon::ReconParams2 &params,
+                const uspam::io::IOParams &ioparams)
       : m_params(params), m_ioparams(ioparams) {}
 
   void recon(BScanData<ArpamFloat> &data) const {
@@ -72,8 +71,9 @@ public:
   }
 
 private:
-  uspam::recon::ReconParams2 m_params;
-  uspam::io::IOParams m_ioparams; // Needed for split
+  uspam::recon::ReconParams2 m_params{
+      uspam::recon::ReconParams2::system2024v2GUI()};
+  uspam::io::IOParams m_ioparams{uspam::io::IOParams::system2024v2GUI()};
 
   mutable std::mutex m_mtx;
 };

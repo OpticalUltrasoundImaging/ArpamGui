@@ -37,7 +37,7 @@ public slots:
   void acceptBinfile(const QString &filename);
   void closeBinfile();
 
-  [[nodiscard]] int frameNum() const;
+  [[nodiscard]] int frameNum() const { return m_frameSlider->value(); }
   void setFrameNum(int frameNum);
 
   [[nodiscard]] int maxFrameNum() const;
@@ -62,6 +62,7 @@ public:
   auto actCloseBinfile() { return m_actCloseBinfile; }
 
 private:
+  void saveCurrAnnotationAndLoadNewFrame(int newFrame);
   bool saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
 

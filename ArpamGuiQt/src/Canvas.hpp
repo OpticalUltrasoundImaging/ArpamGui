@@ -108,6 +108,8 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
 
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
+
   void wheelEvent(QWheelEvent *event) override;
 
   void resizeEvent(QResizeEvent *event) override;
@@ -144,6 +146,8 @@ private:
   // [mm] Get distance between 2 points in the original pixmap space.
   [[nodiscard]] double computeDistance_mm(QPointF pt1, QPointF pt2) const;
 
+  void openDialogToUpdateAnnotationName(int rowIdx);
+
   // Scene
   QGraphicsScene *m_scene;
 
@@ -151,6 +155,8 @@ private:
   CanvasOverlay *m_overlay;
 
   // Transform
+  QTransform
+      m_transform; // Updated by internal functions. Don't update directly
   double m_scaleFactor{1.0}; // factor for global transform
   double m_scaleFactorMin{1.0};
   bool m_resetZoomOnNextImshow{true};
@@ -169,7 +175,7 @@ private:
   CanvasCursorState m_cursor;
   CursorMode m_cursorMode{CursorMode::SelectAScan};
 
-  //
+  // NOLINTNEXTLINE(*-magic-numbers)
   int m_alinesPerBscan{1000};
 
   // The graphics item currently being drawn by the cursor

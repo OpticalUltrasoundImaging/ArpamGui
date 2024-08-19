@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Annotation/Annotation.hpp"
+#include "Annotation/AnnotationModelColumnMeta.hpp"
 #include <QAbstractListModel>
 #include <QColor>
 #include <QColorDialog>
@@ -12,57 +13,35 @@
 #include <QVariant>
 #include <Qt>
 #include <array>
-#include <functional>
 #include <rapidjson/document.h>
 
 namespace annotation {
-
-namespace details {
-
-[[nodiscard]] inline auto getType(const Annotation &annotation) {
-  return Annotation::typeToString(annotation.type());
-}
-
-[[nodiscard]] inline auto getName(const Annotation &annotation) {
-  return annotation.name();
-};
-
-[[nodiscard]] inline auto getColor(const Annotation &annotation) {
-  return annotation.color();
-};
-
-[[nodiscard]] inline auto setName(Annotation &annotation,
-                                  const QVariant &value) {
-  annotation.setName(value.toString());
-};
-
-/**
- * Column metadata for the table view columns
- */
-struct ColumnMetaData {
-  QString header;
-  bool editable;
-  std::function<QVariant(const Annotation &annotation)> getter;
-  std::function<void(Annotation &annotation, const QVariant &value)> setter;
-};
-
-} // namespace details
 
 class AnnotationModel : public QAbstractListModel {
   Q_OBJECT
 public:
   enum AnnotationRoles { TypeRole = Qt::UserRole + 1, NameRole, ColorRole };
 
+  [[nodiscard]] bool dirty() const { return m_dirty; }
+  void setDirty(bool state = true) { m_dirty = state; }
+
   [[nodiscard]] auto &annotations() const { return m_annotations; }
   void setAnnotations(QList<Annotation> annotations);
 
-  using ColMeta = details::ColumnMetaData;
+  using ColMeta = ColumnMetaData;
 
   // Column metadata
   inline static const std::array HEADER_DATA{
-      ColMeta{"Type", false, details::getType},
-      ColMeta{"Name", true, details::getName, details::setName},
-      ColMeta{"Color", false, details::getColor}};
+      ColMeta{"Type", false,
+              [](const Annotation &anno) {
+                return Annotation::typeToString(anno.type);
+              }},
+      ColMeta{"Name", true, [](const Annotation &anno) { return anno.name; },
+              [](Annotation &anno, const QVariant &val) {
+                anno.name = val.toString();
+              }},
+      ColMeta{"Color", false,
+              [](const Annotation &anno) { return anno.color; }}};
 
   [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
   [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
@@ -94,6 +73,11 @@ public:
     return m_annotations[row];
   }
 
+  [[nodiscard]] Annotation &at(int row) { return m_annotations[row]; }
+  [[nodiscard]] const Annotation &at(int row) const {
+    return m_annotations[row];
+  }
+
   [[nodiscard]] auto size() { return m_annotations.size(); }
 
   void clear();
@@ -104,6 +88,7 @@ public:
 
 private:
   QList<Annotation> m_annotations;
+  bool m_dirty{false};
 };
 
 #undef ANNO_GETTER
