@@ -95,12 +95,13 @@ CustomPlot::CustomPlot(QWidget *parent)
   {
     m_actShowLegend = new QAction("Show Legend");
     m_actShowLegend->setCheckable(true);
-    m_actShowLegend->setChecked(true);
+    m_actShowLegend->setChecked(false);
     connect(m_actShowLegend, &QAction::triggered, [this](bool checked) {
       legend->setVisible(checked);
       replot();
     });
     addAction(m_actShowLegend);
+    legend->setVisible(false);
   }
 
   setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
