@@ -190,7 +190,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
           connect(filterTypeCBox,
                   QOverload<int>::of(&QComboBox::currentIndexChanged),
-                  [=, &p](int index) {
+                  [filterTypeCBox, firTapsLabel, firTapsSpinBox, iirOrderLabel,
+                   iirOrderSpinBox, this, &p](int index) {
                     p.filterType = qvariant_cast<FilterType>(
                         filterTypeCBox->itemData(index));
 
@@ -212,29 +213,31 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                     this->_paramsUpdatedInternal();
                   });
 
-          updateGuiFromParamsCallbacks.emplace_back([=, this, &p] {
-            for (int i = 0; i < filterTypeCBox->count(); ++i) {
-              if (qvariant_cast<FilterType>(filterTypeCBox->itemData(i)) ==
-                  p.filterType) {
-                filterTypeCBox->setCurrentIndex(i);
-              }
-            }
+          updateGuiFromParamsCallbacks.emplace_back(
+              [filterTypeCBox, firTapsLabel, firTapsSpinBox, iirOrderLabel,
+               iirOrderSpinBox, this, &p] {
+                for (int i = 0; i < filterTypeCBox->count(); ++i) {
+                  if (qvariant_cast<FilterType>(filterTypeCBox->itemData(i)) ==
+                      p.filterType) {
+                    filterTypeCBox->setCurrentIndex(i);
+                  }
+                }
 
-            switch (p.filterType) {
-            case FilterType::FIR: {
-              firTapsLabel->show();
-              firTapsSpinBox->show();
-              iirOrderLabel->hide();
-              iirOrderSpinBox->hide();
-            } break;
-            case FilterType::IIR: {
-              firTapsLabel->hide();
-              firTapsSpinBox->hide();
-              iirOrderLabel->show();
-              iirOrderSpinBox->show();
-            } break;
-            }
-          });
+                switch (p.filterType) {
+                case FilterType::FIR: {
+                  firTapsLabel->show();
+                  firTapsSpinBox->show();
+                  iirOrderLabel->hide();
+                  iirOrderSpinBox->hide();
+                } break;
+                case FilterType::IIR: {
+                  firTapsLabel->hide();
+                  firTapsSpinBox->hide();
+                  iirOrderLabel->show();
+                  iirOrderSpinBox->show();
+                } break;
+                }
+              });
         }
       }
 

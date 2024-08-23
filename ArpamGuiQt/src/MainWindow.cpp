@@ -8,7 +8,6 @@
 #include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
-#include "strConvUtils.hpp"
 #include <QAction>
 #include <QDockWidget>
 #include <QHBoxLayout>
@@ -29,7 +28,6 @@
 #include <opencv2/opencv.hpp>
 #include <qnamespace.h>
 #include <uspam/defer.h>
-#include <utility>
 
 namespace {
 void setGlobalStyle(QLayout *layout) {

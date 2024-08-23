@@ -80,6 +80,7 @@ struct IOParams {
   but truncate the first 500 PA points and first 1000 US points
   */
   static inline IOParams system2024v3GUI() {
+    // NOLINTBEGIN(*-magic-numbers)
     auto params = system2024v1();
     params.byteOffset = 0;
 
@@ -91,12 +92,14 @@ struct IOParams {
     params.US.delay = 1000;
     params.US.size = 6400 - params.US.delay;
 
+    // NOLINTEND(*-magic-numbers)
     return params;
   }
 
   /*
    */
   static inline IOParams convertedOldBin() {
+    // NOLINTBEGIN(*-magic-numbers)
     auto params = system2024v1();
     params.byteOffset = 0;
 
@@ -107,6 +110,8 @@ struct IOParams {
     params.US.start = 2732;
     params.US.delay = 1000;
     params.US.size = 6400 - params.US.delay;
+
+    // NOLINTEND(*-magic-numbers)
     return params;
   }
 

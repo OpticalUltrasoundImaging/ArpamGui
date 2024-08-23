@@ -50,7 +50,7 @@ public:
       _y.resize(y.size());
       std::copy(y.begin(), y.end(), _y.begin());
 
-      std::span<const double> yspan{_y.begin(), (size_t)_y.size()};
+      std::span<const double> yspan{_y.begin(), static_cast<size_t>(_y.size())};
 
       customPlot->plot(yspan, meta);
 

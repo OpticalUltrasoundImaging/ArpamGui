@@ -1,11 +1,9 @@
 #include "Recon.hpp"
 #include "Common.hpp"
-#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
-#include <variant>
 
 namespace Recon {
 
@@ -100,13 +98,18 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
 
   // Medfilt
   if (params.medfiltKsize > 1) {
+    // NOLINTBEGIN
     cv::Mat cv_mat(rf.n_cols, rf.n_rows, uspam::imutil::getCvType<T>(),
                    (void *)rf.memptr());
+    // NOLINTEND
+
     int ksize = params.medfiltKsize;
     ksize = ksize % 2 == 0 ? ksize + 1 : ksize; // Ensure odd
     cv::medianBlur(cv_mat, cv_mat, ksize);
 
     rf = arma::Mat<T>(cv_mat.ptr<T>(), rf.n_rows, rf.n_cols, true);
+
+    medianBlur(rf, params.medfiltKsize);
   }
 
   // Beamform
@@ -197,6 +200,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
       kfr::univector<T> _filt;
       const auto N = rf.n_rows;
       for (int i = range.start; i < range.end; ++i) {
+        // NOLINTBEGIN(*-pointer-arithmetic)
         // Filter
         const auto *const _rf = rfBeamformed.colptr(i);
         _filt = kfr::iir(kfr::make_univector(_rf, rfBeamformed.n_rows),
@@ -212,6 +216,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
         uspam::recon::logCompress<ArpamFloat, uint8_t>(
             _env, _rfLog, params.noiseFloor_mV * fct_mV2V,
             params.desiredDynamicRange);
+        // NOLINTEND(*-pointer-arithmetic)
       }
     });
 

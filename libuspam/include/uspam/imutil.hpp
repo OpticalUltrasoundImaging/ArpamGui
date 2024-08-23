@@ -87,3 +87,15 @@ void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS,
                  uint8_t PAthresh = 10);
 
 } // namespace uspam::imutil
+
+template <typename T> void medianBlur(arma::Mat<T> &mat, int ksize) {
+  // NOLINTBEGIN
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, uspam::imutil::getCvType<T>(),
+                 (void *)mat.memptr());
+  // NOLINTEND
+
+  ksize = ksize % 2 == 0 ? ksize + 1 : ksize; // Ensure odd
+  cv::medianBlur(cv_mat, cv_mat, ksize);
+
+  mat = arma::Mat<T>(cv_mat.ptr<T>(), mat.n_rows, mat.n_cols, true);
+}

@@ -171,7 +171,9 @@ public:
     m_scanIdx = idx;
   }
 
-  bool hasMoreScans() const { return isOpen() && m_scanIdx < m_numScans; }
+  [[nodiscard]] bool hasMoreScans() const {
+    return isOpen() && m_scanIdx < m_numScans;
+  }
 
   /**
   Getters
