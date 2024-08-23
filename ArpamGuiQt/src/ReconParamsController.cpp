@@ -125,11 +125,14 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       // Smoothing filter
       {
         auto *label = new QLabel("Smoothing filter");
-        label->setToolTip("Smooth the raw RF data with 2D median filter");
+        label->setToolTip("Smooth the raw RF data with 2D median filter. "
+                          "Effective at removing electronic noise");
         layout->addWidget(label, row, 0);
 
         auto *sp = makeQSpinBox({1, 7}, 2, p.medfiltKsize, this);
         layout->addWidget(sp, row++, 1);
+        updateGuiFromParamsCallbacks.emplace_back(
+            [this, sp, &p] { sp->setValue(p.medfiltKsize); });
       }
 
       // Filter type and order control

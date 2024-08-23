@@ -132,6 +132,9 @@ struct ReconParams2 {
     params.PA.medfiltKsize = 5;
     params.PA.beamformerType = BeamformerType::NONE;
 
+    params.US.medfiltKsize = 3;
+    params.US.noiseFloor_mV = 4.0;
+
     params.PA.truncate = 0;
     params.US.truncate = 0;
 
