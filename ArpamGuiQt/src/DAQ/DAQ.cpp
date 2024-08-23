@@ -597,18 +597,30 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset,
       // - a sample code of 0xFFFF represents a positive full scale input
       // signal.
 
-      m_buffer->produce(
-          [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
-            data->frameIdx = buffersCompleted - 1 + indexOffset;
+      m_buffer->produce([&,
+                         this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
+        data->frameIdx = buffersCompleted - 1 + indexOffset;
 
-            // Copy RF from Alazar buffer to our buffer
-            {
-              uspam::TimeIt timeit;
-              uspam::io::copyRFWithScaling(buf.data(), buf.size(), data->rf,
-                                           (int)recordsPerBuffer);
-              data->metrics.load_ms = timeit.get_ms();
-            }
-          });
+        // Copy RF from Alazar buffer to our buffer
+        {
+          uspam::TimeIt timeit;
+
+          const auto actualRecordsPerBuffer = recordsPerBuffer - prefixSamples;
+
+          const auto alinesPerBscan = recordsPerBuffer;
+          arma::Mat<Tin> inMat(buf.data(), samplesPerAScan, alinesPerBScan,
+                               false, true);
+
+          auto subview = inMat.rows(prefixSamples, recordsPerBuffer - 1);
+
+          // uspam::io::copyRFWithScaling(buf.data(), buf.size(), data->rf,
+          //                              (int)recordsPerBuffer);
+
+          uspam::io::copyRFWithScaling(subview, data->rf, samplesPerAscan);
+
+          data->metrics.load_ms = timeit.get_ms();
+        }
+      });
 
       if (m_fs.is_open()) {
         // Write record to file

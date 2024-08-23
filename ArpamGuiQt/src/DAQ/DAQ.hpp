@@ -91,7 +91,10 @@ private:
   // No pre-trigger samples in NPT mode
   const U32 preTriggerSamples = 0;
   // Number of post trigger samples per record
-  const U32 postTriggerSamples = 8192;
+  // Record additional 500 samples
+  const U32 prefixSamples = 500;
+  const U32 samplesPerAscan = 8192;
+  const U32 postTriggerSamples = 8192 + 500;
 
   // Number of samples total
   constexpr U32 samplesPerRecord() const noexcept {

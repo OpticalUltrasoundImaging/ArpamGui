@@ -31,6 +31,7 @@ template <typename T> struct PAUSpair {
 
 struct IOParams {
   int alinesPerBscan{};
+  int samplesPerAscan{};
   int rfSizePA{};
 
   int offsetUS{};
@@ -46,15 +47,27 @@ public:
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{1000, 2650, -100, -200, 1};
+    return IOParams{1000, 8192, 2650, -100, -200, 1};
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
-    // NOLINTNEXTLINE(*-magic-numbers)
     auto params = system2024v1();
     params.byteOffset = 0;
     params.offsetPA = 0;
+    return params;
+  }
+
+  /*
+  Increasing DAQ buffer size from 8192 to 9600 to record deeper signal
+  Also increase
+  */
+  static inline IOParams system2024v3GUI() {
+    auto params = system2024v1();
+    params.byteOffset = 0;
+    params.offsetPA = 0;
+    params.offsetUS = params.offsetUS + 500;
+    params.offsetPA = params.offsetPA + 500;
     return params;
   }
 
