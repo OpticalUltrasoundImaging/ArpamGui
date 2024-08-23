@@ -32,29 +32,28 @@ template <typename T> struct PAUSpair {
 struct IOParams {
   int alinesPerBscan{};
   int samplesPerAscan{};
-  int rfSizePA{};
+
+  int sizePAdelay{};
+  int sizePA{};
 
   int offsetUS{};
-  // Number of points
-  int offsetPA{};
 
   // Byte offset at beginning of file.
   int byteOffset = 0;
 
-public:
-  [[nodiscard]] auto rf_size_US() const { return rfSizePA * 2; }
+  [[nodiscard]] auto sizePAacquired() const { return sizePA - sizePAdelay; }
+  [[nodiscard]] auto sizeUS() const { return sizePA * 2; }
 
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{1000, 8192, 2650, -100, -200, 1};
+    return IOParams{1000, 8192, 100, 2730, 87, 1};
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
     auto params = system2024v1();
     params.byteOffset = 0;
-    params.offsetPA = 0;
     return params;
   }
 
@@ -65,9 +64,8 @@ public:
   static inline IOParams system2024v3GUI() {
     auto params = system2024v1();
     params.byteOffset = 0;
-    params.offsetPA = 0;
-    params.offsetUS = params.offsetUS + 500;
-    params.offsetPA = params.offsetPA + 500;
+    params.sizePAdelay = 500;
+    params.sizePA = 3600;
     return params;
   }
 
@@ -81,8 +79,8 @@ public:
   bool deserializeFromFile(const fs::path &path);
 
   template <typename T> PAUSpair<T> allocateSplitPair() const {
-    arma::Mat<T> rfPA(rfSizePA, alinesPerBscan, arma::fill::none);
-    arma::Mat<T> rfUS(rf_size_US(), alinesPerBscan, arma::fill::none);
+    arma::Mat<T> rfPA(sizePA, alinesPerBscan, arma::fill::none);
+    arma::Mat<T> rfUS(sizeUS(), alinesPerBscan, arma::fill::none);
     return {rfPA, rfUS};
   }
 
@@ -94,91 +92,74 @@ public:
   template <typename T1, typename T2>
   void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
                    arma::Mat<T2> &US) const {
-    const auto USstart = this->rfSizePA;
+    PA.resize(sizePA, rf.n_cols);
+    US.resize(sizeUS(), rf.n_cols);
 
-    PA.resize(rfSizePA, rf.n_cols);
-    US.resize(rf_size_US(), rf.n_cols);
+    const auto range = cv::Range(0, rf.n_cols);
+    // cv::parallel_for_(range, [&](const cv::Range &range) {
+    for (int j = range.start; j < range.end; ++j) {
+      const auto *pRF = rf.colptr(j);
+      auto *pPA = PA.colptr(j);
+      auto *pUS = US.colptr(j);
+
+      // NOLINTBEGIN(*-pointer-arithmetic)
+      for (int i = 0; i < sizePAacquired(); ++i) {
+        pPA[i + sizePAdelay] = static_cast<T2>(pRF[i]);
+      }
+
+      const auto USstart = sizePAacquired();
+      for (int i = 0; i < std::min(sizeUS(), samplesPerAscan - USstart); ++i) {
+        pUS[i] = static_cast<T2>(pRF[i + USstart]);
+      }
+      // NOLINTEND(*-pointer-arithmetic)
+
+      {
+        int middle = offsetUS;
+        if (middle < 0) {
+          middle = US.n_rows + middle;
+          std::fill(pUS + middle, pUS + US.n_rows, 0);
+        } else {
+          std::fill(pUS, pUS + middle, 0);
+        }
+
+        std::rotate(pUS, pUS + middle, pUS + US.n_rows);
+      }
+    }
+    // });
+  }
+
+  template <typename T1, typename Tb, typename Tout>
+  auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
+                       arma::Mat<Tout> &PA, arma::Mat<Tout> &US) const {
+
+    PA.resize(sizePA, rf.n_cols);
+    US.resize(sizeUS(), rf.n_cols);
 
     cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
       for (int j = range.start; j < range.end; ++j) {
-        const auto *rfcol = rf.colptr(j);
-        auto *PAcol = PA.colptr(j);
-        auto *UScol = US.colptr(j);
+        const auto *pRF = rf.colptr(j);
+        auto *pPA = PA.colptr(j);
+        auto *pUS = US.colptr(j);
 
         // NOLINTBEGIN(*-pointer-arithmetic)
-        for (int i = 0; i < rfSizePA; ++i) {
-          PAcol[i] = static_cast<T2>(rfcol[i]);
+        for (int i = 0; i < sizePAacquired(); ++i) {
+          pPA[i + sizePAdelay] =
+              static_cast<Tout>(static_cast<Tb>(pRF[i]) - background[i]);
         }
 
-        for (int i = 0; i < rf_size_US(); ++i) {
-          UScol[i] = static_cast<T2>(rfcol[i + USstart]);
+        for (int i = 0; i < sizeUS(); ++i) {
+          pUS[i] =
+              static_cast<Tout>(static_cast<Tb>(pRF[i + sizePAacquired()]) -
+                                background[i + sizePAacquired()]);
         }
         // NOLINTEND(*-pointer-arithmetic)
-
-        {
-          int middle = offsetPA;
-          if (middle < 0) {
-            middle = PA.n_rows + middle;
-          }
-          std::rotate(PAcol, PAcol + middle, PAcol + PA.n_rows);
-        }
 
         {
           int middle = offsetUS;
           if (middle < 0) {
             middle = US.n_rows + middle;
           }
-          std::rotate(UScol, UScol + middle, UScol + US.n_rows);
-        }
-      }
-    });
-  }
-
-  template <typename T1, typename Tb, typename Tout>
-  auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
-                       arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS) const {
-
-    const auto USstart = this->rfSizePA;
-    auto offsetUS = this->offsetUS;
-    while (offsetUS < 0) {
-      offsetUS = this->rf_size_US() + offsetUS;
-    }
-    auto offsetPA = this->offsetPA;
-    while (offsetPA < 0) {
-      offsetPA = this->rfSizePA + offsetPA;
-    }
-
-    // Ensure rfPA and rfUS have enough space
-    rfPA.set_size(rfSizePA, rf.n_cols);
-    rfUS.set_size(rf_size_US(), rf.n_cols);
-
-    // Split
-    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-      for (int j = range.start; j < range.end; ++j) {
-
-        // PA
-        for (int i = 0; i < this->rfSizePA; ++i) {
-          // split.PA(i, j) = static_cast<Tout>(rf(i, j));
-          rfPA(i, j) =
-              static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
-        }
-
-        // US
-        for (int i = 0; i < this->rf_size_US(); ++i) {
-          rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
-                                         background(i + USstart));
-        }
-
-        {
-          auto ptr = rfPA.colptr(j);
-          std::rotate(ptr, ptr + offsetPA, ptr + rfPA.n_rows);
-          // rfPA.rows(0, this->offset_PA - 1).zeros();
-        }
-
-        {
-          auto ptr = rfUS.colptr(j);
-          std::rotate(ptr, ptr + offsetUS, ptr + rfUS.n_rows);
-          // rfUS.rows(0, this->offset_US - 1).zeros();
+          std::rotate(pUS, pUS + middle, pUS + US.n_rows);
         }
       }
     });

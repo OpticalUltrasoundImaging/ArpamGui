@@ -23,7 +23,10 @@ struct ReconParams {
   float bpLowFreq;  // Bandpass low freq
   float bpHighFreq; // Bandpass high freq
 
+  int padding;  // Padding due to distance between transducer surface and the
+                // rotation axis
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
+
   int rotateOffset;
   float noiseFloor_mV;
   float desiredDynamicRange;
@@ -52,33 +55,39 @@ struct ReconParams2 {
     // NOLINTBEGIN(*-magic-numbers)
     constexpr int taps = 95;
     constexpr int order = 3;
+
+    constexpr int padding = 250;
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
 
-    ReconParams PA{FilterType::FIR,
-                   taps,
-                   order,
-                   0.03,
-                   0.22,
-                   750,
-                   rotateOffset,
-                   9.0F,
-                   30.0F,
-                   flipOnEven,
-                   BeamformerType::SAFT_CF,
-                   beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{FilterType::IIR,
-                   taps,
-                   order,
-                   0.1,
-                   0.3,
-                   1000,
-                   rotateOffset,
-                   6.0F,
-                   40.0F,
-                   flipOnEven,
-                   BeamformerType::NONE,
-                   beamformer::SaftDelayParams<float>::make_US()};
+    ReconParams PA{.filterType = FilterType::FIR,
+                   .firTaps = taps,
+                   .iirOrder = order,
+                   .bpLowFreq = 0.03,
+                   .bpHighFreq = 0.22,
+                   .padding = padding,
+                   .truncate = 250,
+                   .rotateOffset = rotateOffset,
+                   .noiseFloor_mV = 9.0F,
+                   .desiredDynamicRange = 30.0F,
+                   .flipOnEven = flipOnEven,
+                   .beamformerType = BeamformerType::SAFT_CF,
+                   .beamformerParams =
+                       beamformer::SaftDelayParams<float>::make_PA()};
+    ReconParams US{.filterType = FilterType::IIR,
+                   .firTaps = taps,
+                   .iirOrder = order,
+                   .bpLowFreq = 0.1,
+                   .bpHighFreq = 0.3,
+                   .padding = padding * 2,
+                   .truncate = 500,
+                   .rotateOffset = rotateOffset,
+                   .noiseFloor_mV = 6.0F,
+                   .desiredDynamicRange = 40.0F,
+                   .flipOnEven = flipOnEven,
+                   .beamformerType = BeamformerType::NONE,
+                   .beamformerParams =
+                       beamformer::SaftDelayParams<float>::make_US()};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
@@ -90,6 +99,19 @@ struct ReconParams2 {
     // NOLINTBEGIN(*-magic-numbers)
     params.PA.rotateOffset = 0;
     params.US.rotateOffset = 0;
+    // NOLINTEND(*-magic-numbers)
+    return params;
+  }
+
+  // System parameters from mid 2024 (ArpamGui acquisition)
+  static inline ReconParams2 system2024v3GUI() {
+    auto params = system2024v1();
+    // NOLINTBEGIN(*-magic-numbers)
+    params.PA.rotateOffset = 0;
+    params.US.rotateOffset = 0;
+
+    params.PA.truncate = 250;
+    params.US.truncate = 500;
     // NOLINTEND(*-magic-numbers)
     return params;
   }

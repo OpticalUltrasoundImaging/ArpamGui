@@ -243,11 +243,6 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
     beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams,
              params.truncate);
 
-    if (rfBeamformed.max() > 2) {
-      // Trap here
-      auto memptr = rfBeamformed.memptr();
-    }
-
     beamform_ms = timeit.get_ms();
   }
 
@@ -370,7 +365,7 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
 
   {
     uspam::TimeIt timeit;
-    data.radial = uspam::imutil::makeRadial_v2(data.rfLog);
+    data.radial = uspam::imutil::makeRadial_v2(data.rfLog, params.padding);
 
     // cv::medianBlur(data.radial, data.radial, 3);
 

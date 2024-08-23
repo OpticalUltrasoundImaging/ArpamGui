@@ -251,6 +251,19 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       }
 
       {
+        auto *label = new QLabel("Padding (top)");
+        label->setToolTip("");
+        layout->addWidget(label, row, 0);
+
+        auto *spinBox = makeQSpinBox({0, 2000}, p.padding, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
+
+        updateGuiFromParamsCallbacks.emplace_back(
+            [this, spinBox, &p] { spinBox->setValue(p.padding); });
+      }
+
+      {
         auto *label = new QLabel("Truncate");
         label->setToolTip(help_Truncate);
         layout->addWidget(label, row, 0);
@@ -428,16 +441,29 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      auto *label = new QLabel("Samples Per Ascan (PA)");
-      label->setToolTip("Samples per Ascan for PA can be changed here. Samples "
-                        "per Ascan for US will be double this.");
+      auto *label = new QLabel("Samples Delayed (PA)");
+      label->setToolTip(
+          "Delay (in samples) after trigger when data starts saving.");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({2500, 3000}, ioparams.rfSizePA, this);
+      auto *spinBox = makeQSpinBox({0, 1000}, ioparams.sizePAdelay, this);
       layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->ioparams.rfSizePA); });
+          [this, spinBox] { spinBox->setValue(this->ioparams.sizePAdelay); });
+    }
+
+    {
+      auto *label = new QLabel("Samples Per Ascan (PA)");
+      label->setToolTip("Samples per Ascan for PA can be changed here. Samples "
+                        "per Ascan for US will be double this.");
+      layout->addWidget(label, row, 0);
+      auto *spinBox = makeQSpinBox({2000, 3600}, ioparams.sizePA, this);
+      layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" pts");
+
+      updateGuiFromParamsCallbacks.emplace_back(
+          [this, spinBox] { spinBox->setValue(this->ioparams.sizePA); });
     }
 
     {
@@ -453,18 +479,18 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           [this, spinBox] { spinBox->setValue(this->ioparams.offsetUS); });
     }
 
-    {
-      auto *label = new QLabel("OffsetPA");
-      label->setToolTip(
-          "Change this (in no. of samples) to coregister PA and US.");
-      layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetPA, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" pts");
+    // {
+    //   auto *label = new QLabel("OffsetPA");
+    //   label->setToolTip(
+    //       "Change this (in no. of samples) to coregister PA and US.");
+    //   layout->addWidget(label, row, 0);
+    //   auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetPA, this);
+    //   layout->addWidget(spinBox, row++, 1);
+    //   spinBox->setSuffix(" pts");
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->ioparams.offsetPA); });
-    }
+    //   updateGuiFromParamsCallbacks.emplace_back(
+    //       [this, spinBox] { spinBox->setValue(this->ioparams.offsetPA); });
+    // }
   }
 
   // Reset buttons
@@ -485,6 +511,13 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v2GUI);
     }
+
+    {
+      auto *btn = new QPushButton("Preset 2024v3 (ArpamGui)");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v3GUI);
+    }
   }
 
   layout->addStretch();
@@ -497,9 +530,16 @@ void ReconParamsController::resetParams2024v1() {
   ioparams = uspam::io::IOParams::system2024v1();
   updateGuiFromParams();
 }
+
 void ReconParamsController::resetParams2024v2GUI() {
   params = uspam::recon::ReconParams2::system2024v2GUI();
   ioparams = uspam::io::IOParams::system2024v2GUI();
+  updateGuiFromParams();
+}
+
+void ReconParamsController::resetParams2024v3GUI() {
+  params = uspam::recon::ReconParams2::system2024v3GUI();
+  ioparams = uspam::io::IOParams::system2024v3GUI();
   updateGuiFromParams();
 }
 
