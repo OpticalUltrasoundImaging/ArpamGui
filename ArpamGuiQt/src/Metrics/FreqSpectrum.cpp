@@ -1,9 +1,9 @@
 #include "Metrics/FreqSpectrum.hpp"
+#include "uspam/fft.hpp"
 #include <QPen>
 #include <QVBoxLayout>
 #include <QVector>
 #include <Qt>
-#include <algorithm>
 #include <qcustomplot.h>
 #include <tuple>
 #include <uspam/signal.hpp>
@@ -46,9 +46,11 @@ auto dbfft(const std::span<const Tin> y, const Tin fs) {
   // freq = np.arange((N / 2) + 1) / (float(N) / fs);
   QVector<Tout> freq;
   freq.resize(Nsp);
-  const auto fct = static_cast<Tout>(fs / N);
-  for (int i = 0; i < Nsp; ++i) {
-    freq[i] = i * fct;
+  {
+    const auto fct = static_cast<Tout>(fs / N);
+    for (int i = 0; i < Nsp; ++i) {
+      freq[i] = i * fct;
+    }
   }
 
   // Scale the magnitude of FFT by window and factor
@@ -69,18 +71,20 @@ auto dbfft(const std::span<const Tin> y, const Tin fs) {
 
   QVector<Tout> sp;
   sp.resize(Nsp);
-  for (int i = 0; i < Nsp; ++i) {
-    const auto &cx = engine.complex[i];
-    const std::complex<Tin> _cx(cx[0], cx[1]);
 
-    const auto sp_mag = std::abs(_cx) / N;
+  {
+    const auto fct = static_cast<Tin>(1) / static_cast<Tin>(N);
+    for (int i = 0; i < Nsp; ++i) {
+      const auto &cx = engine.complex[i];
+      const auto sp_mag = std::abs(std::complex<Tin>(cx[0], cx[1])) * fct;
 
-    // Convert to dBFS
-    // db of power spectrum
-    // s_dbfs = 20 * np.log10(s_mag / ref);
-    const auto sp_dbfs = static_cast<Tout>(20 * std::log10(sp_mag));
+      // Convert to dBFS
+      // db of power spectrum
+      // s_dbfs = 20 * np.log10(s_mag / ref);
+      const auto sp_dbfs = static_cast<Tout>(20 * std::log10(sp_mag));
 
-    sp[i] = sp_dbfs;
+      sp[i] = sp_dbfs;
+    }
   }
 
   return std::tuple{freq, sp};
