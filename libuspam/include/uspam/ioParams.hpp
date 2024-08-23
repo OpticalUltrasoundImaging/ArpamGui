@@ -32,7 +32,6 @@ template <typename T> struct PAUSpair {
 struct IOParams {
   int alinesPerBscan{};
   int rfSizePA{};
-  int rfSizeSpacer{};
 
   int offsetUS{};
   // Number of points
@@ -47,7 +46,7 @@ public:
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
     // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{1000, 2650, 87, -100, -200, 1};
+    return IOParams{1000, 2650, -100, -200, 1};
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
@@ -82,12 +81,10 @@ public:
   template <typename T1, typename T2>
   void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
                    arma::Mat<T2> &US) const {
-    const auto USstart = this->rfSizePA + this->rfSizeSpacer;
-    const auto USend = USstart + this->rf_size_US();
-    const auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+    const auto USstart = this->rfSizePA;
 
-    PA.resize(this->rfSizePA, rf.n_cols);
-    US.resize(USend - USstart, rf.n_cols);
+    PA.resize(rfSizePA, rf.n_cols);
+    US.resize(rf_size_US(), rf.n_cols);
 
     cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
       for (int j = range.start; j < range.end; ++j) {
@@ -128,24 +125,19 @@ public:
   auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
                        arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS) const {
 
-    const auto USstart = this->rfSizePA + this->rfSizeSpacer;
-    const auto USend = USstart + this->rf_size_US();
+    const auto USstart = this->rfSizePA;
     auto offsetUS = this->offsetUS;
     while (offsetUS < 0) {
       offsetUS = this->rf_size_US() + offsetUS;
     }
-    auto offsetPA = this->offsetUS / 2 + this->offsetPA;
+    auto offsetPA = this->offsetPA;
     while (offsetPA < 0) {
       offsetPA = this->rfSizePA + offsetPA;
     }
 
     // Ensure rfPA and rfUS have enough space
-    if (rfPA.n_rows != this->rfSizePA || rfPA.n_cols != rf.n_cols) {
-      rfPA.set_size(this->rfSizePA, rf.n_cols);
-    }
-    if (rfUS.n_rows != this->rf_size_US() || rfUS.n_cols != rf.n_cols) {
-      rfUS.set_size(this->rf_size_US(), rf.n_cols);
-    }
+    rfPA.set_size(rfSizePA, rf.n_cols);
+    rfUS.set_size(rf_size_US(), rf.n_cols);
 
     // Split
     cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
@@ -157,6 +149,7 @@ public:
           rfPA(i, j) =
               static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
         }
+
         // US
         for (int i = 0; i < this->rf_size_US(); ++i) {
           rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
@@ -164,11 +157,11 @@ public:
         }
 
         {
-
           auto ptr = rfPA.colptr(j);
           std::rotate(ptr, ptr + offsetPA, ptr + rfPA.n_rows);
           // rfPA.rows(0, this->offset_PA - 1).zeros();
         }
+
         {
           auto ptr = rfUS.colptr(j);
           std::rotate(ptr, ptr + offsetUS, ptr + rfUS.n_rows);
