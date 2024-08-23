@@ -50,6 +50,8 @@ template <typename T> auto makeRadial_v2(const arma::Mat<T> &mat) {
   // NOLINTNEXTLINE(*-casting)
   cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
 
+  cv::resize(cv_mat, cv_mat, {cv_mat.cols * 2, cv_mat.rows * 2});
+
   const int r = std::min(cv_mat.rows, cv_mat.cols);
   const cv::Size dsize{r, r};
   const cv::Point2f center{static_cast<float>(r) / 2,
@@ -59,6 +61,8 @@ template <typename T> auto makeRadial_v2(const arma::Mat<T> &mat) {
   cv::warpPolar(cv_mat, cv_mat, dsize, center, maxRadius,
                 cv::WARP_INVERSE_MAP | cv::WARP_FILL_OUTLIERS);
   cv::rotate(cv_mat, cv_mat, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+  cv::resize(cv_mat, cv_mat, {cv_mat.cols / 2, cv_mat.rows / 2});
 
   return cv_mat;
 }
