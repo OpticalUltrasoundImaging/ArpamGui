@@ -48,23 +48,23 @@ template <Floating Float> struct SaftDelayParams {
     return static_cast<Float>(deg2rad(illumAngleDeg));
   }
 
-  static auto make_PA(int numAlinesPerBScan = 1000) {
+  static auto make_PA(int numAlinesPerBScan = 1000, Float fs = 180e6) {
     // NOLINTBEGIN(*-magic-numbers)
-    const SaftDelayParams<Float> saftParams{
-        static_cast<Float>(6.2),
-        static_cast<Float>(1.5e3),
-        static_cast<Float>(1.0 / 180e6),
-        static_cast<Float>(2 * std::numbers::pi / numAlinesPerBScan),
-        static_cast<Float>(15.0),
-        static_cast<Float>(8.5),
-        static_cast<Float>(5.0),
+    return SaftDelayParams<Float>{
+        .rt = 6.2,
+        .vs = 1.5e3,
+        .dt = static_cast<Float>(1.0 / fs),
+        .da = 2 * static_cast<Float>(std::numbers::pi) /
+              static_cast<Float>(numAlinesPerBScan),
+        .f = 15.0,
+        .d = 8.5,
+        .illumAngleDeg = 5.0,
     };
     // NOLINTEND(*-magic-numbers)
-    return saftParams;
   }
 
-  static auto make_US(int numAlinesPerBscan = 1000) {
-    auto params = make_PA(numAlinesPerBscan);
+  static auto make_US(int numAlinesPerBscan = 1000, Float fs = 180e6) {
+    auto params = make_PA(numAlinesPerBscan, fs);
     params.PAUS = 2;
     return params;
   }
@@ -142,7 +142,6 @@ arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
 
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
-                               const arma::Mat<Float> &rf,
-                               size_t truncated = 0);
+                               const arma::Mat<Float> &rf, size_t offset = 0);
 
 } // namespace uspam::beamformer

@@ -9,17 +9,34 @@ rapidjson::Document IOParams::serializeToDoc() const {
   doc.SetObject();
   rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
 
-  doc.AddMember("sizePA", this->sizePA, allocator);
+  doc.AddMember("alinesPerBscan", alinesPerBscan, allocator);
+  doc.AddMember("samplesPerAscan", samplesPerAscan, allocator);
 
-  doc.AddMember("offsetUS", this->offsetUS, allocator);
+  doc.AddMember("PAstart", PA.start, allocator);
+  doc.AddMember("PAdelay", PA.delay, allocator);
+  doc.AddMember("PAsize", PA.size, allocator);
+
+  doc.AddMember("USstart", US.start, allocator);
+  doc.AddMember("USdelay", US.delay, allocator);
+  doc.AddMember("USsize", US.size, allocator);
 
   doc.AddMember("byteOffset", this->byteOffset, allocator);
   return doc;
 }
 
 bool IOParams::deserialize(const rapidjson::Document &doc) {
-  this->sizePA = doc["sizePA"].GetInt();
-  this->offsetUS = doc["offsetUS"].GetInt();
+
+  this->alinesPerBscan = doc["alinesPerBscan"].GetInt();
+  this->samplesPerAscan = doc["samplesPerAscan"].GetInt();
+
+  this->PA.start = doc["PAstart"].GetInt();
+  this->PA.delay = doc["PAdelay"].GetInt();
+  this->PA.size = doc["PAsize"].GetInt();
+
+  this->US.start = doc["USstart"].GetInt();
+  this->US.delay = doc["USdelay"].GetInt();
+  this->US.size = doc["USsize"].GetInt();
+
   this->byteOffset = doc["byteOffset"].GetInt();
   return true;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/beamformer/SAFT.hpp"
 #include "uspam/beamformer/beamformer.hpp"
 #include <armadillo>
@@ -16,6 +17,8 @@ enum class FilterType { FIR, IIR };
 
 struct ReconParams {
   FilterType filterType;
+
+  int medfiltKsize{0};
 
   int firTaps;  // for FIR filter
   int iirOrder; // for IIR filter
@@ -110,8 +113,31 @@ struct ReconParams2 {
     params.PA.rotateOffset = 0;
     params.US.rotateOffset = 0;
 
-    params.PA.truncate = 250;
-    params.US.truncate = 500;
+    params.PA.medfiltKsize = 5;
+    params.PA.beamformerType = BeamformerType::NONE;
+
+    params.PA.truncate = 50;
+    params.US.truncate = 100;
+    // NOLINTEND(*-magic-numbers)
+    return params;
+  }
+
+  // System parameters from mid 2024 (ArpamGui acquisition)
+  static inline ReconParams2 convertedOldBin() {
+    auto params = system2024v1();
+    // NOLINTBEGIN(*-magic-numbers)
+    params.PA.rotateOffset = 0;
+    params.US.rotateOffset = 0;
+
+    params.PA.medfiltKsize = 5;
+    params.PA.beamformerType = BeamformerType::NONE;
+
+    params.PA.truncate = 0;
+    params.US.truncate = 0;
+
+    params.PA.flipOnEven = false;
+    params.US.flipOnEven = false;
+
     // NOLINTEND(*-magic-numbers)
     return params;
   }

@@ -1,13 +1,14 @@
 #include "ReconParamsController.hpp"
 #include "Common.hpp"
 #include "SaftParamsController.hpp"
+#include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/beamformer/SAFT.hpp"
-#include "uspam/beamformer/beamformer.hpp"
 #include "uspam/reconParams.hpp"
 #include <QBoxLayout>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QGroupBox>
 #include <QIntValidator>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -74,9 +75,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   auto *doubleListValidator = new DoubleListValidator(this);
 
-  const auto makeQSpinBox = [this](const std::pair<int, int> &range, int &value,
-                                   auto *context) {
+  const auto makeQSpinBox = [this](const std::pair<int, int> &range,
+                                   int singleStep, int &value, auto *context) {
     auto *spinBox = new QSpinBox;
+    spinBox->setSingleStep(singleStep);
     spinBox->setRange(range.first, range.second);
     spinBox->setValue(value);
     connect(spinBox, &QSpinBox::valueChanged, context, [&](int newValue) {
@@ -120,9 +122,19 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       vlayout->addLayout(layout);
       int row = 1;
 
+      // Smoothing filter
+      {
+        auto *label = new QLabel("Smoothing filter");
+        label->setToolTip("Smooth the raw RF data with 2D median filter");
+        layout->addWidget(label, row, 0);
+
+        auto *sp = makeQSpinBox({1, 7}, 2, p.medfiltKsize, this);
+        layout->addWidget(sp, row++, 1);
+      }
+
       // Filter type and order control
       {
-        auto *label = new QLabel("Filter type");
+        auto *label = new QLabel("Bandpass Filter");
         label->setToolTip("Select the filter type");
         layout->addWidget(label, row, 0);
 
@@ -141,7 +153,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
             spinBox->setRange(range.first, range.second);
             spinBox->setValue(value);
             connect(spinBox, &QSpinBox::valueChanged, context,
-                    [=, this, &value](int newValue) {
+                    [this, spinBox, &value](int newValue) {
                       if (newValue % 2 == 0) {
                         value = newValue + 1;
                         spinBox->setValue(value);
@@ -165,7 +177,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         iirOrderLabel->setToolTip("IIR filter order");
         layout->addWidget(iirOrderLabel, row, 0);
 
-        auto *iirOrderSpinBox = makeQSpinBox({1, 25}, p.iirOrder, this);
+        auto *iirOrderSpinBox = makeQSpinBox({1, 25}, 1, p.iirOrder, this);
         layout->addWidget(iirOrderSpinBox, row++, 1);
         updateGuiFromParamsCallbacks.emplace_back([this, iirOrderSpinBox, &p] {
           iirOrderSpinBox->setValue(p.iirOrder);
@@ -255,7 +267,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         label->setToolTip("");
         layout->addWidget(label, row, 0);
 
-        auto *spinBox = makeQSpinBox({0, 2000}, p.padding, this);
+        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.padding, this);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
 
@@ -268,7 +280,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         label->setToolTip(help_Truncate);
         layout->addWidget(label, row, 0);
 
-        auto *spinBox = makeQSpinBox({0, 2000}, p.truncate, this);
+        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.truncate, this);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
 
@@ -416,7 +428,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(
           "Rotation offset in no. of Alines to stablize the display.");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({-500, 500}, params.US.rotateOffset, this);
+      auto *spinBox =
+          makeQSpinBox({-500, 500}, 1, params.US.rotateOffset, this);
       layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" lines");
 
@@ -430,7 +443,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *label = new QLabel("Alines Per Bscan");
       label->setToolTip("");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({500, 2000}, ioparams.alinesPerBscan, this);
+      auto *spinBox =
+          makeQSpinBox({500, 2000}, 1, ioparams.alinesPerBscan, this);
       spinBox->setSingleStep(100);
       layout->addWidget(spinBox, row++, 1);
       // spinBox->setSuffix("");
@@ -440,83 +454,83 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       });
     }
 
-    {
-      auto *label = new QLabel("Samples Delayed (PA)");
-      label->setToolTip(
-          "Delay (in samples) after trigger when data starts saving.");
-      layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({0, 1000}, ioparams.sizePAdelay, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" pts");
+    const auto makeIOParams_controller = [&](const QString &prefix,
+                                             uspam::io::IOParams_ &p) {
+      {
+        auto *label = new QLabel(prefix + " start");
+        layout->addWidget(label, row, 0);
+        auto *spinBox = makeQSpinBox({0, 8000}, 1, p.start, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->ioparams.sizePAdelay); });
-    }
+        updateGuiFromParamsCallbacks.emplace_back(
+            [spinBox, &p] { spinBox->setValue(p.start); });
+      }
 
-    {
-      auto *label = new QLabel("Samples Per Ascan (PA)");
-      label->setToolTip("Samples per Ascan for PA can be changed here. Samples "
-                        "per Ascan for US will be double this.");
-      layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({2000, 3600}, ioparams.sizePA, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" pts");
+      {
+        auto *label = new QLabel(prefix + " delay");
+        layout->addWidget(label, row, 0);
+        auto *spinBox = makeQSpinBox({-2000, 2000}, 1, p.delay, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->ioparams.sizePA); });
-    }
+        updateGuiFromParamsCallbacks.emplace_back(
+            [spinBox, &p] { spinBox->setValue(p.delay); });
+      }
 
-    {
-      auto *label = new QLabel("OffsetUS");
-      label->setToolTip("Change this (in no. of samples) to move how close the "
-                        "US signals are in relation to the axis of rotation.");
-      layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetUS, this);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" pts");
+      {
+        auto *label = new QLabel(prefix + " size");
+        layout->addWidget(label, row, 0);
+        auto *spinBox = makeQSpinBox({1000, 8000}, 1, p.size, this);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
 
-      updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->ioparams.offsetUS); });
-    }
+        updateGuiFromParamsCallbacks.emplace_back(
+            [spinBox, &p] { spinBox->setValue(p.size); });
+      }
+    };
 
-    // {
-    //   auto *label = new QLabel("OffsetPA");
-    //   label->setToolTip(
-    //       "Change this (in no. of samples) to coregister PA and US.");
-    //   layout->addWidget(label, row, 0);
-    //   auto *spinBox = makeQSpinBox({-2000, 2000}, ioparams.offsetPA, this);
-    //   layout->addWidget(spinBox, row++, 1);
-    //   spinBox->setSuffix(" pts");
-
-    //   updateGuiFromParamsCallbacks.emplace_back(
-    //       [this, spinBox] { spinBox->setValue(this->ioparams.offsetPA); });
-    // }
+    makeIOParams_controller("PA", ioparams.PA);
+    makeIOParams_controller("US", ioparams.US);
   }
 
   // Reset buttons
   {
+    auto *gb = new QGroupBox("Presets");
+    layout->addWidget(gb);
+
     auto *_layout = new QVBoxLayout;
-    layout->addLayout(_layout);
+    gb->setLayout(_layout);
 
     {
-      auto *btn = new QPushButton("Preset 2024v1 (Labview)");
+      auto *btn = new QPushButton("2024v1 (Labview)");
       _layout->addWidget(btn);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v1);
     }
 
     {
-      auto *btn = new QPushButton("Preset 2024v2 (ArpamGui)");
+      auto *btn = new QPushButton("2024v2 (ArpamGui)");
       _layout->addWidget(btn);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v2GUI);
     }
 
     {
-      auto *btn = new QPushButton("Preset 2024v3 (ArpamGui)");
+      auto *btn = new QPushButton("2024v3 (ArpamGui)");
       _layout->addWidget(btn);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v3GUI);
+    }
+
+    {
+      auto *btn = new QPushButton("Converted old bin");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this, [this] {
+        params = uspam::recon::ReconParams2::convertedOldBin();
+        ioparams = uspam::io::IOParams::convertedOldBin();
+        updateGuiFromParams();
+      });
     }
   }
 

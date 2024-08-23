@@ -86,7 +86,7 @@ apply_saft<float, BeamformerType::SAFT_CF>(const TimeDelay<float> &timeDelay,
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
                                const arma::Mat<Float> &rf,
-                               const size_t truncated) {
+                               const size_t offset) {
   const int nScans = rf.n_cols;
   const int nPts = rf.n_rows;
 
@@ -111,7 +111,7 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
     // for (int j = 0; j < nScans; ++j) {
     //   for (int iz = range.start; iz < range.end; ++iz) {
     for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
-      const int iz_truncated = iz - truncated;
+      const int iz_truncated = iz - offset;
       if (iz_truncated < 0) {
         continue;
       }
@@ -120,8 +120,7 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
 
       for (int dj_saft = 0; dj_saft < NLines; ++dj_saft) {
         const auto dt = timeDelay.timeDelay(iz - timeDelay.zStart, dj_saft);
-        const int iz_delayed =
-            static_cast<int>(std::round(iz + dt)) - truncated;
+        const int iz_delayed = static_cast<int>(std::round(iz + dt)) - offset;
 
         if (iz_delayed >= nPts || iz_delayed < 0) {
           continue;
@@ -181,18 +180,18 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
 template arma::Mat<float>
 apply_saft_v2<float, BeamformerType::SAFT>(const TimeDelay<float> &timeDelay,
                                            const arma::Mat<float> &rf,
-                                           size_t truncated);
+                                           size_t offset);
 template arma::Mat<double>
 apply_saft_v2<double, BeamformerType::SAFT>(const TimeDelay<double> &timeDelay,
                                             const arma::Mat<double> &rf,
-                                            size_t truncated);
+                                            size_t offset);
 
 template arma::Mat<float>
 apply_saft_v2<float, BeamformerType::SAFT_CF>(const TimeDelay<float> &timeDelay,
                                               const arma::Mat<float> &rf,
-                                              size_t truncated);
+                                              size_t offset);
 template arma::Mat<double> apply_saft_v2<double, BeamformerType::SAFT_CF>(
     const TimeDelay<double> &timeDelay, const arma::Mat<double> &rf,
-    size_t truncated);
+    size_t offset);
 
 } // namespace uspam::beamformer

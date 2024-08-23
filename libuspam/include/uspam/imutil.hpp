@@ -51,12 +51,12 @@ auto makeRadial_v2(const arma::Mat<T> &mat, int padding = 0) {
   // NOLINTNEXTLINE(*-casting)
   cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
 
+  if (padding != 0) {
+    cv::copyMakeBorder(cv_mat, cv_mat, 0, 0, padding, 0, 0);
+  }
+
   // 2x upsampling to smooth out radial image
   cv::resize(cv_mat, cv_mat, {cv_mat.cols * 2, cv_mat.rows * 2});
-
-  if (padding != 0) {
-    cv::copyMakeBorder(cv_mat, cv_mat, 0, 0, padding * 2, 0, 0);
-  }
 
   const int r = std::min(cv_mat.rows, cv_mat.cols);
   const cv::Size dsize{r, r};

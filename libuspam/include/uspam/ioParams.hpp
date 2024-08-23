@@ -29,28 +29,46 @@ template <typename T> struct PAUSpair {
   }
 };
 
+// Params related to reading the US or PA rf from the combined PAUS rf
+struct IOParams_ {
+  int start{}; // Where to start reading in the combined rf array
+  int delay{}; // How much delay the start point is from the axis
+  int size{};  // Num points to read from start
+};
+
 struct IOParams {
+
   int alinesPerBscan{};
   int samplesPerAscan{};
 
-  int sizePAdelay{};
-  int sizePA{};
-
-  int offsetUS{};
+  IOParams_ PA;
+  IOParams_ US;
 
   // Byte offset at beginning of file.
   int byteOffset = 0;
 
-  [[nodiscard]] auto sizePAacquired() const { return sizePA - sizePAdelay; }
-  [[nodiscard]] auto sizeUS() const { return sizePA * 2; }
-
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
-    // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{1000, 8192, 100, 2730, 87, 1};
+    // NOLINTBEGIN(*-magic-numbers)
+    return IOParams{.alinesPerBscan = 1000,
+                    .samplesPerAscan = 8192,
+                    .PA =
+                        {
+                            .start = 100,
+                            .delay = 100,
+                            .size = 2730,
+                        },
+                    .US =
+                        {
+                            .start = 2800,
+                            .delay = 100,
+                            .size = 5460,
+                        },
+                    .byteOffset = 1};
+    // NOLINTEND(*-magic-numbers)
   }
 
-  // System parameters from mid 2024 (ArpamGui acquisition)
+  // // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
     auto params = system2024v1();
     params.byteOffset = 0;
@@ -59,13 +77,36 @@ struct IOParams {
 
   /*
   Increasing DAQ buffer size from 8192 to 9600 to record deeper signal
-  Also increase
+  but truncate the first 500 PA points and first 1000 US points
   */
   static inline IOParams system2024v3GUI() {
     auto params = system2024v1();
     params.byteOffset = 0;
-    params.sizePAdelay = 500;
-    params.sizePA = 3600;
+
+    params.PA.start = 0;
+    params.PA.delay = 500;
+    params.PA.size = 3200 - params.PA.delay;
+
+    params.US.start = 2732;
+    params.US.delay = 1000;
+    params.US.size = 6400 - params.US.delay;
+
+    return params;
+  }
+
+  /*
+   */
+  static inline IOParams convertedOldBin() {
+    auto params = system2024v1();
+    params.byteOffset = 0;
+
+    params.PA.start = 0;
+    params.PA.delay = 500;
+    params.PA.size = 3200 - params.PA.delay;
+
+    params.US.start = 2732;
+    params.US.delay = 1000;
+    params.US.size = 6400 - params.US.delay;
     return params;
   }
 
@@ -79,105 +120,88 @@ struct IOParams {
   bool deserializeFromFile(const fs::path &path);
 
   template <typename T> PAUSpair<T> allocateSplitPair() const {
-    arma::Mat<T> rfPA(sizePA, alinesPerBscan, arma::fill::none);
-    arma::Mat<T> rfUS(sizeUS(), alinesPerBscan, arma::fill::none);
-    return {rfPA, rfUS};
+    return {arma::Mat<T>(PA.size, alinesPerBscan, arma::fill::none),
+            arma::Mat<T>(US.size, alinesPerBscan, arma::fill::none)};
   }
 
   template <typename T1, typename T2>
-  void splitRfPAUS(const arma::Mat<T1> &rf, PAUSpair<T2> &split) const {
-    splitRfPAUS(rf, split.PA, split.US);
-  }
-
-  template <typename T1, typename T2>
-  void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
-                   arma::Mat<T2> &US) const {
-    PA.resize(sizePA, rf.n_cols);
-    US.resize(sizeUS(), rf.n_cols);
+  void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &rfPA,
+                   arma::Mat<T2> &rfUS) const {
+    rfPA.resize(PA.size, rf.n_cols);
+    rfUS.resize(US.size, rf.n_cols);
 
     const auto range = cv::Range(0, rf.n_cols);
     // cv::parallel_for_(range, [&](const cv::Range &range) {
     for (int j = range.start; j < range.end; ++j) {
       const auto *pRF = rf.colptr(j);
-      auto *pPA = PA.colptr(j);
-      auto *pUS = US.colptr(j);
+      auto *pPA = rfPA.colptr(j);
+      auto *pUS = rfUS.colptr(j);
 
       // NOLINTBEGIN(*-pointer-arithmetic)
-      for (int i = 0; i < sizePAacquired(); ++i) {
-        pPA[i + sizePAdelay] = static_cast<T2>(pRF[i]);
+      for (int i = 0; i < std::min(PA.size, US.start - PA.start); ++i) {
+        pPA[i] = static_cast<T2>(pRF[i]);
       }
 
-      const auto USstart = sizePAacquired();
-      for (int i = 0; i < std::min(sizeUS(), samplesPerAscan - USstart); ++i) {
-        pUS[i] = static_cast<T2>(pRF[i + USstart]);
+      for (int i = 0; i < std::min(US.size, samplesPerAscan - US.start); ++i) {
+        pUS[i] = static_cast<T2>(pRF[i + US.start]);
       }
       // NOLINTEND(*-pointer-arithmetic)
-
-      {
-        int middle = offsetUS;
-        if (middle < 0) {
-          middle = US.n_rows + middle;
-          std::fill(pUS + middle, pUS + US.n_rows, 0);
-        } else {
-          std::fill(pUS, pUS + middle, 0);
-        }
-
-        std::rotate(pUS, pUS + middle, pUS + US.n_rows);
-      }
     }
     // });
   }
 
-  template <typename T1, typename Tb, typename Tout>
-  auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
-                       arma::Mat<Tout> &PA, arma::Mat<Tout> &US) const {
+  // template <typename T1, typename Tb, typename Tout>
+  // auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb>
+  // &background,
+  //                      arma::Mat<Tout> &PA, arma::Mat<Tout> &US) const {
 
-    PA.resize(sizePA, rf.n_cols);
-    US.resize(sizeUS(), rf.n_cols);
+  //   PA.resize(sizePA, rf.n_cols);
+  //   US.resize(sizeUS(), rf.n_cols);
 
-    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-      for (int j = range.start; j < range.end; ++j) {
-        const auto *pRF = rf.colptr(j);
-        auto *pPA = PA.colptr(j);
-        auto *pUS = US.colptr(j);
+  //   cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
+  //     for (int j = range.start; j < range.end; ++j) {
+  //       const auto *pRF = rf.colptr(j);
+  //       auto *pPA = PA.colptr(j);
+  //       auto *pUS = US.colptr(j);
 
-        // NOLINTBEGIN(*-pointer-arithmetic)
-        for (int i = 0; i < sizePAacquired(); ++i) {
-          pPA[i + sizePAdelay] =
-              static_cast<Tout>(static_cast<Tb>(pRF[i]) - background[i]);
-        }
+  //       // NOLINTBEGIN(*-pointer-arithmetic)
+  //       for (int i = 0; i < sizePAacquired(); ++i) {
+  //         pPA[i + sizePAdelay] =
+  //             static_cast<Tout>(static_cast<Tb>(pRF[i]) - background[i]);
+  //       }
 
-        for (int i = 0; i < sizeUS(); ++i) {
-          pUS[i] =
-              static_cast<Tout>(static_cast<Tb>(pRF[i + sizePAacquired()]) -
-                                background[i + sizePAacquired()]);
-        }
-        // NOLINTEND(*-pointer-arithmetic)
+  //       for (int i = 0; i < sizeUS(); ++i) {
+  //         pUS[i] =
+  //             static_cast<Tout>(static_cast<Tb>(pRF[i + sizePAacquired()]) -
+  //                               background[i + sizePAacquired()]);
+  //       }
+  //       // NOLINTEND(*-pointer-arithmetic)
 
-        {
-          int middle = offsetUS;
-          if (middle < 0) {
-            middle = US.n_rows + middle;
-          }
-          std::rotate(pUS, pUS + middle, pUS + US.n_rows);
-        }
-      }
-    });
-  };
+  //       {
+  //         int middle = offsetUS;
+  //         if (middle < 0) {
+  //           middle = US.n_rows + middle;
+  //         }
+  //         std::rotate(pUS, pUS + middle, pUS + US.n_rows);
+  //       }
+  //     }
+  //   });
+  // };
 
-  // Split a single Aline
-  template <typename T> auto splitRfPAUS_aline(const arma::Col<T> &rf) const {
-    auto pair = allocateSplitPair<T>(1);
-    splitRfPAUS(rf, pair);
-    return pair;
-  }
+  // // Split a single Aline
+  // template <typename T> auto splitRfPAUS_aline(const arma::Col<T> &rf) const
+  // {
+  //   auto pair = allocateSplitPair<T>(1);
+  //   splitRfPAUS(rf, pair);
+  //   return pair;
+  // }
 
-  // Split a Bscan
-  template <typename T> auto splitRfPAUS(const arma::Mat<T> &rf) const {
-    auto pair = allocateSplitPair<T>();
-    splitRfPAUS(rf, pair);
-    return pair;
-  }
+  // // Split a Bscan
+  // template <typename T> auto splitRfPAUS(const arma::Mat<T> &rf) const {
+  //   auto pair = allocateSplitPair<T>();
+  //   splitRfPAUS(rf, pair);
+  //   return pair;
+  // }
 
   // template <typename T>
   // auto load_rf(const fs::path &filename, int i, int nscans = 1,

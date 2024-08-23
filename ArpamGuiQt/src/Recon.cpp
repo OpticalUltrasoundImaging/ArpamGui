@@ -1,6 +1,7 @@
 #include "Recon.hpp"
 #include "Common.hpp"
 #include "uspam/beamformer/SAFT.hpp"
+#include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
@@ -44,151 +45,10 @@ QImage cvMatToQImage(const cv::Mat &mat) {
   return {};
 }
 
-void reconBScan(BScanData<ArpamFloat> &data,
-                const uspam::recon::ReconParams2 &params,
-                const uspam::io::IOParams &ioparams) {
-  auto &perfMetrics = data.metrics;
-  uspam::TimeIt timeit;
-
-  /*
-  Here, data has defined
-    data.rf
-  */
-
-  /*
-  Split and background
-  */
-  // Estimate background from current RF
-  // const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
-
-  // Split RF into PA and US scan lines
-  {
-    const uspam::TimeIt timeit;
-    ioparams.splitRfPAUS(data.rf, data.PA.rf, data.US.rf);
-    perfMetrics.split_ms = timeit.get_ms();
-  }
-
-  /*
-  Recon
-  */
-  const auto &paramsPA = params.PA;
-  const auto &paramsUS = params.US;
-
-  const bool flip = paramsPA.flip(data.frameIdx);
-
-  constexpr bool USE_ASYNC = true;
-  if constexpr (USE_ASYNC) {
-    auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
-                         std::ref(data.US), flip);
-
-    {
-      const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(paramsPA, data.PA, flip);
-      perfMetrics.beamform_ms = beamform_ms;
-      perfMetrics.recon_ms = recon_ms;
-      perfMetrics.imageConversion_ms = imageConversion_ms;
-    }
-
-    {
-      const auto [beamform_ms, recon_ms, imageConversion_ms] = a2.get();
-      perfMetrics.beamform_ms += beamform_ms;
-      perfMetrics.recon_ms += recon_ms;
-      perfMetrics.imageConversion_ms += imageConversion_ms;
-    }
-
-  } else {
-
-    {
-      const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(paramsPA, data.PA, flip);
-      perfMetrics.beamform_ms = beamform_ms;
-      perfMetrics.recon_ms = recon_ms;
-      perfMetrics.imageConversion_ms = imageConversion_ms;
-    }
-
-    {
-      const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(paramsUS, data.US, flip);
-      perfMetrics.beamform_ms += beamform_ms;
-      perfMetrics.recon_ms += recon_ms;
-      perfMetrics.imageConversion_ms += imageConversion_ms;
-    }
-  }
-
-  // Compute scalebar scalar
-  // fct is the depth [m] of one radial pixel
-  data.fct = [&data] {
-    constexpr double soundSpeed = 1500.0; // [m/s] Sound speed
-    constexpr double fs = 180e6;          // [1/s] Sample frequency
-
-    // [m] multiplier to convert sampled US points to meters. 2x travel path
-    constexpr double fctRect = soundSpeed / fs / 2;
-
-    // [points]
-    const auto USpoints_rect = static_cast<double>(data.US.rf.n_rows);
-
-    // [points]
-    const auto USpoints_radial = static_cast<double>(data.US.radial.rows) / 2;
-
-    // [m]
-    const auto fctRadial = fctRect * USpoints_rect / USpoints_radial;
-    return fctRadial;
-  }();
-
-  {
-    const uspam::TimeIt timeit;
-    uspam::imutil::makeOverlay(data.US.radial, data.PA.radial, data.PAUSradial);
-    perfMetrics.overlay_ms = timeit.get_ms();
-  }
-
-  data.PAUSradial_img = cvMatToQImage(data.PAUSradial);
-
-  perfMetrics.total_ms = timeit.get_ms();
-}
-
-void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {
-  // Save to file
-  const uspam::TimeIt timeit;
-
-  const int i = data.frameIdx;
-
-  constexpr bool CONCURRENT_SAVE = true;
-  if constexpr (!CONCURRENT_SAVE) {
-    /*
-    Sequential version
-    */
-    data.US.radial_img.save(
-        path2QString(saveDir / std::format("US_{:03d}.png", i)));
-    data.PA.radial_img.save(
-        path2QString(saveDir / std::format("PA_{:03d}.png", i)));
-    data.PAUSradial_img.save(
-        path2QString(saveDir / std::format("PAUS_{:03d}.png", i)));
-  } else {
-    /*
-    Concurrent version
-    */
-    auto *pool = QThreadPool::globalInstance();
-
-    // using snprintf because apple clang doesn't support std::format yet...
-    // NOLINTBEGIN(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
-    char _buf[64];
-    std::snprintf(_buf, sizeof(_buf), "US_%03d.png", i);
-    auto fname = path2QString(saveDir / std::string(_buf));
-    pool->start(new ImageWriteTask(data.US.radial_img, fname));
-
-    std::snprintf(_buf, sizeof(_buf), "PA_%03d.png", i);
-    fname = path2QString(saveDir / std::string(_buf));
-    pool->start(new ImageWriteTask(data.PA.radial_img, fname));
-
-    std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", i);
-    fname = path2QString(saveDir / std::string(_buf));
-    pool->start(new ImageWriteTask(data.PAUSradial_img, fname));
-    // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
-  }
-}
-
-std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
-                                        BScanData_<T> &data, bool flip) {
+std::tuple<float, float, float> procOne(BScanData_<T> &data,
+                                        const uspam::recon::ReconParams &params,
+                                        const uspam::io::IOParams_ &ioparams,
+                                        const bool flip) {
   /*
   Flip
   Beamform
@@ -207,6 +67,7 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   // Just remove `truncate` rows from RF.
   arma::Mat<T> rf =
       data.rf.submat(truncate, 0, data.rf.n_rows - 1, data.rf.n_cols - 1);
+  // auto &rf = data.rf;
   const size_t N = rf.n_rows;
 
   auto &rfBeamformed = data.rfBeamformed;
@@ -237,11 +98,22 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
     }
   }
 
+  // Medfilt
+  if (params.medfiltKsize > 1) {
+    cv::Mat cv_mat(rf.n_cols, rf.n_rows, uspam::imutil::getCvType<T>(),
+                   (void *)rf.memptr());
+    int ksize = params.medfiltKsize;
+    ksize = ksize % 2 == 0 ? ksize + 1 : ksize; // Ensure odd
+    cv::medianBlur(cv_mat, cv_mat, ksize);
+
+    rf = arma::Mat<T>(cv_mat.ptr<T>(), rf.n_rows, rf.n_cols, true);
+  }
+
   // Beamform
   {
     uspam::TimeIt timeit;
     beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams,
-             params.truncate);
+             params.truncate + ioparams.delay);
 
     beamform_ms = timeit.get_ms();
   }
@@ -364,8 +236,10 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   */
 
   {
+    // Scan conversion
     uspam::TimeIt timeit;
-    data.radial = uspam::imutil::makeRadial_v2(data.rfLog, params.padding);
+    data.radial = uspam::imutil::makeRadial_v2(data.rfLog,
+                                               params.padding + ioparams.delay);
 
     // cv::medianBlur(data.radial, data.radial, 3);
 
@@ -374,6 +248,146 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   }
 
   return std::tuple{beamform_ms, recon_ms, imageConversion_ms};
+}
+
+void reconBScan(BScanData<ArpamFloat> &data,
+                const uspam::recon::ReconParams2 &params,
+                const uspam::io::IOParams &ioparams) {
+  auto &perfMetrics = data.metrics;
+  uspam::TimeIt timeit;
+
+  /*
+  Here, data has defined
+    data.rf
+  */
+
+  /*
+  Split and background
+  */
+  // Estimate background from current RF
+  // const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
+
+  // Split RF into PA and US scan lines
+  {
+    const uspam::TimeIt timeit;
+    ioparams.splitRfPAUS(data.rf, data.PA.rf, data.US.rf);
+    perfMetrics.split_ms = timeit.get_ms();
+  }
+
+  /*
+  Recon
+  */
+  const bool flip = params.PA.flip(data.frameIdx);
+
+  constexpr bool USE_ASYNC = true;
+  if constexpr (USE_ASYNC) {
+    auto a2 = std::async(std::launch::async, procOne, std::ref(data.US),
+                         std::ref(params.US), std::ref(ioparams.US), flip);
+
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] =
+          procOne(data.PA, params.PA, ioparams.PA, flip);
+      perfMetrics.beamform_ms = beamform_ms;
+      perfMetrics.recon_ms = recon_ms;
+      perfMetrics.imageConversion_ms = imageConversion_ms;
+    }
+
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] = a2.get();
+      perfMetrics.beamform_ms += beamform_ms;
+      perfMetrics.recon_ms += recon_ms;
+      perfMetrics.imageConversion_ms += imageConversion_ms;
+    }
+
+  } else {
+
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] =
+          procOne(data.PA, params.PA, ioparams.PA, flip);
+      perfMetrics.beamform_ms = beamform_ms;
+      perfMetrics.recon_ms = recon_ms;
+      perfMetrics.imageConversion_ms = imageConversion_ms;
+    }
+
+    {
+      const auto [beamform_ms, recon_ms, imageConversion_ms] =
+          procOne(data.US, params.US, ioparams.PA, flip);
+      perfMetrics.beamform_ms += beamform_ms;
+      perfMetrics.recon_ms += recon_ms;
+      perfMetrics.imageConversion_ms += imageConversion_ms;
+    }
+  }
+
+  // Compute scalebar scalar
+  // fct is the depth [m] of one radial pixel
+  data.fct = [&data] {
+    constexpr double soundSpeed = 1500.0; // [m/s] Sound speed
+    constexpr double fs = 180e6;          // [1/s] Sample frequency
+
+    // [m] multiplier to convert sampled US points to meters. 2x travel path
+    constexpr double fctRect = soundSpeed / fs / 2;
+
+    // [points]
+    const auto USpoints_rect = static_cast<double>(data.US.rf.n_rows);
+
+    // [points]
+    const auto USpoints_radial = static_cast<double>(data.US.radial.rows) / 2;
+
+    // [m]
+    const auto fctRadial = fctRect * USpoints_rect / USpoints_radial;
+    return fctRadial;
+  }();
+
+  {
+    const uspam::TimeIt timeit;
+    uspam::imutil::makeOverlay(data.US.radial, data.PA.radial, data.PAUSradial);
+    perfMetrics.overlay_ms = timeit.get_ms();
+  }
+
+  data.PAUSradial_img = cvMatToQImage(data.PAUSradial);
+
+  perfMetrics.total_ms = timeit.get_ms();
+}
+
+void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {
+  // Save to file
+  const uspam::TimeIt timeit;
+
+  const int i = data.frameIdx;
+
+  constexpr bool CONCURRENT_SAVE = true;
+  if constexpr (!CONCURRENT_SAVE) {
+    /*
+    Sequential version
+    */
+    data.US.radial_img.save(
+        path2QString(saveDir / std::format("US_{:03d}.png", i)));
+    data.PA.radial_img.save(
+        path2QString(saveDir / std::format("PA_{:03d}.png", i)));
+    data.PAUSradial_img.save(
+        path2QString(saveDir / std::format("PAUS_{:03d}.png", i)));
+  } else {
+    /*
+    Concurrent version
+    */
+    auto *pool = QThreadPool::globalInstance();
+
+    // using snprintf because apple clang doesn't support std::format yet...
+    // NOLINTBEGIN(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
+    char _buf[64];
+    std::snprintf(_buf, sizeof(_buf), "US_%03d.png", i);
+    auto fname = path2QString(saveDir / std::string(_buf));
+    pool->start(new ImageWriteTask(data.US.radial_img, fname));
+
+    std::snprintf(_buf, sizeof(_buf), "PA_%03d.png", i);
+    fname = path2QString(saveDir / std::string(_buf));
+    pool->start(new ImageWriteTask(data.PA.radial_img, fname));
+
+    std::snprintf(_buf, sizeof(_buf), "PAUS_%03d.png", i);
+    fname = path2QString(saveDir / std::string(_buf));
+    pool->start(new ImageWriteTask(data.PAUSradial_img, fname));
+    // NOLINTEND(*-magic-numbers,*-pointer-decay,*-avoid-c-arrays)
+  }
 }
 
 } // namespace Recon
