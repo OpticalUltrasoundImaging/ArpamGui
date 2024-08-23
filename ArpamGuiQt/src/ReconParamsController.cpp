@@ -458,6 +458,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                                              uspam::io::IOParams_ &p) {
       {
         auto *label = new QLabel(prefix + " start");
+        label->setToolTip("Where to start reading in the combined rf array.");
         layout->addWidget(label, row, 0);
         auto *spinBox = makeQSpinBox({0, 8000}, 1, p.start, this);
         layout->addWidget(spinBox, row++, 1);
@@ -469,6 +470,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
       {
         auto *label = new QLabel(prefix + " delay");
+        label->setToolTip("How much delay the start point is from the axis.");
         layout->addWidget(label, row, 0);
         auto *spinBox = makeQSpinBox({-2000, 2000}, 1, p.delay, this);
         layout->addWidget(spinBox, row++, 1);
@@ -480,6 +482,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
       {
         auto *label = new QLabel(prefix + " size");
+        label->setToolTip("Num points to read from start.");
         layout->addWidget(label, row, 0);
         auto *spinBox = makeQSpinBox({1000, 8000}, 1, p.size, this);
         layout->addWidget(spinBox, row++, 1);
