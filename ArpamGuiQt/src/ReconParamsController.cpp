@@ -428,15 +428,16 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      auto *label = new QLabel("PAUS spacer");
-      label->setToolTip("");
+      auto *label = new QLabel("Samples Per Ascan (PA)");
+      label->setToolTip("Samples per Ascan for PA can be changed here. Samples "
+                        "per Ascan for US will be double this.");
       layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({0, 200}, ioparams.rfSizeSpacer, this);
+      auto *spinBox = makeQSpinBox({2500, 3000}, ioparams.rfSizePA, this);
       layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" pts");
 
       updateGuiFromParamsCallbacks.emplace_back(
-          [this, spinBox] { spinBox->setValue(this->ioparams.rfSizeSpacer); });
+          [this, spinBox] { spinBox->setValue(this->ioparams.rfSizePA); });
     }
 
     {

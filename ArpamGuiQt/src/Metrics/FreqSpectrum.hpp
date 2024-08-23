@@ -4,7 +4,6 @@
 #include <CustomPlot.hpp>
 #include <QVector>
 #include <QWidget>
-#include <algorithm>
 #include <qcustomplot.h>
 #include <span>
 
