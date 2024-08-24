@@ -28,13 +28,18 @@ void RFProducerFile::closeBinfile() {
 void RFProducerFile::beginProducing() {
   assert(m_loader.isOpen());
 
-  m_producing = true;
-  while (m_producing && m_loader.idx() + 1 < m_loader.size()) {
-    m_loader.setIdx(m_loader.idx() + 1);
-    reproduceOne();
-  }
-  m_producing = false;
+  if (!m_producing) {
+    if (m_loader.idx() + 1 >= m_loader.size()) {
+      m_loader.setIdx(0);
+    }
 
+    m_producing = true;
+    while (m_producing && m_loader.idx() + 1 < m_loader.size()) {
+      m_loader.setIdx(m_loader.idx() + 1);
+      reproduceOne();
+    }
+    m_producing = false;
+  }
   emit finishedProducing();
 }
 

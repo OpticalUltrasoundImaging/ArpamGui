@@ -68,8 +68,8 @@ auto vectorToStdString(const std::vector<T> &vec) -> std::string {
 // NOLINTBEGIN(*-magic-numbers)
 
 ReconParamsController::ReconParamsController(QWidget *parent)
-    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v2GUI()),
-      ioparams(uspam::io::IOParams::system2024v2GUI()) {
+    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v2probe2()),
+      ioparams(uspam::io::IOParams::system2024v2()) {
   auto *layout = new QVBoxLayout();
   this->setLayout(layout);
 
@@ -519,17 +519,24 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
 
     {
-      auto *btn = new QPushButton("2024v2 (ArpamGui)");
+      auto *btn = new QPushButton("2024v2 (ArpamGui) Probe 1");
       _layout->addWidget(btn);
       connect(btn, &QPushButton::pressed, this,
-              &ReconParamsController::resetParams2024v2GUI);
+              &ReconParamsController::resetParams2024v2probe1);
+    }
+
+    {
+      auto *btn = new QPushButton("2024v2 (ArpamGui) Probe 2");
+      _layout->addWidget(btn);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v2probe2);
     }
 
     {
       auto *btn = new QPushButton("2024v3 (ArpamGui)");
       _layout->addWidget(btn);
       connect(btn, &QPushButton::pressed, this,
-              &ReconParamsController::resetParams2024v3GUI);
+              &ReconParamsController::resetParams2024v3);
     }
 
     {
@@ -546,30 +553,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   layout->addStretch();
 
   updateGuiFromParams();
-}
-
-void ReconParamsController::resetParams2024v1() {
-  params = uspam::recon::ReconParams2::system2024v1();
-  ioparams = uspam::io::IOParams::system2024v1();
-  updateGuiFromParams();
-}
-
-void ReconParamsController::resetParams2024v2GUI() {
-  params = uspam::recon::ReconParams2::system2024v2GUI();
-  ioparams = uspam::io::IOParams::system2024v2GUI();
-  updateGuiFromParams();
-}
-
-void ReconParamsController::resetParams2024v3GUI() {
-  params = uspam::recon::ReconParams2::system2024v3GUI();
-  ioparams = uspam::io::IOParams::system2024v3GUI();
-  updateGuiFromParams();
-}
-
-void ReconParamsController::updateGuiFromParams() {
-  for (const auto &func : updateGuiFromParamsCallbacks) {
-    func();
-  }
 }
 
 // NOLINTEND(*-magic-numbers)

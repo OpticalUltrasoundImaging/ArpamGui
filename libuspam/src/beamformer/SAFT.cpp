@@ -112,7 +112,7 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
     //   for (int iz = range.start; iz < range.end; ++iz) {
     for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
       const int iz_truncated = iz - offset;
-      if (iz_truncated < 0) {
+      if (iz_truncated < 0 || iz_truncated >= rf_saft.n_rows) {
         continue;
       }
 

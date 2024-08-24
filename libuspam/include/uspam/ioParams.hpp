@@ -54,14 +54,14 @@ struct IOParams {
                     .samplesPerAscan = 8192,
                     .PA =
                         {
-                            .start = 100,
-                            .delay = 100,
-                            .size = 2730,
+                            .start = 0,
+                            .delay = 150,
+                            .size = 2580,
                         },
                     .US =
                         {
                             .start = 2800,
-                            .delay = 100,
+                            .delay = 0,
                             .size = 5460,
                         },
                     .byteOffset = 1};
@@ -69,9 +69,16 @@ struct IOParams {
   }
 
   // // System parameters from mid 2024 (ArpamGui acquisition)
-  static inline IOParams system2024v2GUI() {
+  static inline IOParams system2024v2() {
     auto params = system2024v1();
     params.byteOffset = 0;
+
+    params.PA.start = 0;
+    params.PA.delay = 0;
+    params.PA.size = 2800;
+    params.US.start = 2800;
+    params.US.delay = 0;
+    params.US.size = 5460;
     return params;
   }
 
@@ -79,7 +86,7 @@ struct IOParams {
   Increasing DAQ buffer size from 8192 to 9600 to record deeper signal
   but truncate the first 500 PA points and first 1000 US points
   */
-  static inline IOParams system2024v3GUI() {
+  static inline IOParams system2024v3() {
     // NOLINTBEGIN(*-magic-numbers)
     auto params = system2024v1();
     params.byteOffset = 0;
@@ -144,7 +151,7 @@ struct IOParams {
 
       // NOLINTBEGIN(*-pointer-arithmetic)
       for (int i = 0; i < std::min(PA.size, US.start - PA.start); ++i) {
-        pPA[i] = static_cast<T2>(pRF[i]);
+        pPA[i] = static_cast<T2>(pRF[i + PA.start]);
       }
 
       for (int i = 0; i < std::min(US.size, samplesPerAscan - US.start); ++i) {

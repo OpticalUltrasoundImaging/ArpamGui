@@ -16,10 +16,9 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
-  FilterType filterType;
-
   int medfiltKsize{0};
 
+  FilterType filterType;
   int firTaps;  // for FIR filter
   int iirOrder; // for IIR filter
 
@@ -63,7 +62,8 @@ struct ReconParams2 {
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
 
-    ReconParams PA{.filterType = FilterType::FIR,
+    ReconParams PA{.medfiltKsize = 3,
+                   .filterType = FilterType::FIR,
                    .firTaps = taps,
                    .iirOrder = order,
                    .bpLowFreq = 0.03,
@@ -71,13 +71,14 @@ struct ReconParams2 {
                    .padding = padding,
                    .truncate = 250,
                    .rotateOffset = rotateOffset,
-                   .noiseFloor_mV = 9.0F,
+                   .noiseFloor_mV = 6.0F,
                    .desiredDynamicRange = 30.0F,
                    .flipOnEven = flipOnEven,
                    .beamformerType = BeamformerType::SAFT_CF,
                    .beamformerParams =
                        beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{.filterType = FilterType::IIR,
+    ReconParams US{.medfiltKsize = 1,
+                   .filterType = FilterType::IIR,
                    .firTaps = taps,
                    .iirOrder = order,
                    .bpLowFreq = 0.1,
@@ -85,7 +86,7 @@ struct ReconParams2 {
                    .padding = padding * 2,
                    .truncate = 500,
                    .rotateOffset = rotateOffset,
-                   .noiseFloor_mV = 6.0F,
+                   .noiseFloor_mV = 3.0F,
                    .desiredDynamicRange = 40.0F,
                    .flipOnEven = flipOnEven,
                    .beamformerType = BeamformerType::NONE,
@@ -97,7 +98,7 @@ struct ReconParams2 {
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
-  static inline ReconParams2 system2024v2GUI() {
+  static inline ReconParams2 system2024v2probe1() {
     auto params = system2024v1();
     // NOLINTBEGIN(*-magic-numbers)
     params.PA.rotateOffset = 0;
@@ -107,7 +108,22 @@ struct ReconParams2 {
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
-  static inline ReconParams2 system2024v3GUI() {
+  static inline ReconParams2 system2024v2probe2() {
+    auto params = system2024v2probe1();
+    // NOLINTBEGIN(*-magic-numbers)
+    params.PA.noiseFloor_mV = 6.0;
+    params.US.noiseFloor_mV = 3.0;
+    params.US.desiredDynamicRange = 50;
+
+    params.PA.flipOnEven = false;
+    params.US.flipOnEven = false;
+    // NOLINTEND(*-magic-numbers)
+    return params;
+  }
+
+  // System parameters from mid 2024 (ArpamGui acquisition)
+  // Deeper acquisition
+  static inline ReconParams2 system2024v3() {
     auto params = system2024v1();
     // NOLINTBEGIN(*-magic-numbers)
     params.PA.rotateOffset = 0;

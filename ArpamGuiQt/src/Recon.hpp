@@ -69,8 +69,8 @@ public:
 
 private:
   uspam::recon::ReconParams2 m_params{
-      uspam::recon::ReconParams2::system2024v2GUI()};
-  uspam::io::IOParams m_ioparams{uspam::io::IOParams::system2024v2GUI()};
+      uspam::recon::ReconParams2::system2024v2probe2()};
+  uspam::io::IOParams m_ioparams{uspam::io::IOParams::system2024v2()};
 
   mutable std::mutex m_mtx;
 };

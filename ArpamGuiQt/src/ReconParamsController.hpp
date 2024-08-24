@@ -22,9 +22,29 @@ public:
   explicit ReconParamsController(QWidget *parent = nullptr);
 
 public slots:
-  void resetParams2024v1();
-  void resetParams2024v2GUI();
-  void resetParams2024v3GUI();
+  void resetParams2024v1() {
+    params = uspam::recon::ReconParams2::system2024v1();
+    ioparams = uspam::io::IOParams::system2024v1();
+    updateGuiFromParams();
+  }
+
+  void resetParams2024v2probe1() {
+    params = uspam::recon::ReconParams2::system2024v2probe1();
+    ioparams = uspam::io::IOParams::system2024v2();
+    updateGuiFromParams();
+  }
+
+  void resetParams2024v2probe2() {
+    params = uspam::recon::ReconParams2::system2024v2probe2();
+    ioparams = uspam::io::IOParams::system2024v2();
+    updateGuiFromParams();
+  }
+
+  void resetParams2024v3() {
+    params = uspam::recon::ReconParams2::system2024v3();
+    ioparams = uspam::io::IOParams::system2024v3();
+    updateGuiFromParams();
+  }
 
 signals:
   void paramsUpdated(uspam::recon::ReconParams2 params,
@@ -33,8 +53,12 @@ signals:
   void error(QString err);
 
 private:
-  void updateGuiFromParams();
-  inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
-
   std::vector<std::function<void()>> updateGuiFromParamsCallbacks;
+
+  void updateGuiFromParams() {
+    for (const auto &func : updateGuiFromParamsCallbacks) {
+      func();
+    }
+  }
+  inline void _paramsUpdatedInternal() { emit paramsUpdated(params, ioparams); }
 };

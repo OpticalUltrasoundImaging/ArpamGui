@@ -56,12 +56,8 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   */
 
   // Truncate the pulser/laser artifact
-  const size_t truncate = params.truncate;
-
-  // if (truncate > 0) {
-  //   data.rf.head_rows(truncate - 1).zeros();
-  // }
-
+  const size_t truncate = std::max(params.truncate, 100);
+  const int truncateClearLater = std::max(params.truncate - 100, 0);
   // Just remove `truncate` rows from RF.
   arma::Mat<T> rf =
       data.rf.submat(truncate, 0, data.rf.n_rows - 1, data.rf.n_cols - 1);
@@ -235,6 +231,11 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   //                                 data.rfLog, flip);
   //   recon_ms = timeit.get_ms();
   // }
+
+  if (truncateClearLater > 5) {
+    rfLog.rows(params.truncate, params.truncate + truncateClearLater - 1)
+        .zeros();
+  }
 
   /*
   Post processing
