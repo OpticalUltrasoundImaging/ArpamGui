@@ -1,12 +1,16 @@
 #pragma once
 
+#include "strConvUtils.hpp"
 #include <QImage>
 #include <QString>
 #include <armadillo>
 #include <array>
-#include <atomic>
 #include <condition_variable>
+#include <filesystem>
+#include <fmt/core.h>
+#include <fstream>
 #include <mutex>
+#include <stdexcept>
 #include <uspam/uspam.hpp>
 
 struct PerformanceMetrics {
@@ -43,6 +47,27 @@ template <uspam::Floating T> struct BScanData_ {
   // Images
   cv::Mat radial;
   QImage radial_img;
+
+  void saveBScanData(const fs::path &directory,
+                     const std::string &prefix = "") {
+    // Save radial
+    {
+      auto path = directory / (prefix + "radial.png");
+      cv::imwrite(path.string(), radial);
+    }
+
+    // Save env
+    {
+      auto path = directory / (prefix + "env.bin");
+      rfEnv.save(path.string(), arma::raw_binary);
+    }
+
+    // Save rf
+    {
+      auto path = directory / (prefix + "rf.bin");
+      rf.save(path.string(), arma::raw_binary);
+    }
+  }
 };
 
 /*
@@ -70,6 +95,34 @@ template <uspam::Floating T> struct BScanData {
 
   // Metrics
   PerformanceMetrics metrics;
+
+  // Export Bscan data to the directory.
+  // directory should be created new for each frame
+  void exportToFile(const fs::path &directory) {
+    if (!fs::exists(directory)) {
+      fs::create_directory(directory);
+    }
+
+    // Save raw RF
+    {
+      const auto path = directory / "rf.bin";
+      rf.save(path.string(), arma::raw_binary);
+    }
+
+    // Save frame index
+    // Touch file to create an empty txt file with the frame idx as title
+    { std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx)); }
+
+    // Save PA and US buffers/images
+    PA.saveBScanData(directory, "PA");
+    US.saveBScanData(directory, "US");
+
+    // Save combined image
+    {
+      auto path = directory / "PAUSradial.png";
+      cv::imwrite(path.string(), PAUSradial);
+    }
+  }
 };
 
 /*

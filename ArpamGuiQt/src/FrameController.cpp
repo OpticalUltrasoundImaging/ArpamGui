@@ -14,6 +14,7 @@
 #include <QPlainTextEdit>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStandardPaths>
 #include <QString>
 #include <QTextStream>
 #include <QToolTip>
@@ -25,6 +26,7 @@
 #include <memory>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
+#include <string>
 #include <uspam/json.hpp>
 
 FrameController::FrameController(
@@ -94,17 +96,44 @@ FrameController::FrameController(
       });
     }
 
-    // Play/pause action and button
     {
-      m_actPlayPause->setCheckable(true);
-      m_actPlayPause->setShortcut({Qt::Key_Space});
-      connect(m_actPlayPause, &QAction::triggered,
-              [this](bool checked) { updatePlayingState(!m_isPlaying); });
-      m_menu->addAction(m_actPlayPause);
+      auto *vlayout = new QVBoxLayout;
+      hlayout->addLayout(vlayout);
+      // Play/pause action and button
+      {
+        m_actPlayPause->setCheckable(true);
+        m_actPlayPause->setShortcut({Qt::Key_Space});
+        connect(m_actPlayPause, &QAction::triggered,
+                [this](bool checked) { updatePlayingState(!m_isPlaying); });
+        m_menu->addAction(m_actPlayPause);
 
-      hlayout->addWidget(m_btnPlayPause);
-      connect(m_btnPlayPause, &QPushButton::clicked, m_actPlayPause,
-              &QAction::trigger);
+        vlayout->addWidget(m_btnPlayPause);
+        connect(m_btnPlayPause, &QPushButton::clicked, m_actPlayPause,
+                &QAction::trigger);
+      }
+
+      // Button to export current frame
+      {
+        auto *btn = new QPushButton("Export current frame");
+        vlayout->addWidget(btn);
+
+        connect(btn, &QPushButton::clicked, [this] {
+          // Write current frame buffer to a new folder on desktop
+          const auto desktopPath_ =
+              QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+          const auto desktopPath = qString2Path(desktopPath_);
+
+          const auto session = m_binPath.parent_path().stem().string();
+          const auto sequence = m_binPath.stem().string();
+          const auto dirname = (session + "_" + sequence + "_" +
+                                std::to_string(m_data->frameIdx));
+
+          const auto savedirpath = desktopPath / dirname;
+          fs::create_directories(savedirpath);
+
+          m_data->exportToFile(savedirpath);
+        });
+      }
     }
 
     // Frame navigation actions
