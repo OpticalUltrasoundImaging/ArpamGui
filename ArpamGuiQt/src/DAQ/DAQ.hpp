@@ -3,10 +3,12 @@ This module implements a data acquisition interface
 */
 #pragma once
 
+#include <qcontainerinfo.h>
 #ifdef ARPAM_HAS_ALAZAR
 
 #include "Common.hpp"
 #include "RFBuffer.hpp"
+#include "Sequence.hpp"
 #include <AlazarApi.h>
 #include <QObject>
 #include <QString>
@@ -39,7 +41,7 @@ public:
   ~DAQ();
 
   // Initialize the DAQ board, including setting the clock, trigger, channel...
-  [[nodiscard]] bool initHardware() noexcept;
+  [[nodiscard]] bool initHardware(const uspam::DAQSequence &sequence) noexcept;
 
   [[nodiscard]] bool isInitialized() const noexcept { return board != nullptr; }
   [[nodiscard]] bool isAcquiring() const noexcept { return acquiringData; };
@@ -88,28 +90,12 @@ private:
   // Alazar Buffers
   std::array<std::span<uint16_t>, 4> buffers{};
 
-  // No pre-trigger samples in NPT mode
-  const U32 preTriggerSamples = 0;
-  // Number of post trigger samples per record
-  // Record additional 500 samples
-  const U32 prefixSamples = 500;
-  const U32 samplesPerAscan = 8192;
-  const U32 postTriggerSamples = 8192 + 500;
-
-  // Number of samples total
-  constexpr U32 samplesPerRecord() const noexcept {
-    return preTriggerSamples + postTriggerSamples;
-  }
-
-  // Number of records per DMA buffer
-  const U32 recordsPerBuffer = 1000;
+  // Acquisition sequence
+  uspam::DAQSequence sequence;
 
   // Channels to capture
   const U32 channelMask = CHANNEL_A;
   const int channelCount = 1;
-
-  // Sampling rate
-  double samplesPerSec = 0.0;
 
   // File pointer
   bool m_saveData{true};

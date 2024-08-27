@@ -3,6 +3,7 @@
 
 #ifdef ARPAM_HAS_ALAZAR
 
+#include "Sequence.hpp"
 #include "datetime.hpp"
 #include <AlazarApi.h>
 #include <AlazarCmd.h>
@@ -356,7 +357,7 @@ std::string getDAQInfo() {
   return ss.str();
 }
 
-bool DAQ::initHardware() noexcept {
+bool DAQ::initHardware(const uspam::DAQSequence &sequence) noexcept {
   /*
    Initialize and configure board
 
@@ -376,15 +377,24 @@ bool DAQ::initHardware() noexcept {
   // Specify the sample rate (see sample rate id below)
   samplesPerSec = 180e6;
 
-  // Select clock parameters as required to generate this sample rate.
-  //
-  // For example: if samplesPerSec is 100.e6 (100 MS/s), then:
-  // - select clock source INTERNAL_CLOCK and sample rate SAMPLE_RATE_100MSPS
-  // - select clock source FAST_EXTERNAL_CLOCK, sample rate
-  // SAMPLE_RATE_USER_DEF, and connect a
-  //   100 MHz signal to the EXT CLK BNC connector.
-  ALAZAR_CALL(AlazarSetCaptureClock(board, INTERNAL_CLOCK, SAMPLE_RATE_180MSPS,
-                                    CLOCK_EDGE_RISING, 0));
+  // Create RF file header
+  uspam::io::RfFileHeaderV1 fileHeader;
+  fileHeader.AscansPerBscan = recordsPerBuffer;
+  fileHeader.SamplesPerSec = samplesPerSec;
+  fileHeader.SamplesPerAscan = saveSamplesPerAscan;
+
+  fileHeader.PA.PAsamples =
+
+      // Select clock parameters as required to generate this sample rate.
+      //
+      // For example: if samplesPerSec is 100.e6 (100 MS/s), then:
+      // - select clock source INTERNAL_CLOCK and sample rate
+      // SAMPLE_RATE_100MSPS
+      // - select clock source FAST_EXTERNAL_CLOCK, sample rate
+      // SAMPLE_RATE_USER_DEF, and connect a
+      //   100 MHz signal to the EXT CLK BNC connector.
+      ALAZAR_CALL(AlazarSetCaptureClock(
+          board, INTERNAL_CLOCK, SAMPLE_RATE_180MSPS, CLOCK_EDGE_RISING, 0));
   RETURN_BOOL_IF_FAIL();
 
   // Select channel A input parameters as required
@@ -451,7 +461,9 @@ bool DAQ::prepareAcquisition() noexcept {
 
   // Open file pointer
   if (m_saveData) {
-    const auto fname = "ARPAM" + datetime::datetimeFormat("%H%M%S") + ".bin";
+    // const auto fname = "ARPAM" + datetime::datetimeFormat("%H%M%S") + ".bin";
+    const auto fname = "ARPAMv1" + datetime::datetimeFormat("%H%M%S") + ".bin";
+
     m_lastBinfile = m_savedir / fname;
     m_fs = std::fstream(m_lastBinfile, std::ios::out | std::ios::binary);
 
