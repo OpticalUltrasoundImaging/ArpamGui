@@ -33,6 +33,9 @@ public:
     m_canvasUS->setAlinesPerBscan(alinesPerBscan);
   }
 
+  // Render the current widget view into a QImage
+  QImage captureScreenshot();
+
 signals:
   void message(const QString &msg);
   void mouseMoved(QPoint pos, double depth_mm);

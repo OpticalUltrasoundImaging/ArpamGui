@@ -19,7 +19,7 @@
 CoregDisplay::CoregDisplay(QWidget *parent)
     : QWidget(parent),
 
-      m_canvasPAUS(new Canvas(this)), m_canvasUS(new Canvas(this)),
+      m_canvasPAUS(new Canvas), m_canvasUS(new Canvas),
 
       m_model(new annotation::AnnotationModel),
       m_annoView(new annotation::AnnotationView),
@@ -191,3 +191,5 @@ void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,
   m_canvasPAUS->setEnabled(true);
   m_canvasUS->setEnabled(true);
 }
+
+QImage CoregDisplay::captureScreenshot() { return this->grab().toImage(); }
