@@ -3,14 +3,10 @@
 #include <armadillo>
 #include <opencv2/core.hpp>
 #include <opencv2/core/base.hpp>
+#include <opencv2/core/hal/interface.h>
 #include <opencv2/opencv.hpp>
 
 namespace uspam::imutil {
-
-template <typename T> int getCvType();
-template <> inline consteval int getCvType<double>() { return CV_64F; }
-template <> inline consteval int getCvType<float>() { return CV_32F; }
-template <> inline consteval int getCvType<uint8_t>() { return CV_8U; }
 
 // NOLINTBEGIN(*-magic-numbers)
 template <typename T>
@@ -18,7 +14,8 @@ auto makeRectangular(const arma::Mat<T> &mat, int width = 640,
                      int height = 1000) {
   // Create a cv::mat that uses the same data
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
+                 (void *)mat.memptr());
   cv::resize(cv_mat, cv_mat, {width, height});
   cv_mat.convertTo(cv_mat, CV_8U, 255.0);
   return cv_mat;
@@ -28,7 +25,8 @@ auto makeRectangular(const arma::Mat<T> &mat, int width = 640,
 template <typename T>
 auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
+                 (void *)mat.memptr());
 
   const int r = std::min(cv_mat.rows, cv_mat.cols);
   const cv::Size dsize{r, r};
@@ -49,7 +47,8 @@ auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
 template <typename T>
 auto makeRadial_v2(const arma::Mat<T> &mat, int padding = 0) {
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
+                 (void *)mat.memptr());
 
   if (padding != 0) {
     cv::copyMakeBorder(cv_mat, cv_mat, 0, 0, padding, 0, 0);
@@ -85,7 +84,7 @@ void makeOverlay(const cv::Mat &US, const cv::Mat &PA, cv::Mat &PAUS,
 
 template <typename T> void medianBlur(arma::Mat<T> &mat, int ksize) {
   // NOLINTBEGIN
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, uspam::imutil::getCvType<T>(),
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
                  (void *)mat.memptr());
   // NOLINTEND
 

@@ -95,7 +95,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   // Medfilt
   if (params.medfiltKsize > 1) {
     // NOLINTBEGIN
-    cv::Mat cv_mat(rf.n_cols, rf.n_rows, uspam::imutil::getCvType<T>(),
+    cv::Mat cv_mat(rf.n_cols, rf.n_rows, cv::traits::Type<T>::value,
                    (void *)rf.memptr());
     // NOLINTEND
 
