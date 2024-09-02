@@ -14,7 +14,7 @@
     "tbb",
     {
       "name": "opencv4",
-      "features": ["contrib", "dnn", "png", "vulkan", "tbb", "png", "world"]
+      "features": ["contrib", "dnn", "tbb", "png", "world"]
     },
     {
       "name": "fftw3",
