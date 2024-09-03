@@ -101,7 +101,7 @@ TEST(ReconParams2Serialize, ToFile) {
 
 // Test for ReconParams
 TEST(ReconParamsTest, CopyConstructor) {
-  const auto params = ReconParams2::system2024v2GUI();
+  const auto params = ReconParams2::system2024v2probe2();
   const auto &params1 = params.PA;
   ReconParams params2 = params1; // Copy constructor
 
@@ -112,7 +112,7 @@ TEST(ReconParamsTest, CopyConstructor) {
 }
 
 TEST(ReconParamsTest, CopyAssignment) {
-  const auto params = ReconParams2::system2024v2GUI();
+  const auto params = ReconParams2::system2024v2probe2();
   const auto &params1 = params.PA;
 
   ReconParams params2;
