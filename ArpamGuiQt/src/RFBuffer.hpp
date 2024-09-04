@@ -44,6 +44,8 @@ template <uspam::Floating T> struct BScanData_ {
   arma::Mat<T> rfEnv;
   arma::Mat<uint8_t> rfLog;
 
+  std::vector<int> surface;
+
   // Images
   cv::Mat radial;
   QImage radial_img;

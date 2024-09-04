@@ -43,6 +43,16 @@ QImage cvMatToQImage(const cv::Mat &mat) {
   return {};
 }
 
+/*
+Find the index of the first element greater than a threshold.
+*/
+template <typename T>
+[[nodiscard]] int find_first_greater(std::span<T> vec, const T thresh) {
+  const auto it = std::find_if(vec.begin(), vec.end(),
+                               [thresh](auto val) { return val > thresh; });
+  return it != vec.end() ? std::distance(vec.begin(), it) : 0;
+}
+
 std::tuple<float, float, float> procOne(BScanData_<T> &data,
                                         const uspam::recon::ReconParams &params,
                                         const uspam::io::IOParams_ &ioparams,
@@ -67,12 +77,15 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   auto &rfBeamformed = data.rfBeamformed;
   auto &rfEnv = data.rfEnv;
   auto &rfLog = data.rfLog;
+  auto &surface = data.surface;
 
   // rfBeamformed.set_size(N, rf.n_cols);
   // rfBeamformed.zeros();
 
   rfEnv.set_size(N, rf.n_cols);
   // rfEnv.zeros();
+
+  surface.resize(rf.n_cols);
 
   rfLog.set_size(data.rf.n_rows, rf.n_cols);
   rfLog.zeros();
@@ -147,7 +160,9 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
       }
     }();
 
-    // Apply filter and envelope
+    // Apply filter
+    // Find surface
+    // Find envelope
     const cv::Range range(0, static_cast<int>(rf.n_cols));
     cv::parallel_for_(range, [&](const cv::Range &range) {
       // NOLINTBEGIN(*-pointer-arithmetic)
@@ -162,6 +177,13 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
         // Envelope
         auto _env = std::span{rfEnv.colptr(i), N};
         uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
+
+        // Find surface
+        // Use std method
+        if (params.findSurface) {
+          const auto thresh = arma::stddev(rfEnv.unsafe_col(i));
+          surface[i] = find_first_greater(_env, thresh);
+        }
 
         // Log compress
         auto _rfLog = std::span{rfLog.colptr(i) + truncate, N};
@@ -206,6 +228,13 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
         auto _env = std::span{rfEnv.colptr(i), N};
         uspam::signal::hilbert_abs_r2c<T>(_filt, _env);
 
+        // Find surface
+        // Use std method
+        if (params.findSurface) {
+          const auto thresh = arma::stddev(rfEnv.unsafe_col(i));
+          surface[i] = find_first_greater(_env, thresh);
+        }
+
         // Log compress
         auto _rfLog = std::span{rfLog.colptr(i) + truncate, N};
         constexpr float fct_mV2V = 1.0F / 1000;
@@ -241,19 +270,46 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   Post processing
   */
 
-  {
-    // Scan conversion
-    uspam::TimeIt timeit;
-    data.radial = uspam::imutil::makeRadial_v2(data.rfLog,
-                                               params.padding + ioparams.delay);
+  // {
+  //   // Scan conversion
+  //   uspam::TimeIt timeit;
+  //   data.radial = uspam::imutil::makeRadial_v2(data.rfLog,
+  //                                              params.padding +
+  //                                              ioparams.delay);
 
-    // cv::medianBlur(data.radial, data.radial, 3);
+  //   // cv::medianBlur(data.radial, data.radial, 3);
 
-    data.radial_img = cvMatToQImage(data.radial);
-    imageConversion_ms = timeit.get_ms();
-  }
+  //   data.radial_img = cvMatToQImage(data.radial);
+  //   imageConversion_ms = timeit.get_ms();
+  // }
 
   return std::tuple{beamform_ms, recon_ms, imageConversion_ms};
+}
+
+auto scanConversion(BScanData_<T> &data,
+                    const uspam::recon::ReconParams &params,
+                    const uspam::io::IOParams_ &ioparams,
+                    const std::vector<int> &surface) {
+
+  // Scan conversion
+  uspam::TimeIt timeit;
+
+  // Clear anything before surface
+  if (params.cleanSurface) {
+    for (int i = 0; i < surface.size(); ++i) {
+      data.rfLog.col(i)
+          .rows(0, surface[i] + params.additionalSamplesToCleanSurface)
+          .zeros();
+    }
+  }
+
+  data.radial =
+      uspam::imutil::makeRadial_v2(data.rfLog, params.padding + ioparams.delay);
+
+  // cv::medianBlur(data.radial, data.radial, 3);
+
+  data.radial_img = cvMatToQImage(data.radial);
+  return timeit.get_ms();
 }
 
 void reconBScan(BScanData<ArpamFloat> &data,
@@ -323,6 +379,14 @@ void reconBScan(BScanData<ArpamFloat> &data,
       perfMetrics.imageConversion_ms += imageConversion_ms;
     }
   }
+
+  // Post processing scan conversion
+  scanConversion(data.US, params.US, ioparams.US, data.US.surface);
+  // Use US surface for PA too
+  for (int i = 0; i < data.US.surface.size(); ++i) {
+    data.PA.surface[i] = data.US.surface[i] / 2;
+  }
+  scanConversion(data.PA, params.PA, ioparams.PA, data.PA.surface);
 
   // Compute scalebar scalar
   // fct is the depth [m] of one radial pixel

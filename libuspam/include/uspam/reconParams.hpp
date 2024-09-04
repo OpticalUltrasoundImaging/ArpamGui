@@ -35,6 +35,11 @@ struct ReconParams {
 
   bool flipOnEven; // If true, flip on even. else flip on odd
 
+  bool findSurface{true};
+  bool showSurface{false};
+  bool cleanSurface{false};
+  int additionalSamplesToCleanSurface{0};
+
   BeamformerType beamformerType;
   BeamformerParams<float> beamformerParams;
 
@@ -156,6 +161,10 @@ struct ReconParams2 {
 
     params.PA.flipOnEven = false;
     params.US.flipOnEven = false;
+
+    params.PA.cleanSurface = true;
+    params.PA.additionalSamplesToCleanSurface = 90;
+    params.US.cleanSurface = true;
 
     // NOLINTEND(*-magic-numbers)
     return params;
