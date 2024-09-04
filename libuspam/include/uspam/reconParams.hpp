@@ -82,7 +82,7 @@ struct ReconParams2 {
                    .beamformerType = BeamformerType::SAFT_CF,
                    .beamformerParams =
                        beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{.medfiltKsize = 1,
+    ReconParams US{.medfiltKsize = 3,
                    .filterType = FilterType::IIR,
                    .firTaps = taps,
                    .iirOrder = order,

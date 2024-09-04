@@ -56,7 +56,7 @@ struct IOParams {
                         {
                             .start = 0,
                             .delay = 150,
-                            .size = 2580,
+                            .size = 2600,
                         },
                     .US =
                         {

@@ -66,13 +66,13 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   */
 
   // Truncate the pulser/laser artifact
-  const size_t truncate = std::max(params.truncate, 100);
+  const int truncate = std::max(params.truncate, 100);
   const int truncateClearLater = std::max(params.truncate - 100, 0);
   // Just remove `truncate` rows from RF.
   arma::Mat<T> rf =
       data.rf.submat(truncate, 0, data.rf.n_rows - 1, data.rf.n_cols - 1);
   // auto &rf = data.rf;
-  const size_t N = rf.n_rows;
+  const size_t N = rf.n_rows; // Truncated Aline size
 
   auto &rfBeamformed = data.rfBeamformed;
   auto &rfEnv = data.rfEnv;
@@ -87,6 +87,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
 
   surface.resize(rf.n_cols);
 
+  // Original, not truncated A line size
   rfLog.set_size(data.rf.n_rows, rf.n_cols);
   rfLog.zeros();
 
@@ -125,7 +126,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   {
     uspam::TimeIt timeit;
     beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams,
-             params.truncate + ioparams.delay);
+             ioparams.delay + params.truncate + params.padding);
 
     beamform_ms = timeit.get_ms();
   }
@@ -162,7 +163,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
 
     // Apply filter
     // Find surface
-    // Find envelope
+    // Find envelope + truncate
     const cv::Range range(0, static_cast<int>(rf.n_cols));
     cv::parallel_for_(range, [&](const cv::Range &range) {
       // NOLINTBEGIN(*-pointer-arithmetic)
@@ -182,7 +183,9 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
         // Use std method
         if (params.findSurface) {
           const auto thresh = arma::stddev(rfEnv.unsafe_col(i));
-          surface[i] = find_first_greater(_env, thresh);
+          constexpr int ignoreFirst = 100;
+          surface[i] = find_first_greater(_env.subspan(ignoreFirst), thresh) +
+                       ignoreFirst + truncate;
         }
 
         // Log compress
@@ -232,7 +235,9 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
         // Use std method
         if (params.findSurface) {
           const auto thresh = arma::stddev(rfEnv.unsafe_col(i));
-          surface[i] = find_first_greater(_env, thresh);
+          constexpr int ignoreFirst = 100;
+          surface[i] = find_first_greater(_env.subspan(ignoreFirst), thresh) +
+                       ignoreFirst + truncate;
         }
 
         // Log compress
@@ -383,9 +388,23 @@ void reconBScan(BScanData<ArpamFloat> &data,
   // Post processing scan conversion
   scanConversion(data.US, params.US, ioparams.US, data.US.surface);
   // Use US surface for PA too
+  // This piece of ugly code basically alines the final US surface with the PA
+  // surface The final image is padded at the top (left if row major) by
+  // "padding" ([pts] arbitrary padding user can control to change warp
+  // perspective) + "delay" ([pts] theoretical delay in the acquired data)
+  const auto fct = static_cast<float>(data.PA.rfLog.n_rows + params.PA.padding +
+                                      ioparams.PA.delay) /
+                   static_cast<float>(data.US.rfLog.n_rows + params.US.padding +
+                                      ioparams.US.delay);
   for (int i = 0; i < data.US.surface.size(); ++i) {
-    data.PA.surface[i] = data.US.surface[i] / 2;
+    const int US_surface_padded =
+        data.US.surface[i] + params.US.padding + ioparams.US.delay;
+    const int PA_surface_padded = static_cast<int>(
+        std::round(static_cast<float>(US_surface_padded) * fct));
+    data.PA.surface[i] =
+        PA_surface_padded - params.PA.padding - ioparams.PA.delay;
   }
+
   scanConversion(data.PA, params.PA, ioparams.PA, data.PA.surface);
 
   // Compute scalebar scalar
