@@ -2,8 +2,6 @@
 
 #include <algorithm> // for std::fill
 #include <armadillo>
-#include <concepts>
-#include <iostream>
 
 namespace uspam::surface {
 
@@ -55,10 +53,13 @@ template <typename T> void interpNextGapInplace(arma::Col<T> &idx, int &i) {
   }
 }
 
-// Fix surface index function
-template <typename T> arma::Col<T> fixSurfaceIdxMissing(arma::Col<T> &idx) {
+// Fix cases of missing surface (groups of 0s) or incorrect deeper surface
+// (disjoint lines)
+// Linearly interpolates those points
+// Fixes inplace
+template <typename T> void fixSurfaceIdxMissing(arma::Col<T> &idx) {
   const int MAX_DISTANCE = 30;
-  int n = idx.n_elem;
+  int n = idx.size();
   int i = 1;
   int last_good_i = 0; // Assume idx[0] is correct
 
@@ -106,22 +107,19 @@ template <typename T> arma::Col<T> fixSurfaceIdxMissing(arma::Col<T> &idx) {
 
     if (i < 0) {
       // All indices are zero, no surface found
-      return idx; // Return as is
+      return;
     }
 
     // Roll the vector
-    int n_pts_rotate = n - i;
-    idx = arma::shift(idx, n_pts_rotate);
+    std::rotate(idx.begin(), idx.begin() + i, idx.end());
 
     // Interpolate the first gap after rotation
     int temp_i = 1;
     interpNextGapInplace(idx, temp_i);
 
     // Rotate back
-    idx = arma::shift(idx, -n_pts_rotate);
+    std::rotate(idx.begin(), idx.begin() + n - i, idx.end());
   }
-
-  return idx;
 }
 
 } // namespace uspam::surface
