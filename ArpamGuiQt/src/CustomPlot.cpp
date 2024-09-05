@@ -158,8 +158,9 @@ void CustomPlot::plot(const QVector<double> &x, const QVector<double> &y,
 }
 
 void CustomPlot::resetZoom() {
-  xAxis->setRange(m_meta.xMin, m_meta.xMax);
   yAxis->setRange(m_meta.yMin, m_meta.yMax);
+  xAxis->setRange(m_meta.xMin, m_meta.xMax);
+  xAxis2->setRange(m_meta.xMin * m_meta.xScaler, m_meta.xMax * m_meta.xScaler);
   replot();
 }
 
