@@ -12,18 +12,29 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
 
   rapidjson::Value obj(rapidjson::kObjectType);
 
-  obj.AddMember("filterType", static_cast<int>(filterType), allocator);
+  obj.AddMember("medfiltKsize", medfiltKsize, allocator);
 
+  obj.AddMember("filterType", static_cast<int>(filterType), allocator);
   obj.AddMember("firTaps", firTaps, allocator);
   obj.AddMember("iirOrder", iirOrder, allocator);
 
   obj.AddMember("bpHighFreq", bpHighFreq, allocator);
   obj.AddMember("bpLowFreq", bpLowFreq, allocator);
 
+  obj.AddMember("padding", padding, allocator);
   obj.AddMember("truncate", truncate, allocator);
+
+  obj.AddMember("rotateOffset", rotateOffset, allocator);
+
   obj.AddMember("noiseFloor", noiseFloor_mV, allocator);
   obj.AddMember("desiredDynamicRange", desiredDynamicRange, allocator);
-  obj.AddMember("rotateOffset", rotateOffset, allocator);
+
+  obj.AddMember("flipOnEven", flipOnEven, allocator);
+
+  obj.AddMember("showSurface", showSurface, allocator);
+  obj.AddMember("cleanSurface", cleanSurface, allocator);
+  obj.AddMember("additionalSamplesToCleanSurface",
+                additionalSamplesToCleanSurface, allocator);
 
   {
     rapidjson::Value v;
@@ -43,18 +54,28 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
 
   ReconParams params;
 
-  params.filterType = static_cast<FilterType>(obj["filterType"].GetInt());
+  params.medfiltKsize = obj["medfiltKsize"].GetInt();
 
+  params.filterType = static_cast<FilterType>(obj["filterType"].GetInt());
   params.firTaps = obj["firTaps"].GetInt();
   params.iirOrder = obj["iirOrder"].GetInt();
 
   params.bpHighFreq = obj["bpHighFreq"].GetFloat();
   params.bpLowFreq = obj["bpLowFreq"].GetFloat();
 
+  params.padding = obj["padding"].GetInt();
   params.truncate = obj["truncate"].GetInt();
   params.rotateOffset = obj["rotateOffset"].GetInt();
+
   params.noiseFloor_mV = obj["noiseFloor"].GetFloat();
   params.desiredDynamicRange = obj["desiredDynamicRange"].GetFloat();
+
+  params.flipOnEven = obj["flipOnEven"].GetBool();
+  params.showSurface = obj["showSurface"].GetBool();
+
+  params.cleanSurface = obj["cleanSurface"].GetBool();
+  params.additionalSamplesToCleanSurface =
+      obj["additionalSamplesToCleanSurface"].GetInt();
 
   params.beamformerType =
       beamformer::BeamformerTypeFromString(obj["beamformerType"].GetString());

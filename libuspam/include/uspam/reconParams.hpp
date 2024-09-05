@@ -30,6 +30,7 @@ struct ReconParams {
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
 
   int rotateOffset;
+
   float noiseFloor_mV;
   float desiredDynamicRange;
 
