@@ -16,6 +16,7 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
+  bool subtractBackground{true};
   int medfiltKsize{0};
 
   FilterType filterType;
@@ -83,7 +84,7 @@ struct ReconParams2 {
                    .beamformerType = BeamformerType::SAFT_CF,
                    .beamformerParams =
                        beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{.medfiltKsize = 3,
+    ReconParams US{.medfiltKsize = 1,
                    .filterType = FilterType::IIR,
                    .firTaps = taps,
                    .iirOrder = order,

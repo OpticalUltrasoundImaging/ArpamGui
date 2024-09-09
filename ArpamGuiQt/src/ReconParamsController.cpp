@@ -185,6 +185,15 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       vlayout->addLayout(layout);
       int row = 1;
 
+      // Background subtraction
+      {
+        auto *label = new QLabel("Subtract background");
+        layout->addWidget(label, row, 0);
+
+        auto *cb = makeBoolCheckBox(p.subtractBackground);
+        layout->addWidget(cb, row++, 1);
+      }
+
       // Smoothing filter
       {
         auto *label = new QLabel("Smoothing filter");
