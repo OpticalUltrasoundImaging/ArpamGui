@@ -119,19 +119,31 @@ FrameController::FrameController(
 
         connect(btn, &QPushButton::clicked, [this] {
           // Write current frame buffer to a new folder on desktop
-          const auto desktopPath_ =
-              QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-          const auto desktopPath = qString2Path(desktopPath_);
+          const auto savedirpath = [&] {
+            const auto desktopPath_ = QStandardPaths::writableLocation(
+                QStandardPaths::DesktopLocation);
+            const auto desktopPath = qString2Path(desktopPath_);
 
-          const auto session = m_binPath.parent_path().stem().string();
-          const auto sequence = m_binPath.stem().string();
-          const auto dirname = (session + "_" + sequence + "_" +
-                                std::to_string(m_data->frameIdx));
+            const auto session = m_binPath.parent_path().stem().string();
+            const auto sequence = m_binPath.stem().string();
+            const auto dirname = (session + "_" + sequence + "_" +
+                                  std::to_string(m_data->frameIdx));
 
-          const auto savedirpath = desktopPath / dirname;
+            return desktopPath / dirname;
+          }();
+
+          // Create the output directory
           fs::create_directories(savedirpath);
 
+          // Write the BScan data to file
           m_data->exportToFile(savedirpath);
+
+          // Write the coreg display screenshot to file
+          {
+            auto image = m_coregDisplay->captureScreenshot();
+            const auto path = savedirpath / "screenshot.png";
+            image.save(path2QString(path));
+          }
         });
       }
     }

@@ -16,6 +16,7 @@
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
+#include <qspinbox.h>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -76,31 +77,93 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   auto *doubleListValidator = new DoubleListValidator(this);
 
   const auto makeQSpinBox = [this](const std::pair<int, int> &range,
-                                   int singleStep, int &value, auto *context) {
+                                   int singleStep, int &value) {
     auto *spinBox = new QSpinBox;
     spinBox->setSingleStep(singleStep);
     spinBox->setRange(range.first, range.second);
     spinBox->setValue(value);
-    connect(spinBox, &QSpinBox::valueChanged, context, [&](int newValue) {
-      value = newValue;
-      this->_paramsUpdatedInternal();
-    });
+    connect(spinBox, &QSpinBox::valueChanged, this,
+            [this, &value](int newValue) {
+              value = newValue;
+              this->_paramsUpdatedInternal();
+            });
+
+    this->updateGuiFromParamsCallbacks.emplace_back(
+        [spinBox, &value] { spinBox->setValue(value); });
     return spinBox;
   };
 
-  const auto makeQDoubleSpinBox = [this]<typename Float>(
-                                      const std::pair<Float, Float> &range,
-                                      Float singleStep, Float &value) {
-    auto *spinBox = new QDoubleSpinBox;
-    spinBox->setRange(static_cast<double>(range.first),
-                      static_cast<double>(range.second));
-    spinBox->setValue(static_cast<double>(value));
-    spinBox->setSingleStep(static_cast<double>(singleStep));
-    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [&](double newValue) {
-      value = static_cast<Float>(newValue);
-      this->_paramsUpdatedInternal();
-    });
+  // value1 and value2 are sync'ed
+  const auto makeQSpinBox2 = [this](const std::pair<int, int> &range,
+                                    int singleStep, int &value1, int &value2) {
+    auto *spinBox = new QSpinBox;
+    spinBox->setSingleStep(singleStep);
+    spinBox->setRange(range.first, range.second);
+    spinBox->setValue(value1);
+    connect(spinBox, &QSpinBox::valueChanged, this,
+            [this, &value1, &value2](int newValue) {
+              value1 = newValue;
+              value2 = newValue;
+              this->_paramsUpdatedInternal();
+            });
+
+    this->updateGuiFromParamsCallbacks.emplace_back(
+        [spinBox, &value1] { spinBox->setValue(value1); });
     return spinBox;
+  };
+
+  const auto makeQDoubleSpinBox =
+      [this]<typename Float>(const std::pair<Float, Float> &range,
+                             Float singleStep, Float &value) {
+        auto *spinBox = new QDoubleSpinBox;
+        spinBox->setRange(static_cast<double>(range.first),
+                          static_cast<double>(range.second));
+        spinBox->setValue(static_cast<double>(value));
+        spinBox->setSingleStep(static_cast<double>(singleStep));
+        connect(spinBox, &QDoubleSpinBox::valueChanged, this,
+                [this, &value](double newValue) {
+                  value = static_cast<Float>(newValue);
+                  this->_paramsUpdatedInternal();
+                });
+
+        this->updateGuiFromParamsCallbacks.emplace_back(
+            [spinBox, &value] { spinBox->setValue(value); });
+        return spinBox;
+      };
+
+  const auto makeBoolCheckBox = [this](bool &value) {
+    auto *cb = new QCheckBox();
+    using Qt::CheckState;
+    connect(cb, &QCheckBox::checkStateChanged, this,
+            [this, &value](CheckState state) {
+              const auto checked = state == CheckState::Checked;
+              value = checked;
+              this->_paramsUpdatedInternal();
+            });
+
+    updateGuiFromParamsCallbacks.emplace_back([this, cb, &value] {
+      cb->setCheckState(value ? Qt::CheckState::Checked
+                              : Qt::CheckState::Unchecked);
+    });
+    return cb;
+  };
+  // value1 and value2 should be sync'ed
+  const auto makeBoolCheckBox2 = [this](bool &value1, bool &value2) {
+    auto *cb = new QCheckBox();
+    using Qt::CheckState;
+    connect(cb, &QCheckBox::checkStateChanged, this,
+            [this, &value1, &value2](CheckState state) {
+              const auto checked = state == CheckState::Checked;
+              value1 = checked;
+              value2 = checked;
+              this->_paramsUpdatedInternal();
+            });
+
+    updateGuiFromParamsCallbacks.emplace_back([this, cb, &value1] {
+      cb->setCheckState(value1 ? Qt::CheckState::Checked
+                               : Qt::CheckState::Unchecked);
+    });
+    return cb;
   };
 
   const QString &help_Truncate = "Truncate num points from the beginning to "
@@ -129,10 +192,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                           "Effective at removing electronic noise");
         layout->addWidget(label, row, 0);
 
-        auto *sp = makeQSpinBox({1, 7}, 2, p.medfiltKsize, this);
+        auto *sp = makeQSpinBox({1, 7}, 2, p.medfiltKsize);
         layout->addWidget(sp, row++, 1);
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, sp, &p] { sp->setValue(p.medfiltKsize); });
       }
 
       // Filter type and order control
@@ -165,26 +226,22 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                       }
                       this->_paramsUpdatedInternal();
                     });
+            this->updateGuiFromParamsCallbacks.emplace_back(
+                [spinBox, &value] { spinBox->setValue(value); });
             return spinBox;
           };
 
           // Ensure firTaps value is odd
           firTapsSpinBox = makeQSpinBox({3, 125}, p.firTaps, this);
           layout->addWidget(firTapsSpinBox, row++, 1);
-          updateGuiFromParamsCallbacks.emplace_back([this, firTapsSpinBox, &p] {
-            firTapsSpinBox->setValue(p.firTaps);
-          });
         }
 
         auto *iirOrderLabel = new QLabel("IIR Order");
         iirOrderLabel->setToolTip("IIR filter order");
         layout->addWidget(iirOrderLabel, row, 0);
 
-        auto *iirOrderSpinBox = makeQSpinBox({1, 25}, 1, p.iirOrder, this);
+        auto *iirOrderSpinBox = makeQSpinBox({1, 25}, 1, p.iirOrder);
         layout->addWidget(iirOrderSpinBox, row++, 1);
-        updateGuiFromParamsCallbacks.emplace_back([this, iirOrderSpinBox, &p] {
-          iirOrderSpinBox->setValue(p.iirOrder);
-        });
 
         {
           using uspam::recon::FilterType;
@@ -251,9 +308,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
         auto *sp = makeQDoubleSpinBox({0.F, 1.F}, 0.01F, p.bpLowFreq);
         layout->addWidget(sp, row++, 1);
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [&p, sp] { sp->setValue(p.bpLowFreq); });
       }
 
       {
@@ -263,9 +317,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
         auto *sp = makeQDoubleSpinBox({0.F, 1.F}, 0.01F, p.bpHighFreq);
         layout->addWidget(sp, row++, 1);
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [&p, sp] { sp->setValue(p.bpHighFreq); });
       }
 
       {
@@ -273,12 +324,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         label->setToolTip("");
         layout->addWidget(label, row, 0);
 
-        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.padding, this);
+        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.padding);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, spinBox, &p] { spinBox->setValue(p.padding); });
       }
 
       {
@@ -286,12 +334,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         label->setToolTip(help_Truncate);
         layout->addWidget(label, row, 0);
 
-        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.truncate, this);
+        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.truncate);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, spinBox, &p] { spinBox->setValue(p.truncate); });
       }
 
       {
@@ -303,10 +348,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
             makeQDoubleSpinBox({0.0F, 60.0F}, 1.0F, p.noiseFloor_mV);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" mV");
-
-        updateGuiFromParamsCallbacks.emplace_back([this, spinBox, &p] {
-          spinBox->setValue(static_cast<double>(p.noiseFloor_mV));
-        });
       }
 
       {
@@ -318,9 +359,22 @@ ReconParamsController::ReconParamsController(QWidget *parent)
             makeQDoubleSpinBox({10.0F, 70.0F}, 1.0F, p.desiredDynamicRange);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" dB");
+      }
 
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, spinBox, &p] { spinBox->setValue(p.desiredDynamicRange); });
+      {
+        auto *label = new QLabel("Clean surface");
+        layout->addWidget(label, row, 0);
+
+        auto *cb = makeBoolCheckBox(p.cleanSurface);
+        layout->addWidget(cb, row++, 1);
+      }
+      {
+        auto *label = new QLabel("Additional pts to clean");
+        layout->addWidget(label, row, 0);
+
+        auto *sb =
+            makeQSpinBox({-1000, 1000}, 1, p.additionalSamplesToCleanSurface);
+        layout->addWidget(sb, row++, 1);
       }
 
       // Beamformer
@@ -395,8 +449,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return gb;
   };
 
-  layout->addWidget(makeReconParamsControl(tr("PA"), this->params.PA));
-  layout->addWidget(makeReconParamsControl(tr("US"), this->params.US));
+  layout->addWidget(makeReconParamsControl("PA", this->params.PA));
+  layout->addWidget(makeReconParamsControl("US", this->params.US));
 
   // Registration params
   {
@@ -410,23 +464,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       auto *label = new QLabel("Flip on even");
       label->setToolTip("Flip the image on even or odd indices.");
       layout->addWidget(label, row, 0);
-      auto *cb = new QCheckBox();
+
+      auto *cb = makeBoolCheckBox2(params.PA.flipOnEven, params.US.flipOnEven);
       layout->addWidget(cb, row++, 1);
-      using Qt::CheckState;
-
-      connect(cb, &QCheckBox::checkStateChanged, this,
-              [this, cb](CheckState state) {
-                const auto checked = state == CheckState::Checked;
-                this->params.PA.flipOnEven = checked;
-                this->params.US.flipOnEven = checked;
-                _paramsUpdatedInternal();
-              });
-
-      updateGuiFromParamsCallbacks.emplace_back([this, cb] {
-        cb->setCheckState(this->params.PA.flipOnEven
-                              ? Qt::CheckState::Checked
-                              : Qt::CheckState::Unchecked);
-      });
     }
 
     {
@@ -434,30 +474,19 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       label->setToolTip(
           "Rotation offset in no. of Alines to stablize the display.");
       layout->addWidget(label, row, 0);
-      auto *spinBox =
-          makeQSpinBox({-500, 500}, 1, params.US.rotateOffset, this);
+      auto *spinBox = makeQSpinBox2({-500, 500}, 1, params.US.rotateOffset,
+                                    params.PA.rotateOffset);
       layout->addWidget(spinBox, row++, 1);
       spinBox->setSuffix(" lines");
-
-      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
-        spinBox->setValue(this->params.PA.rotateOffset);
-        spinBox->setValue(this->params.US.rotateOffset);
-      });
     }
 
     {
       auto *label = new QLabel("Alines Per Bscan");
       label->setToolTip("");
       layout->addWidget(label, row, 0);
-      auto *spinBox =
-          makeQSpinBox({500, 2000}, 1, ioparams.alinesPerBscan, this);
+      auto *spinBox = makeQSpinBox({500, 2000}, 1, ioparams.alinesPerBscan);
       spinBox->setSingleStep(100);
       layout->addWidget(spinBox, row++, 1);
-      // spinBox->setSuffix("");
-
-      updateGuiFromParamsCallbacks.emplace_back([this, spinBox] {
-        spinBox->setValue(this->ioparams.alinesPerBscan);
-      });
     }
 
     const auto makeIOParams_controller = [&](const QString &prefix,
@@ -466,36 +495,27 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         auto *label = new QLabel(prefix + " start");
         label->setToolTip("Where to start reading in the combined rf array.");
         layout->addWidget(label, row, 0);
-        auto *spinBox = makeQSpinBox({0, 8000}, 1, p.start, this);
+        auto *spinBox = makeQSpinBox({0, 8000}, 1, p.start);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [spinBox, &p] { spinBox->setValue(p.start); });
       }
 
       {
         auto *label = new QLabel(prefix + " delay");
         label->setToolTip("How much delay the start point is from the axis.");
         layout->addWidget(label, row, 0);
-        auto *spinBox = makeQSpinBox({-2000, 2000}, 1, p.delay, this);
+        auto *spinBox = makeQSpinBox({-2000, 2000}, 1, p.delay);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [spinBox, &p] { spinBox->setValue(p.delay); });
       }
 
       {
         auto *label = new QLabel(prefix + " size");
         label->setToolTip("Num points to read from start.");
         layout->addWidget(label, row, 0);
-        auto *spinBox = makeQSpinBox({1000, 8000}, 1, p.size, this);
+        auto *spinBox = makeQSpinBox({1000, 8000}, 1, p.size);
         layout->addWidget(spinBox, row++, 1);
         spinBox->setSuffix(" pts");
-
-        updateGuiFromParamsCallbacks.emplace_back(
-            [spinBox, &p] { spinBox->setValue(p.size); });
       }
     };
 

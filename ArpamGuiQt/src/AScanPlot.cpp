@@ -202,6 +202,13 @@ void AScanPlot::plotCurrentAScan() {
   // Reset meta
   CustomPlot::PlotMeta plotMeta;
 
+  const auto setAxisSamplesSignalDepth = [&]() {
+    customPlot->xAxis->setLabel("Samples");
+    customPlot->yAxis->setLabel("Signal (V)");
+    customPlot->xAxis2->setLabel("Depth (mm)");
+    customPlot->xAxis2->setTickLabels(true);
+  };
+
   switch (m_type) {
   case PlotType::RFRaw: {
     // Original RF
@@ -222,10 +229,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (PA)";
 
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    customPlot->xAxis2->setLabel("Depth (mm)");
-    customPlot->xAxis2->setTickLabels(true);
+    setAxisSamplesSignalDepth();
 
     const auto &rf = m_data->PA.rfBeamformed;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -254,10 +258,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (PA)";
 
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    customPlot->xAxis2->setLabel("Depth (mm)");
-    customPlot->xAxis2->setTickLabels(true);
+    setAxisSamplesSignalDepth();
 
     const auto &rf = m_data->PA.rfEnv;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -269,10 +270,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (US)";
 
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal (V)");
-    customPlot->xAxis2->setLabel("Depth (mm)");
-    customPlot->xAxis2->setTickLabels(true);
+    setAxisSamplesSignalDepth();
 
     const auto &rf = m_data->US.rfEnv;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};
@@ -307,10 +305,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (US)";
 
-    customPlot->xAxis->setLabel("Samples");
-    customPlot->yAxis->setLabel("Signal");
-    customPlot->xAxis2->setLabel("Depth (mm)");
-    customPlot->xAxis2->setTickLabels(true);
+    setAxisSamplesSignalDepth();
 
     const auto &rf = m_data->US.rfLog;
     const std::span y{rf.colptr(m_AScanPlotIdx_canvas), rf.n_rows};

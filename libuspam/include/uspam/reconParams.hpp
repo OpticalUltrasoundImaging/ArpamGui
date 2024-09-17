@@ -30,10 +30,16 @@ struct ReconParams {
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
 
   int rotateOffset;
+
   float noiseFloor_mV;
   float desiredDynamicRange;
 
   bool flipOnEven; // If true, flip on even. else flip on odd
+
+  bool findSurface{true};
+  bool showSurface{false};
+  bool cleanSurface{false};
+  int additionalSamplesToCleanSurface{0};
 
   BeamformerType beamformerType;
   BeamformerParams<float> beamformerParams;
@@ -77,7 +83,7 @@ struct ReconParams2 {
                    .beamformerType = BeamformerType::SAFT_CF,
                    .beamformerParams =
                        beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{.medfiltKsize = 1,
+    ReconParams US{.medfiltKsize = 3,
                    .filterType = FilterType::IIR,
                    .firTaps = taps,
                    .iirOrder = order,
@@ -156,6 +162,10 @@ struct ReconParams2 {
 
     params.PA.flipOnEven = false;
     params.US.flipOnEven = false;
+
+    params.PA.cleanSurface = true;
+    params.PA.additionalSamplesToCleanSurface = 90;
+    params.US.cleanSurface = true;
 
     // NOLINTEND(*-magic-numbers)
     return params;
