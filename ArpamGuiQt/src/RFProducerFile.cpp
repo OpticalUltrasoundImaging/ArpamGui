@@ -9,6 +9,9 @@ void RFProducerFile::setBinfile(const fs::path &binfile) {
     m_loader.open(binfile);
     emit maxFramesChanged(m_loader.size());
 
+    // Clear the buffers
+    m_buffer->clear();
+
     // Load first frame
     produceOne(0);
 

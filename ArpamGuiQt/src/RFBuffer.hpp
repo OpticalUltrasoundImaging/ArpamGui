@@ -10,7 +10,6 @@
 #include <fmt/core.h>
 #include <fstream>
 #include <mutex>
-#include <stdexcept>
 #include <uspam/uspam.hpp>
 
 struct PerformanceMetrics {
@@ -34,6 +33,8 @@ struct PerformanceMetrics {
            << static_cast<int>(pm.overlay_ms);
     return stream;
   }
+
+  void clear() { std::memset(this, 0, sizeof(PerformanceMetrics)); }
 };
 
 template <uspam::Floating T> struct BScanData_ {
@@ -50,8 +51,19 @@ template <uspam::Floating T> struct BScanData_ {
   cv::Mat radial;
   QImage radial_img;
 
+  void clear() {
+    rf.zeros();
+    rfBeamformed.zeros();
+    rfEnv.zeros();
+    rfLog.zeros();
+
+    surface.clear();
+    radial.setTo(cv::Scalar(0));
+    radial_img.fill(Qt::black);
+  }
+
   void saveBScanData(const fs::path &directory,
-                     const std::string &prefix = "") {
+                     const std::string &prefix = "") const {
     // Save radial
     {
       auto path = directory / (prefix + "radial.png");
@@ -98,9 +110,23 @@ template <uspam::Floating T> struct BScanData {
   // Metrics
   PerformanceMetrics metrics;
 
+  // Clear all data. Doesn't release memory, just zeros most things.
+  void clear() {
+    rf.zeros();
+    PA.clear();
+    US.clear();
+
+    PAUSradial.setTo(cv::Scalar(0));
+    PAUSradial_img.fill(Qt::black);
+    fct = 0.0;
+    frameIdx = 0.0;
+
+    metrics.clear();
+  }
+
   // Export Bscan data to the directory.
   // directory should be created new for each frame
-  void exportToFile(const fs::path &directory) {
+  void exportToFile(const fs::path &directory) const {
     if (!fs::exists(directory)) {
       fs::create_directory(directory);
     }
@@ -200,6 +226,12 @@ public:
     unique_lock.unlock();
     // Notify one thread that the buffer isn't full
     not_full.notify_one();
+  }
+
+  void clear() {
+    for (auto &buf : buffer) {
+      buf->clear();
+    }
   }
 
 private:
