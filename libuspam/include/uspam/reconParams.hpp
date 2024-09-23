@@ -108,8 +108,10 @@ struct ReconParams2 {
   static inline ReconParams2 system2024v2probe1() {
     auto params = system2024v1();
     // NOLINTBEGIN(*-magic-numbers)
-    params.PA.rotateOffset = 0;
-    params.US.rotateOffset = 0;
+    params.US.subtractBackground = false;
+
+    params.PA.rotateOffset = 5;
+    params.US.rotateOffset = 5;
     // NOLINTEND(*-magic-numbers)
     return params;
   }
@@ -120,7 +122,7 @@ struct ReconParams2 {
     // NOLINTBEGIN(*-magic-numbers)
     params.PA.noiseFloor_mV = 6.0;
     params.US.noiseFloor_mV = 3.0;
-    params.US.desiredDynamicRange = 50;
+    params.US.desiredDynamicRange = 45;
 
     params.PA.flipOnEven = false;
     params.US.flipOnEven = false;

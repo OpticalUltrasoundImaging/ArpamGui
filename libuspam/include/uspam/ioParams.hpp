@@ -86,11 +86,11 @@ struct IOParams {
     params.byteOffset = 0;
 
     params.PA.start = 0;
+    params.PA.size = 2730;
     params.PA.delay = 0;
-    params.PA.size = 2800;
-    params.US.start = 2800;
-    params.US.delay = 0;
+    params.US.start = 2732;
     params.US.size = 5460;
+    params.US.delay = 0;
     return params;
   }
 
