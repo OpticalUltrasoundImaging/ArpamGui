@@ -25,6 +25,7 @@ FreqSpectrum::FreqSpectrum(QWidget *parent) : customPlot(new CustomPlot) {
    */
   {
     auto *layout = new QVBoxLayout;
+    layout->setContentsMargins(0, 0, 0, 0);
     setLayout(layout);
 
     layout->addWidget(customPlot);

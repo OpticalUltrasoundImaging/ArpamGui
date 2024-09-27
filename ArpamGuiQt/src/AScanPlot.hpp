@@ -16,14 +16,6 @@
 class AScanPlot : public QWidget {
   Q_OBJECT
 public:
-  // Sound speed: 1500m/s. 1000 mm/m. 180e6 samples/second
-  static constexpr double SoundSpeed = 1500.0; // [m/s]
-  static constexpr double mm2m = 1000.0;       // [mm/m]
-  static constexpr double Fs = 180e6;          // [samples/s]
-
-  static constexpr double MM_PER_PIXEL_PA = (SoundSpeed * mm2m) / (Fs);
-  static constexpr double MM_PER_PIXEL_US = MM_PER_PIXEL_PA / 2;
-
   enum PlotType {
     RFRaw,
     RFBeamformedUS,

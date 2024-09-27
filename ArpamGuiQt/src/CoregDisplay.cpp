@@ -165,6 +165,7 @@ CoregDisplay::CoregDisplay(QWidget *parent)
   // Image Canvas
   {
     auto *hlayout = new QHBoxLayout;
+    hlayout->setContentsMargins(0, 0, 0, 0);
     vlayout->addLayout(hlayout);
 
     m_canvasPAUS->overlay()->setModality("PAUS");
@@ -184,9 +185,9 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 }
 
 void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,
-                          double pix2m) {
-  m_canvasPAUS->imshow(imgPAUS, pix2m);
-  m_canvasUS->imshow(imgUS, pix2m);
+                          double pix2mm) {
+  m_canvasPAUS->imshow(imgPAUS, pix2mm);
+  m_canvasUS->imshow(imgUS, pix2mm);
 
   m_canvasPAUS->setEnabled(true);
   m_canvasUS->setEnabled(true);

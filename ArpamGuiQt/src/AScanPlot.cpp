@@ -61,6 +61,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
   // UI
   {
     auto *layout = new QVBoxLayout;
+    layout->setContentsMargins(0, 0, 0, 0);
     setLayout(layout);
 
     auto *splitter = new QSplitter;
@@ -202,6 +203,9 @@ void AScanPlot::plotCurrentAScan() {
   // Reset meta
   CustomPlot::PlotMeta plotMeta;
 
+  const auto spatialStepUS = m_data->spatialStep_rect;
+  const auto spatialStepPA = spatialStepUS * 2;
+
   const auto setAxisSamplesSignalDepth = [&]() {
     customPlot->xAxis->setLabel("Samples");
     customPlot->yAxis->setLabel("Signal (V)");
@@ -225,7 +229,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFBeamformedPA: {
     // PA rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spatialStepPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (PA)";
 
@@ -238,7 +242,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFBeamformedUS: {
     // US rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spatialStepUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (US)";
 
@@ -254,7 +258,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFEnvPA: {
     // PA rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spatialStepPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (PA)";
 
@@ -266,7 +270,7 @@ void AScanPlot::plotCurrentAScan() {
   } break;
   case PlotType::RFEnvUS: {
     // US rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spatialStepUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (US)";
 
@@ -282,7 +286,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.autoScaleY = false;
     plotMeta.yMax = 0;
     plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spatialStepPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (PA)";
 
@@ -301,7 +305,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.autoScaleY = false;
     plotMeta.yMax = 0;
     plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spatialStepUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (US)";
 

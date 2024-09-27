@@ -124,13 +124,13 @@ void Canvas::scaleToSize() {
   updateTransform();
 }
 
-void Canvas::imshow(const QImage &img, double pix2m) {
-  this->imshow(QPixmap::fromImage(img), pix2m);
+void Canvas::imshow(const QImage &img, double pix2mm) {
+  this->imshow(QPixmap::fromImage(img), pix2mm);
 }
 
-void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
+void Canvas::imshow(const QPixmap &pixmap, double pix2mm) {
   m_Pixmap = pixmap;
-  m_pix2m = pix2m;
+  m_pix2mm = pix2mm;
 
   // Remove current image
   if (m_PixmapItem != nullptr) {
@@ -156,9 +156,7 @@ void Canvas::imshow(const QPixmap &pixmap, double pix2m) {
 
 // Compute the distance between two points in the scaled pixmap domain
 double Canvas::computeDistance_mm(QPointF pt1, QPointF pt2) const {
-  const auto distance = geometry::calcMagnitude(pt1 - pt2);
-  const auto distance_mm = distance * m_pix2m * 1000; // 1000 converts m to mm
-  return distance_mm;
+  return geometry::calcMagnitude(pt1 - pt2) * m_pix2mm;
 }
 
 bool Canvas::event(QEvent *event) {
