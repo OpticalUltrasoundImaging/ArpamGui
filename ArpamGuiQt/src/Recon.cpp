@@ -2,6 +2,7 @@
 #include "Common.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
+#include "uspam/surface.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
 
@@ -41,6 +42,39 @@ QImage cvMatToQImage(const cv::Mat &mat) {
     break;
   }
   return {};
+}
+
+// Helper function to compute the Savitzky-Golay coefficients
+template <typename T>
+std::vector<T> computeSavitzkyGolayKernel(int window_size, int poly_order)
+  requires(std::is_floating_point_v<T>)
+{
+  if (window_size % 2 == 0 || window_size <= poly_order) {
+    throw std::invalid_argument(
+        "Window size must be odd and greater than polynomial order.");
+  }
+
+  int half_window = (window_size - 1) / 2;
+
+  // Create the Vandermonde matrix
+  arma::Mat<T> vandermonde(window_size, poly_order + 1);
+  for (int i = -half_window; i <= half_window; ++i) {
+    for (int j = 0; j <= poly_order; ++j) {
+      vandermonde(i + half_window, j) = std::pow(i, j);
+    }
+  }
+
+  // Compute the pseudo-inverse using Armadillo
+  arma::Mat<T> pinv = arma::pinv(vandermonde);
+
+  // Extract the first row of the pseudo-inverse matrix as the convolution
+  // coefficients
+  std::vector<T> coefficients(window_size);
+  for (int i = 0; i < window_size; ++i) {
+    coefficients[i] = pinv(0, i);
+  }
+
+  return coefficients;
 }
 
 /*
@@ -211,8 +245,9 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
     uspam::TimeIt timeit;
 
     // compute IIR filter kernels
-    const kfr::zpk<T> filt = iir_bandpass(kfr::butterworth<T>(params.iirOrder),
-                                          params.bpLowFreq, params.bpHighFreq);
+    const kfr::zpk<T> filt =
+        kfr::iir_bandpass(kfr::butterworth<T>(params.iirOrder),
+                          params.bpLowFreq, params.bpHighFreq);
     const kfr::iir_params<T> bqs = to_sos(filt);
 
     // Apply filter and envelope
@@ -331,13 +366,18 @@ void reconBScan(BScanData<ArpamFloat> &data,
   /*
   Split and background
   */
-  // Estimate background from current RF
-  // const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
 
   // Split RF into PA and US scan lines
   {
     const uspam::TimeIt timeit;
-    ioparams.splitRfPAUS(data.rf, data.PA.rf, data.US.rf);
+
+    // Estimate background from current RF
+    const arma::Col<ArpamFloat> background_aline = arma::mean(data.rf, 1);
+
+    ioparams.splitRfPAUS_sub(data.rf, background_aline, data.PA.rf, data.US.rf,
+                             params.PA.subtractBackground,
+                             params.US.subtractBackground);
+
     perfMetrics.split_ms = timeit.get_ms();
   }
 
@@ -385,8 +425,28 @@ void reconBScan(BScanData<ArpamFloat> &data,
     }
   }
 
+  // Filter US surface
+  {
+    arma::Col<ArpamFloat> surface =
+        arma::conv_to<arma::Col<ArpamFloat>>::from(data.US.surface) - 10;
+
+    uspam::surface::fixSurfaceIdxMissing(surface);
+
+    // // Savitzky-Golay
+    // const auto kernel = computeSavitzkyGolayKernel<ArpamFloat>(95, 2);
+    // arma::Col<ArpamFloat> filteredSurface(surface.size());
+
+    // fftconv::oaconvolve_fftw_same<ArpamFloat>(surface, kernel,
+    // filteredSurface);
+
+    // data.US.surface = arma::conv_to<std::vector<int>>::from(filteredSurface);
+
+    data.US.surface = arma::conv_to<std::vector<int>>::from(surface);
+  }
+
   // Post processing scan conversion
   scanConversion(data.US, params.US, ioparams.US, data.US.surface);
+
   // Use US surface for PA too
   // This piece of ugly code basically alines the final US surface with the PA
   // surface The final image is padded at the top (left if row major) by
