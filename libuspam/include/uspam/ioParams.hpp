@@ -68,7 +68,7 @@ struct IOParams {
                         {
                             .start = 0,
                             .size = 2600,
-                            .delay = 150,
+                            .delay = 27, // ~150 ns
                         },
                     .US =
                         {
@@ -87,7 +87,7 @@ struct IOParams {
 
     params.PA.start = 0;
     params.PA.size = 2730;
-    params.PA.delay = 0;
+    params.PA.delay = 27;
     params.US.start = 2732;
     params.US.size = 5460;
     params.US.delay = 0;

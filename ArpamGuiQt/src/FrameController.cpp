@@ -374,5 +374,5 @@ void FrameController::saveCurrAnnotationAndLoadNewFrame(int newFrame) {
 void FrameController::plotCurrentBScan() {
   // Display images
   m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->US.radial_img,
-                         m_data->fct);
+                         m_data->spatialStep_radial);
 }

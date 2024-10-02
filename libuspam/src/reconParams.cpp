@@ -12,6 +12,8 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
 
   rapidjson::Value obj(rapidjson::kObjectType);
 
+  obj.AddMember("transducerOffset", transducerOffset, allocator);
+
   obj.AddMember("medfiltKsize", medfiltKsize, allocator);
 
   obj.AddMember("filterType", static_cast<int>(filterType), allocator);
@@ -21,7 +23,6 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
   obj.AddMember("bpHighFreq", bpHighFreq, allocator);
   obj.AddMember("bpLowFreq", bpLowFreq, allocator);
 
-  obj.AddMember("padding", padding, allocator);
   obj.AddMember("truncate", truncate, allocator);
 
   obj.AddMember("rotateOffset", rotateOffset, allocator);
@@ -54,6 +55,8 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
 
   ReconParams params;
 
+  params.transducerOffset = obj["transducerOffset"].GetFloat();
+
   params.medfiltKsize = obj["medfiltKsize"].GetInt();
 
   params.filterType = static_cast<FilterType>(obj["filterType"].GetInt());
@@ -62,10 +65,6 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
 
   params.bpHighFreq = obj["bpHighFreq"].GetFloat();
   params.bpLowFreq = obj["bpLowFreq"].GetFloat();
-
-  params.padding = obj["padding"].GetInt();
-  params.truncate = obj["truncate"].GetInt();
-  params.rotateOffset = obj["rotateOffset"].GetInt();
 
   params.noiseFloor_mV = obj["noiseFloor"].GetFloat();
   params.desiredDynamicRange = obj["desiredDynamicRange"].GetFloat();

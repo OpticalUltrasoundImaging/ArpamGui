@@ -1,7 +1,6 @@
 #pragma once
 
 #include "uspam/beamformer/BeamformerType.hpp"
-#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/beamformer/beamformer.hpp"
 #include <armadillo>
 #include <filesystem>
@@ -16,6 +15,24 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
+  bool isPA;
+  float fs{180e6F};   // [1/s] sampling frequency
+  float SoS{1540.0F}; // [m/s] Speed of sound
+
+  // [mm] Space represented by each pixel
+  [[nodiscard]] inline constexpr float spatialStep() const {
+    if (isPA) {
+      return SoS / fs * 1e3;
+    } else {
+      return SoS / fs * 1e3 * 0.5;
+    }
+  }
+
+  [[nodiscard]] inline constexpr int transducerOffsetPoints() const {
+    const auto step = spatialStep();
+    return static_cast<int>(std::round(transducerOffset / step));
+  }
+
   bool subtractBackground{true};
   int medfiltKsize{0};
 
@@ -26,8 +43,8 @@ struct ReconParams {
   float bpLowFreq;  // Bandpass low freq
   float bpHighFreq; // Bandpass high freq
 
-  int padding;  // Padding due to distance between transducer surface and the
-                // rotation axis
+  float transducerOffset; // [mm] distance between transducer surface and the
+                          // rotation axis
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
 
   int rotateOffset;
@@ -65,17 +82,18 @@ struct ReconParams2 {
     constexpr int taps = 95;
     constexpr int order = 3;
 
-    constexpr int padding = 250;
+    constexpr float transducerOffset = 6.2;
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
 
-    ReconParams PA{.medfiltKsize = 3,
+    ReconParams PA{.isPA = true,
+                   .medfiltKsize = 3,
                    .filterType = FilterType::FIR,
                    .firTaps = taps,
                    .iirOrder = order,
                    .bpLowFreq = 0.03,
                    .bpHighFreq = 0.22,
-                   .padding = padding,
+                   .transducerOffset = transducerOffset,
                    .truncate = 250,
                    .rotateOffset = rotateOffset,
                    .noiseFloor_mV = 6.0F,
@@ -84,13 +102,14 @@ struct ReconParams2 {
                    .beamformerType = BeamformerType::SAFT_CF,
                    .beamformerParams =
                        beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{.medfiltKsize = 1,
+    ReconParams US{.isPA = false,
+                   .medfiltKsize = 1,
                    .filterType = FilterType::IIR,
                    .firTaps = taps,
                    .iirOrder = order,
                    .bpLowFreq = 0.1,
                    .bpHighFreq = 0.3,
-                   .padding = padding * 2,
+                   .transducerOffset = transducerOffset,
                    .truncate = 500,
                    .rotateOffset = rotateOffset,
                    .noiseFloor_mV = 3.0F,

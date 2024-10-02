@@ -3,6 +3,99 @@
 
 namespace uspam::beamformer {
 
+template <Floating Float>
+[[nodiscard]] TimeDelay<Float>
+computeSaftTimeDelay(const SaftDelayParams<Float> &p, int zStart, int zEnd) {
+  // [pts] z start and end points of SAFT.
+  // By default start = (half focal distance), end = (1.5x focal distance)
+  constexpr auto pi = std::numbers::pi_v<Float>;
+
+  // where SAFT should start (as a fraction of focal length)
+  // constexpr Float SAFT_START = 0.25;
+  // constexpr Float SAFT_END = 1.5;
+  // constexpr Float SAFT_START = 0.95;
+  // constexpr Float SAFT_END = 1.05;
+  // constexpr Float SAFT_START = 0.8;
+  // constexpr Float SAFT_END = 1.2;
+  constexpr Float SAFT_START = 0.5;
+  constexpr Float SAFT_END = 1.5;
+
+  if (zStart < 0) {
+    zStart = static_cast<int>(std::round((p.f * SAFT_START) / p.dr()));
+  }
+
+  if (zEnd < 0) {
+    zEnd = static_cast<int>(std::round((p.f * SAFT_END) / p.dr()));
+  }
+
+  const int max_saft_lines = 12;
+
+  // number of saft lines as a func of z
+  arma::Col<uint8_t> nLines(zEnd - zStart, arma::fill::zeros);
+  arma::Mat<Float> timeDelay(zEnd - zStart, max_saft_lines, arma::fill::zeros);
+
+  for (int j = 1; j < max_saft_lines; ++j) {
+    // relative position to the transducer center dr2 and ang2
+    const auto ang1 = j * p.da;
+
+    for (int i = 0; i < zEnd - zStart; ++i) {
+      // [mm] Distance between current point and rt (transducer surface)
+      const auto dr1 = (i + zStart) * p.dr();
+      // [mm] Current radius
+      const auto r = p.rt + dr1;
+
+      if (i == 0) {
+        fmt::println("zStart: {}", zStart);
+        fmt::println("zEnd: {}", zEnd);
+        fmt::println("p.rt: {:.2f} mm", p.rt);
+        fmt::println("dr1: {:.2f} mm", dr1);
+        fmt::println("r: {:.2f} mm", r);
+        fmt::println("p.f: {:.2f} mm", p.f);
+        fmt::println("p.rt + p.f: {:.2f} mm", p.rt + p.f);
+        fmt::println("");
+      }
+
+      // [mm] ?
+      const auto dr2 =
+          std::sqrt(r * r + p.rt * p.rt - 2 * r * p.rt * std::cos(ang1));
+
+      // [rad] Angle between illum axis and point
+      const auto ang2 =
+          pi - std::acos((p.rt * p.rt + dr2 * dr2 - r * r) / (2 * p.rt * dr2));
+
+      // Determine if point is within the light beam field
+      if (ang2 >= p.illumAngleRad()) {
+        continue;
+      }
+
+      // Determine if point is within the transducer field
+
+      // [mm] distance to focus
+      const auto dr3 =
+          std::sqrt(p.f * p.f + dr2 * dr2 - 2 * p.f * dr2 * std::cos(ang2));
+
+      // [rad] angle wrt focal line
+      const auto ang3 =
+          std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
+
+      if (dr3 <= p.f && ang3 <= p.angle()) {
+        timeDelay.at(i, j) = (abs(p.f - dr1) - dr3) / p.dr();
+        nLines.at(i) += 1;
+      } else if ((pi - ang3) <= p.angle()) {
+        timeDelay.at(i, j) = (dr3 - abs(p.f - dr1)) / p.dr();
+        nLines.at(i) += 1;
+      }
+    }
+  }
+
+  return TimeDelay<Float>{timeDelay, nLines, zStart, zEnd};
+}
+
+template TimeDelay<float> computeSaftTimeDelay(const SaftDelayParams<float> &p,
+                                               int zStart, int zEnd);
+template TimeDelay<double>
+computeSaftTimeDelay(const SaftDelayParams<double> &p, int zStart, int zEnd);
+
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
                             const arma::Mat<Float> &rf) {
@@ -85,8 +178,7 @@ apply_saft<float, BeamformerType::SAFT_CF>(const TimeDelay<float> &timeDelay,
 
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
-                               const arma::Mat<Float> &rf,
-                               const size_t offset) {
+                               const arma::Mat<Float> &rf, const int offset) {
   const int nScans = rf.n_cols;
   const int nPts = rf.n_rows;
 
@@ -181,21 +273,17 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
   return rf_saft;
 }
 
-template arma::Mat<float>
-apply_saft_v2<float, BeamformerType::SAFT>(const TimeDelay<float> &timeDelay,
-                                           const arma::Mat<float> &rf,
-                                           size_t offset);
+template arma::Mat<float> apply_saft_v2<float, BeamformerType::SAFT>(
+    const TimeDelay<float> &timeDelay, const arma::Mat<float> &rf, int offset);
 template arma::Mat<double>
 apply_saft_v2<double, BeamformerType::SAFT>(const TimeDelay<double> &timeDelay,
                                             const arma::Mat<double> &rf,
-                                            size_t offset);
+                                            int offset);
 
-template arma::Mat<float>
-apply_saft_v2<float, BeamformerType::SAFT_CF>(const TimeDelay<float> &timeDelay,
-                                              const arma::Mat<float> &rf,
-                                              size_t offset);
+template arma::Mat<float> apply_saft_v2<float, BeamformerType::SAFT_CF>(
+    const TimeDelay<float> &timeDelay, const arma::Mat<float> &rf, int offset);
 template arma::Mat<double> apply_saft_v2<double, BeamformerType::SAFT_CF>(
     const TimeDelay<double> &timeDelay, const arma::Mat<double> &rf,
-    size_t offset);
+    int offset);
 
 } // namespace uspam::beamformer

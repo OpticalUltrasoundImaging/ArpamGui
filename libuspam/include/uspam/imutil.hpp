@@ -44,6 +44,24 @@ auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
   return cv_mat;
 }
 
+template <typename T> auto arma2cv_nocopy(const arma::Mat<T> &mat) {
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
+                 (void *)mat.memptr());
+  return cv_mat;
+}
+
+template <typename T> auto cv2arma_nocopy(cv::Mat &cv_mat) {
+  arma::Mat<T> mat(reinterpret_cast<T *>(cv_mat.data), cv_mat.rows, cv_mat.cols,
+                   false, true);
+  return mat;
+}
+
+template <typename T> auto cv2arma_copy(cv::Mat &cv_mat) {
+  arma::Mat<T> mat(reinterpret_cast<T *>(cv_mat.data), cv_mat.rows, cv_mat.cols,
+                   true, true);
+  return mat;
+}
+
 template <typename T>
 auto makeRadial_v2(const arma::Mat<T> &mat, int padding = 0) {
   // NOLINTNEXTLINE(*-casting)

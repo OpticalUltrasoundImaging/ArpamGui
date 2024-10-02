@@ -1,5 +1,6 @@
 #pragma once
 
+#include <armadillo>
 #include <type_traits>
 #include <uspam/beamformer/BeamformerType.hpp>
 #include <uspam/beamformer/SAFT.hpp>
@@ -18,13 +19,15 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
 {
   switch (beamformer) {
   case BeamformerType::SAFT: {
-    const auto saftParams =
+
+    const SaftDelayParams<T> saftParams =
         std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
             ? std::get<SaftDelayParams<T>>(beamformerParams)
             : SaftDelayParams<T>::make_PA();
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
+
     rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT>(
         timeDelay, rf, truncate);
 
@@ -38,6 +41,8 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
+
+    timeDelay.timeDelay.save("timeDelay.bin", arma::raw_binary);
 
     rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT_CF>(
         timeDelay, rf, truncate);

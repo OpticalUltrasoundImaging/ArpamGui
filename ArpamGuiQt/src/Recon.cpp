@@ -4,6 +4,7 @@
 #include "uspam/ioParams.hpp"
 #include "uspam/surface.hpp"
 #include <future>
+#include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
 namespace Recon {
@@ -99,6 +100,9 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   Log compress
   */
 
+  // Transducer offset
+  const int padding = params.transducerOffsetPoints();
+
   // Truncate the pulser/laser artifact
   const int truncate = std::max(params.truncate, 100);
   const int truncateClearLater = std::max(params.truncate - 100, 0);
@@ -160,7 +164,7 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
   {
     uspam::TimeIt timeit;
     beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams,
-             ioparams.delay + params.truncate + params.padding);
+             ioparams.delay + params.truncate + padding);
 
     beamform_ms = timeit.get_ms();
   }
@@ -216,10 +220,13 @@ std::tuple<float, float, float> procOne(BScanData_<T> &data,
         // Find surface
         // Use std method
         if (params.findSurface) {
-          const auto thresh = arma::stddev(rfEnv.unsafe_col(i));
-          constexpr int ignoreFirst = 100;
+          // const auto thresh = arma::stddev(rfEnv.unsafe_col(i));
+          // const auto thresh = arma::mean(rfEnv.unsafe_col(i));
+          const auto thresh = arma::max(rfEnv.unsafe_col(i)) - 0.001F;
+          constexpr int ignoreFirst = 400;
           surface[i] = find_first_greater(_env.subspan(ignoreFirst), thresh) +
                        ignoreFirst + truncate;
+          _env.subspan(0, ignoreFirst);
         }
 
         // Log compress
@@ -343,8 +350,22 @@ auto scanConversion(BScanData_<T> &data,
     }
   }
 
+  // Compute image gradient in the depth direction
+
+  // {
+  //   auto &mat = data.rfLog;
+  //   auto cv_mat = uspam::imutil::arma2cv_nocopy(mat);
+  //   cv::Mat y_deriv;
+  //   // cv::Sobel(cv_mat, y_deriv, CV_32F, 0, 1, 3);
+
+  //   // cv::convertScaleAbs(y_deriv, y_deriv);
+  //   data.rfLog = uspam::imutil::cv2arma_copy<uint8_t>(cv_mat);
+  // }
+
+  const auto padding = params.transducerOffsetPoints();
+  qDebug() << "Padding " << padding;
   data.radial =
-      uspam::imutil::makeRadial_v2(data.rfLog, params.padding + ioparams.delay);
+      uspam::imutil::makeRadial_v2(data.rfLog, padding + ioparams.delay);
 
   // cv::medianBlur(data.radial, data.radial, 3);
 
@@ -450,42 +471,43 @@ void reconBScan(BScanData<ArpamFloat> &data,
   // Use US surface for PA too
   // This piece of ugly code basically alines the final US surface with the PA
   // surface The final image is padded at the top (left if row major) by
-  // "padding" ([pts] arbitrary padding user can control to change warp
-  // perspective) + "delay" ([pts] theoretical delay in the acquired data)
-  const auto fct = static_cast<float>(data.PA.rfLog.n_rows + params.PA.padding +
-                                      ioparams.PA.delay) /
-                   static_cast<float>(data.US.rfLog.n_rows + params.US.padding +
-                                      ioparams.US.delay);
-  for (int i = 0; i < data.US.surface.size(); ++i) {
-    const int US_surface_padded =
-        data.US.surface[i] + params.US.padding + ioparams.US.delay;
-    const int PA_surface_padded = static_cast<int>(
-        std::round(static_cast<float>(US_surface_padded) * fct));
-    data.PA.surface[i] =
-        PA_surface_padded - params.PA.padding - ioparams.PA.delay;
+  // "transducerOffsetPoints" + "delay" ([pts] theoretical delay in the acquired
+  // data)
+  {
+    const auto PApadding = params.PA.transducerOffsetPoints();
+    const auto USpadding = params.US.transducerOffsetPoints();
+    const auto fct = static_cast<float>(data.PA.rfLog.n_rows + PApadding +
+                                        ioparams.PA.delay) /
+                     static_cast<float>(data.US.rfLog.n_rows + USpadding +
+                                        ioparams.US.delay);
+
+    for (int i = 0; i < data.US.surface.size(); ++i) {
+      const int US_surface_padded =
+          data.US.surface[i] + USpadding + ioparams.US.delay;
+      const int PA_surface_padded = static_cast<int>(
+          std::round(static_cast<float>(US_surface_padded) * fct));
+      data.PA.surface[i] = PA_surface_padded - PApadding - ioparams.PA.delay;
+    }
   }
 
   scanConversion(data.PA, params.PA, ioparams.PA, data.PA.surface);
 
   // Compute scalebar scalar
-  // fct is the depth [m] of one radial pixel
-  data.fct = [&data] {
-    constexpr double soundSpeed = 1500.0; // [m/s] Sound speed
-    constexpr double fs = 180e6;          // [1/s] Sample frequency
-
-    // [m] multiplier to convert sampled US points to meters. 2x travel path
-    constexpr double fctRect = soundSpeed / fs / 2;
+  {
+    // [mm]
+    data.spatialStep_rect = params.US.spatialStep();
 
     // [points]
-    const auto USpoints_rect = static_cast<double>(data.US.rf.n_rows);
+    const auto USpoints_rect = static_cast<double>(data.US.rf.n_rows) +
+                               params.US.transducerOffsetPoints();
 
     // [points]
     const auto USpoints_radial = static_cast<double>(data.US.radial.rows) / 2;
 
-    // [m]
-    const auto fctRadial = fctRect * USpoints_rect / USpoints_radial;
-    return fctRadial;
-  }();
+    // [mm]
+    data.spatialStep_radial =
+        data.spatialStep_rect * USpoints_rect / USpoints_radial;
+  };
 
   {
     const uspam::TimeIt timeit;

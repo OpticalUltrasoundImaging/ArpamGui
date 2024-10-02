@@ -1,6 +1,5 @@
 #include "CoregDisplay.hpp"
 
-#include "AScanPlot.hpp"
 #include <QAction>
 #include <QBoxLayout>
 #include <QHBoxLayout>

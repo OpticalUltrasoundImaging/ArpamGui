@@ -48,7 +48,7 @@ SaftParamsController::SaftParamsController(
         };
       };
 
-  labelledSpinBox("Transducer offset", {0.0, 20.0}, 0.1, m_params.rt, " mm",
+  labelledSpinBox("Transducer offset", {0.0, 50.0}, 0.1, m_params.rt, " mm",
                   "Distance from axis of rotation to transducer surface");
   labelledSpinBox("Sound speed", {1000.0, 2000.0}, 1.0, m_params.vs, " mm",
                   "Sound speed");

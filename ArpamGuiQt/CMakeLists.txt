@@ -100,6 +100,7 @@ qt_add_executable(${EXE_NAME}
     src/AcquisitionController.cpp
     src/Motor/NI.hpp
     src/Motor/NI.cpp
+    src/CollapsibleGroupBox.hpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )

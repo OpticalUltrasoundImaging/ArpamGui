@@ -2,6 +2,9 @@
 
 #include "uspam/beamformer/BeamformerType.hpp"
 #include "uspam/beamformer/common.hpp"
+#include "uspam/ioParams.hpp"
+#include <fmt/format.h>
+// #include "uspam/reconParams.hpp"
 #include <armadillo>
 #include <cmath>
 #include <numbers>
@@ -37,18 +40,38 @@ template <Floating Float> struct SaftDelayParams {
 
   // [mm] spatial step size
   // NOLINTNEXTLINE(*-magic-numbers)
-  [[nodiscard]] Float dr() const { return vs * dt * 1e3 / PAUS; }
+  [[nodiscard]] constexpr Float dr() const { return vs * dt * 1e3 / PAUS; }
 
   // Transducer focus angle
-  [[nodiscard]] Float angle() const {
+  [[nodiscard]] constexpr Float angle() const {
     return std::asin(static_cast<Float>(d / (2 * f)));
   }
 
-  [[nodiscard]] Float illumAngleRad() const {
+  [[nodiscard]] constexpr Float illumAngleRad() const {
     return static_cast<Float>(deg2rad(illumAngleDeg));
   }
 
-  static auto make_PA(int numAlinesPerBScan = 1000, Float fs = 180e6) {
+  // Need to solve circular includes
+  // static constexpr auto make(uspam::recon::ReconParams reconParams,
+  //                            uspam::io::IOParams ioparams) {
+  //   // NOLINTBEGIN(*-magic-numbers)
+
+  //   return SaftDelayParams<Float>{
+  //       .rt = 6.2,
+  //       .vs = reconParams.SoS,
+  //       .dt = static_cast<Float>(1.0 / reconParams.fs),
+  //       .da = 2 * static_cast<Float>(std::numbers::pi) /
+  //             static_cast<Float>(ioparams.alinesPerBscan),
+  //       .f = 15.0,
+  //       .d = 8.5,
+  //       .illumAngleDeg = 5.0,
+  //       .PAUS = reconParams.isPA ? 1 : 2,
+  //   };
+  //   // NOLINTEND(*-magic-numbers)
+  // }
+
+  static constexpr auto make_PA(int numAlinesPerBScan = 1000,
+                                Float fs = 180e6) {
     // NOLINTBEGIN(*-magic-numbers)
     return SaftDelayParams<Float>{
         .rt = 6.2,
@@ -63,7 +86,8 @@ template <Floating Float> struct SaftDelayParams {
     // NOLINTEND(*-magic-numbers)
   }
 
-  static auto make_US(int numAlinesPerBscan = 1000, Float fs = 180e6) {
+  static constexpr auto make_US(int numAlinesPerBscan = 1000,
+                                Float fs = 180e6) {
     auto params = make_PA(numAlinesPerBscan, fs);
     params.PAUS = 2;
     return params;
@@ -71,70 +95,9 @@ template <Floating Float> struct SaftDelayParams {
 };
 
 template <Floating Float>
-[[nodiscard]] auto computeSaftTimeDelay(const SaftDelayParams<Float> &p,
-                                        int zStart = -1, int zEnd = -1) {
-  // [pts] z start and end points of SAFT.
-  // By default start = (half focal distance), end = (1.5x focal distance)
-  constexpr auto pi = std::numbers::pi_v<Float>;
-
-  // where SAFT should start (as a fraction of focal length)
-  constexpr Float SAFT_START = 0.25;
-  constexpr Float SAFT_END = 1.5;
-
-  if (zStart < 0) {
-    zStart = static_cast<int>(std::round((p.f * SAFT_START) / p.dr()));
-  }
-
-  if (zEnd < 0) {
-    zEnd = static_cast<int>(std::round((p.f * SAFT_END) / p.dr()));
-  }
-
-  const int max_saft_lines = 15;
-
-  // number of saft lines as a func of z
-  arma::Col<uint8_t> nLines(zEnd - zStart, arma::fill::zeros);
-  arma::Mat<Float> timeDelay(zEnd - zStart, max_saft_lines, arma::fill::zeros);
-
-  for (int j = 1; j < max_saft_lines; ++j) {
-    // relative position to the transducer center dr2 and ang2
-    const auto ang1 = j * p.da;
-
-    for (int i = 0; i < zEnd - zStart; ++i) {
-      const auto dr1 = (i + zStart) * p.dr();
-      const auto r = p.rt + (i + zStart) * p.dr();
-
-      const auto dr2 =
-          std::sqrt(r * r + p.rt * p.rt - 2 * r * p.rt * std::cos(ang1));
-      const auto ang2 =
-          pi - std::acos((p.rt * p.rt + dr2 * dr2 - r * r) / (2 * p.rt * dr2));
-
-      // Determine if point is within the light beam field
-      if (ang2 >= p.illumAngleRad()) {
-        continue;
-      }
-
-      // Determine if point is within the transducer field
-
-      // distance to focus
-      const auto dr3 =
-          std::sqrt(p.f * p.f + dr2 * dr2 - 2 * p.f * dr2 * std::cos(ang2));
-
-      // angle wrt focal line
-      const auto ang3 =
-          std::acos((p.f * p.f + dr3 * dr3 - dr2 * dr2) / (2 * p.f * dr3));
-
-      if (dr3 <= p.f && ang3 <= p.angle()) {
-        timeDelay.at(i, j) = (abs(p.f - dr1) - dr3) / p.dr();
-        nLines.at(i) += 1;
-      } else if ((pi - ang3) <= p.angle()) {
-        timeDelay.at(i, j) = (dr3 - abs(p.f - dr1)) / p.dr();
-        nLines.at(i) += 1;
-      }
-    }
-  }
-
-  return TimeDelay<Float>{timeDelay, nLines, zStart, zEnd};
-}
+[[nodiscard]] TimeDelay<Float>
+computeSaftTimeDelay(const SaftDelayParams<Float> &p, int zStart = -1,
+                     int zEnd = -1);
 
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
@@ -142,6 +105,6 @@ arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
 
 template <Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
-                               const arma::Mat<Float> &rf, size_t offset = 0);
+                               const arma::Mat<Float> &rf, int offset = 0);
 
 } // namespace uspam::beamformer

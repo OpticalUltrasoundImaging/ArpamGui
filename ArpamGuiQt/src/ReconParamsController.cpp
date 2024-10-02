@@ -1,4 +1,5 @@
 #include "ReconParamsController.hpp"
+#include "CollapsibleGroupBox.hpp"
 #include "Common.hpp"
 #include "SaftParamsController.hpp"
 #include "uspam/beamformer/BeamformerType.hpp"
@@ -13,10 +14,11 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSpinBox>
+#include <QToolButton>
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
-#include <qspinbox.h>
+#include <qgroupbox.h>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -72,6 +74,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     : QWidget(parent), params(uspam::recon::ReconParams2::system2024v2probe2()),
       ioparams(uspam::io::IOParams::system2024v2()) {
   auto *layout = new QVBoxLayout();
+  layout->setContentsMargins(0, 0, 0, 0); // No margins
+  // layout->setSpacing(0);                  // No spacing between widgets
   this->setLayout(layout);
 
   auto *doubleListValidator = new DoubleListValidator(this);
@@ -131,6 +135,26 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         return spinBox;
       };
 
+  const auto makeQDoubleSpinBox2 =
+      [this]<typename Float>(const std::pair<Float, Float> &range,
+                             Float singleStep, Float &value1, Float &value2) {
+        auto *spinBox = new QDoubleSpinBox;
+        spinBox->setRange(static_cast<double>(range.first),
+                          static_cast<double>(range.second));
+        spinBox->setValue(static_cast<double>(value1));
+        spinBox->setSingleStep(static_cast<double>(singleStep));
+        connect(spinBox, &QDoubleSpinBox::valueChanged, this,
+                [this, &value1, &value2](const double newValue) {
+                  value1 = static_cast<Float>(newValue);
+                  value2 = static_cast<Float>(newValue);
+                  this->_paramsUpdatedInternal();
+                });
+
+        this->updateGuiFromParamsCallbacks.emplace_back(
+            [spinBox, &value1] { spinBox->setValue(value1); });
+        return spinBox;
+      };
+
   const auto makeBoolCheckBox = [this](bool &value) {
     auto *cb = new QCheckBox();
     using Qt::CheckState;
@@ -166,6 +190,98 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return cb;
   };
 
+  // System parameters
+  {
+    auto *gb = new CollapsibleGroupBox("System Parameters");
+    layout->addWidget(gb);
+    auto *layout = new QGridLayout;
+    gb->setLayout(layout);
+
+    int row = 0;
+    {
+      auto *label = new QLabel("Transducer offset");
+      label->setToolTip("");
+      layout->addWidget(label, row, 0);
+
+      auto *spinBox =
+          makeQDoubleSpinBox2({0, 10}, 0.1F, params.PA.transducerOffset,
+                              params.US.transducerOffset);
+      layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" mm");
+    }
+  }
+
+  // Registration params
+  {
+    auto *gb = new CollapsibleGroupBox(tr("Coregistration"));
+    layout->addWidget(gb);
+    auto *layout = new QGridLayout;
+    gb->setLayout(layout);
+    int row = 0;
+
+    {
+      auto *label = new QLabel("Flip on even");
+      label->setToolTip("Flip the image on even or odd indices.");
+      layout->addWidget(label, row, 0);
+
+      auto *cb = makeBoolCheckBox2(params.PA.flipOnEven, params.US.flipOnEven);
+      layout->addWidget(cb, row++, 1);
+    }
+
+    {
+      auto *label = new QLabel("Rotation offset");
+      label->setToolTip(
+          "Rotation offset in no. of Alines to stablize the display.");
+      layout->addWidget(label, row, 0);
+      auto *spinBox = makeQSpinBox2({-500, 500}, 1, params.US.rotateOffset,
+                                    params.PA.rotateOffset);
+      layout->addWidget(spinBox, row++, 1);
+      spinBox->setSuffix(" lines");
+    }
+
+    {
+      auto *label = new QLabel("Alines Per Bscan");
+      label->setToolTip("");
+      layout->addWidget(label, row, 0);
+      auto *spinBox = makeQSpinBox({500, 2000}, 1, ioparams.alinesPerBscan);
+      spinBox->setSingleStep(100);
+      layout->addWidget(spinBox, row++, 1);
+    }
+
+    const auto makeIOParams_controller = [&](const QString &prefix,
+                                             uspam::io::IOParams_ &p) {
+      {
+        auto *label = new QLabel(prefix + " start");
+        label->setToolTip("Where to start reading in the combined rf array.");
+        layout->addWidget(label, row, 0);
+        auto *spinBox = makeQSpinBox({0, 8000}, 1, p.start);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
+      }
+
+      {
+        auto *label = new QLabel(prefix + " delay");
+        label->setToolTip("How much delay the start point is from the axis.");
+        layout->addWidget(label, row, 0);
+        auto *spinBox = makeQSpinBox({-2000, 2000}, 1, p.delay);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
+      }
+
+      {
+        auto *label = new QLabel(prefix + " size");
+        label->setToolTip("Num points to read from start.");
+        layout->addWidget(label, row, 0);
+        auto *spinBox = makeQSpinBox({1000, 8000}, 1, p.size);
+        layout->addWidget(spinBox, row++, 1);
+        spinBox->setSuffix(" pts");
+      }
+    };
+
+    makeIOParams_controller("PA", ioparams.PA);
+    makeIOParams_controller("US", ioparams.US);
+  }
+
   const QString &help_Truncate = "Truncate num points from the beginning to "
                                  "remove pulser/laser artifacts.";
   const QString &help_NoiseFloor =
@@ -176,7 +292,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   const auto makeReconParamsControl = [&](const QString &groupBoxName,
                                           uspam::recon::ReconParams &p) {
-    auto *gb = new QGroupBox(groupBoxName);
+    auto *gb = new CollapsibleGroupBox(groupBoxName);
     auto *vlayout = new QVBoxLayout;
     gb->setLayout(vlayout);
 
@@ -329,16 +445,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       }
 
       {
-        auto *label = new QLabel("Padding (top)");
-        label->setToolTip("");
-        layout->addWidget(label, row, 0);
-
-        auto *spinBox = makeQSpinBox({0, 2000}, 1, p.padding);
-        layout->addWidget(spinBox, row++, 1);
-        spinBox->setSuffix(" pts");
-      }
-
-      {
         auto *label = new QLabel("Truncate");
         label->setToolTip(help_Truncate);
         layout->addWidget(label, row, 0);
@@ -460,77 +566,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   layout->addWidget(makeReconParamsControl("PA", this->params.PA));
   layout->addWidget(makeReconParamsControl("US", this->params.US));
-
-  // Registration params
-  {
-    auto *gb = new QGroupBox(tr("Coregistration"));
-    layout->addWidget(gb);
-    auto *layout = new QGridLayout;
-    gb->setLayout(layout);
-    int row = 0;
-
-    {
-      auto *label = new QLabel("Flip on even");
-      label->setToolTip("Flip the image on even or odd indices.");
-      layout->addWidget(label, row, 0);
-
-      auto *cb = makeBoolCheckBox2(params.PA.flipOnEven, params.US.flipOnEven);
-      layout->addWidget(cb, row++, 1);
-    }
-
-    {
-      auto *label = new QLabel("Rotation offset");
-      label->setToolTip(
-          "Rotation offset in no. of Alines to stablize the display.");
-      layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox2({-500, 500}, 1, params.US.rotateOffset,
-                                    params.PA.rotateOffset);
-      layout->addWidget(spinBox, row++, 1);
-      spinBox->setSuffix(" lines");
-    }
-
-    {
-      auto *label = new QLabel("Alines Per Bscan");
-      label->setToolTip("");
-      layout->addWidget(label, row, 0);
-      auto *spinBox = makeQSpinBox({500, 2000}, 1, ioparams.alinesPerBscan);
-      spinBox->setSingleStep(100);
-      layout->addWidget(spinBox, row++, 1);
-    }
-
-    const auto makeIOParams_controller = [&](const QString &prefix,
-                                             uspam::io::IOParams_ &p) {
-      {
-        auto *label = new QLabel(prefix + " start");
-        label->setToolTip("Where to start reading in the combined rf array.");
-        layout->addWidget(label, row, 0);
-        auto *spinBox = makeQSpinBox({0, 8000}, 1, p.start);
-        layout->addWidget(spinBox, row++, 1);
-        spinBox->setSuffix(" pts");
-      }
-
-      {
-        auto *label = new QLabel(prefix + " delay");
-        label->setToolTip("How much delay the start point is from the axis.");
-        layout->addWidget(label, row, 0);
-        auto *spinBox = makeQSpinBox({-2000, 2000}, 1, p.delay);
-        layout->addWidget(spinBox, row++, 1);
-        spinBox->setSuffix(" pts");
-      }
-
-      {
-        auto *label = new QLabel(prefix + " size");
-        label->setToolTip("Num points to read from start.");
-        layout->addWidget(label, row, 0);
-        auto *spinBox = makeQSpinBox({1000, 8000}, 1, p.size);
-        layout->addWidget(spinBox, row++, 1);
-        spinBox->setSuffix(" pts");
-      }
-    };
-
-    makeIOParams_controller("PA", ioparams.PA);
-    makeIOParams_controller("US", ioparams.US);
-  }
 
   // Reset buttons
   {

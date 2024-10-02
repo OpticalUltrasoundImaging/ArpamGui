@@ -1,6 +1,5 @@
 #pragma once
 
-#include "strConvUtils.hpp"
 #include <QImage>
 #include <QString>
 #include <armadillo>
@@ -101,8 +100,9 @@ template <uspam::Floating T> struct BScanData {
   cv::Mat PAUSradial; // CV_8U3C
   QImage PAUSradial_img;
 
-  // depth [m] of one radial pixel
-  double fct{};
+  // depth [mm] of one radial pixel
+  double spatialStep_rect{};
+  double spatialStep_radial{};
 
   // Frame idx
   int frameIdx{};
@@ -118,7 +118,8 @@ template <uspam::Floating T> struct BScanData {
 
     PAUSradial.setTo(cv::Scalar(0));
     PAUSradial_img.fill(Qt::black);
-    fct = 0.0;
+    spatialStep_rect = 0.0;
+    spatialStep_radial = 0.0;
     frameIdx = 0.0;
 
     metrics.clear();

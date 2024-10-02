@@ -1,22 +1,10 @@
 #pragma once
 
+#include "Common.hpp"
 #include <algorithm> // for std::fill
 #include <armadillo>
 
 namespace uspam::surface {
-
-// Helper function to compute linear interpolation between two values using
-// Armadillo
-template <typename T>
-auto linearInterpolate(T v1, T v2, int n)
-  requires(std::is_floating_point_v<T>)
-{
-  // Create a linearly spaced vector between v1 and v2
-  arma::Col<T> result = arma::linspace<arma::Col<T>>(
-      v1, v2, n + 2); // n + 2 points including v1 and v2
-  return result.subvec(
-      1, n); // We return only the intermediate points (exclude v1 and v2)
-}
 
 // Helper function to check if the current segment is disjoint based on
 // max_distance
@@ -45,7 +33,8 @@ template <typename T> void interpNextGapInplace(arma::Col<T> &idx, int &i) {
         const auto v1 = idx[i_start - 1];
         const auto v2 = idx[i_end];
         // Replace the gap with interpolated values
-        idx.subvec(i_start, i_end - 1) = linearInterpolate(v1, v2, gap_size);
+        const auto interp = arma::linspace<arma::Col<T>>(v1, v2, gap_size + 2);
+        idx.subvec(i_start, i_end - 1) = interp.subvec(1, gap_size);
       }
     } else {
       i++;
