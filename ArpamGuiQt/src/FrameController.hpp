@@ -83,6 +83,7 @@ private:
 
   // UI elements
   QPushButton *m_btnPlayPause;
+  QPushButton *m_btnExportFrame;
   QSlider *m_frameSlider;
   bool m_isPlaying{false};
 

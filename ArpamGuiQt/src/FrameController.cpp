@@ -114,10 +114,11 @@ FrameController::FrameController(
 
       // Button to export current frame
       {
-        auto *btn = new QPushButton("Export current frame");
-        vlayout->addWidget(btn);
+        m_btnExportFrame = new QPushButton("Export current frame");
+        m_btnExportFrame->setEnabled(false);
+        vlayout->addWidget(m_btnExportFrame);
 
-        connect(btn, &QPushButton::clicked, [this] {
+        connect(m_btnExportFrame, &QPushButton::clicked, [this] {
           // Write current frame buffer to a new folder on desktop
           const auto desktopPath_ =
               QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -254,6 +255,7 @@ void FrameController::acceptBinfile(const QString &filename) {
   }
 
   m_btnPlayPause->setEnabled(true);
+  m_btnExportFrame->setEnabled(true);
   m_frameSlider->setEnabled(true);
   m_menu->setEnabled(true);
 
