@@ -123,6 +123,75 @@ template <uspam::Floating T> struct BScanData {
   }
 };
 
+// Represents a multistage pipeline circular buffer.
+// A producer (stage 0) produces into the circular buffer,
+// while the results are consumed by each subsequent stage of the pipeline
+// sequentially
+template <typename T, int PipelineStages = 3, int BufferSize = 3>
+class MultiStageBuffer {
+public:
+  MultiStageBuffer() {
+    static_assert(PipelineStages <= BufferSize);
+
+    for (int i = 0; i < BufferSize; ++i) {
+      buffer[i] = std::make_shared<T>();
+    }
+  }
+
+  // exit condition for any stage that's not the first is receiving a nullptr
+  void exit() { finished = true; }
+
+  // processFunc should accept one parameter of type `&T`
+  template <int PipelineStage, typename Func>
+  void pipelineUnit(Func processFunc) {
+    static_assert(PipelineStage < PipelineStages);
+
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [this] {
+      if constexpr (PipelineStage == 0) {
+        // Producer
+        return buffer_size != BufferSize || finished;
+      } else {
+        // Consumer stages
+        return pos[PipelineStage - 1] != pos[PipelineStage] || finished;
+      }
+    });
+
+    int &idx = pos[PipelineStage];
+
+    // run stage
+    processFunc(buffer[idx]);
+
+    // Update position
+    idx = (idx + 1) & BufferSize;
+
+    if constexpr (PipelineStage == 0) {
+      // Only producer increments buffer size
+      buffer_size++;
+    }
+
+    if constexpr (PipelineStage == PipelineStages - 1) {
+      // Only final consumer decrements buffer size
+      buffer_size--;
+    }
+
+    lock.unlock();
+
+    const int nextStage = (PipelineStage + 1) & PipelineStages;
+    cv.notify_all();
+  }
+
+private:
+  std::array<std::shared_ptr<T>, BufferSize> buffer{};
+  std::atomic<int> buffer_size{0};
+  std::array<int, PipelineStages> pos{};
+
+  // Concurrency
+  std::mutex mtx;
+  std::condition_variable cv;
+  bool finished{false};
+};
+
 /*
 Thread safe buffer for the producer/consumer pattern
 
