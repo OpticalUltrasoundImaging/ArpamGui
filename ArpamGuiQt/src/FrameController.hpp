@@ -51,6 +51,11 @@ public slots:
 
   void plotCurrentBScan();
 
+  // Export frame buffer to a new folder
+  // Default saves to desktop
+  void exportCurrentFrame();
+  void exportCurrentFrame(const QString &exportDir);
+
 signals:
   void message(QString);
   void statusMessage(QString message, int timeout = 0);
@@ -62,6 +67,7 @@ public:
   auto actCloseBinfile() { return m_actCloseBinfile; }
 
 private:
+  // Annotations
   void saveCurrAnnotationAndLoadNewFrame(int newFrame);
   bool saveFrameAnnotationsFromModelToDoc(int frame);
   void loadFrameAnnotationsFromDocToModel(int frame);
@@ -95,6 +101,7 @@ private:
   QAction *m_actPlayPause;
   QAction *m_actNextFrame;
   QAction *m_actPrevFrame;
+  QAction *m_actExportFrame;
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here
