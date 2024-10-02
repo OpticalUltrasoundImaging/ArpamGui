@@ -37,6 +37,8 @@ public slots:
   void acceptBinfile(const QString &filename);
   void closeBinfile();
 
+  void receiveNewFrame(std::shared_ptr<BScanData<ArpamFloat>> data);
+
   [[nodiscard]] int frameNum() const { return m_frameSlider->value(); }
   void setFrameNum(int frameNum);
 
@@ -52,9 +54,11 @@ public slots:
   void plotCurrentBScan();
 
   // Export frame buffer to a new folder
-  // Default saves to desktop
-  void exportCurrentFrame();
-  void exportCurrentFrame(const QString &exportDir);
+  void exportCurrentFrame(const fs::path &exportDir);
+
+  void exportAllFrames();
+
+  void handleExportAllFramesBtnClick();
 
 signals:
   void message(QString);
@@ -89,9 +93,9 @@ private:
 
   // UI elements
   QPushButton *m_btnPlayPause;
-  QPushButton *m_btnExportFrame;
   QSlider *m_frameSlider;
-  bool m_isPlaying{false};
+  QPushButton *m_btnExportFrame;
+  QPushButton *m_btnExportAllFrames;
 
   // Actions
   QMenu *m_menu;
@@ -102,6 +106,7 @@ private:
   QAction *m_actNextFrame;
   QAction *m_actPrevFrame;
   QAction *m_actExportFrame;
+  QAction *m_actExportAllFrames;
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here
@@ -113,4 +118,11 @@ private:
   // Binfile path
   fs::path m_binPath;
   fs::path m_annoPath;
+
+  // States
+  bool m_isPlaying{false};
+  bool m_exportingAllFrames{false};
+  fs::path m_exportDir;        // Only used when exporting all
+  fs::path m_exportDirDefault; // Desktop
+  QString m_sequenceName;
 };
