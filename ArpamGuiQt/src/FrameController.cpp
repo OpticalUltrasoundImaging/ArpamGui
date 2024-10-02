@@ -28,6 +28,7 @@
 #include <rapidjson/rapidjson.h>
 #include <string>
 #include <uspam/json.hpp>
+#include <uspam/timeit.hpp>
 
 FrameController::FrameController(
 
@@ -42,7 +43,8 @@ FrameController::FrameController(
       m_reconParams(paramsController),
 
       m_coregDisplay(coregDisplay), m_AScanPlot(ascanPlot),
-      m_btnPlayPause(new QPushButton("Play", this)),
+      m_btnPlayPause(new QPushButton("Play")),
+      m_btnExportFrame(new QPushButton("Export frame")),
 
       m_menu(new QMenu("Frames", this)),
       m_actOpenFileSelectDialog(new QAction("Open binfile")),
@@ -50,7 +52,8 @@ FrameController::FrameController(
 
       m_actPlayPause(new QAction("Play/Pause")),
       m_actNextFrame(new QAction("Next Frame")),
-      m_actPrevFrame(new QAction("Prev Frame"))
+      m_actPrevFrame(new QAction("Prev Frame")),
+      m_actExportFrame(new QAction("Export Frame"))
 
 {
 
@@ -114,26 +117,15 @@ FrameController::FrameController(
 
       // Button to export current frame
       {
-        m_btnExportFrame = new QPushButton("Export current frame");
+        m_actExportFrame->setShortcut(Qt::CTRL | Qt::Key_E);
+        connect(m_actExportFrame, &QAction::triggered,
+                [this]() { exportCurrentFrame(); });
+        m_menu->addAction(m_actExportFrame);
+
         m_btnExportFrame->setEnabled(false);
         vlayout->addWidget(m_btnExportFrame);
-
-        connect(m_btnExportFrame, &QPushButton::clicked, [this] {
-          // Write current frame buffer to a new folder on desktop
-          const auto desktopPath_ =
-              QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-          const auto desktopPath = qString2Path(desktopPath_);
-
-          const auto session = m_binPath.parent_path().stem().string();
-          const auto sequence = m_binPath.stem().string();
-          const auto dirname = (session + "_" + sequence + "_" +
-                                std::to_string(m_data->frameIdx));
-
-          const auto savedirpath = desktopPath / dirname;
-          fs::create_directories(savedirpath);
-
-          m_data->exportToFile(savedirpath);
-        });
+        connect(m_btnExportFrame, &QPushButton::clicked, m_actExportFrame,
+                &QAction::trigger);
       }
     }
 
@@ -365,4 +357,29 @@ void FrameController::plotCurrentBScan() {
   // Display images
   m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->US.radial_img,
                          m_data->fct);
+}
+
+void FrameController::exportCurrentFrame() {
+  // Default save dir is Desktop
+  exportCurrentFrame(
+      QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+}
+
+void FrameController::exportCurrentFrame(const QString &exportDir) {
+  uspam::TimeIt<false> timeit;
+  const auto session = m_binPath.parent_path().stem().string();
+  const auto sequence = m_binPath.stem().string();
+  const auto dirname =
+      (session + "_" + sequence + "_" + std::to_string(m_data->frameIdx));
+
+  const auto savedirpath = qString2Path(exportDir) / dirname;
+  fs::create_directories(savedirpath);
+
+  m_data->exportToFile(savedirpath);
+
+  auto elapsed = timeit.get_ms();
+
+  emit message(QString("Exported frame %1. Took %2 ms")
+                   .arg(m_data->frameIdx)
+                   .arg(elapsed));
 }
