@@ -6,6 +6,9 @@
 #include <QDebug>
 #include <QObject>
 #include <QtLogging>
+#include <atomic>
+#include <filesystem>
+#include <fmt/base.h>
 #include <utility>
 
 class ReconWorker : public QObject {
@@ -28,12 +31,24 @@ public:
           m_shouldStop = true;
         } else {
           m_recontsructor.recon(*data);
-          // qDebug() << "ReconWorker: consumed idx =" << data->frameIdx;
           emit imagesReady(data);
+
+          if (m_exportAll) {
+            const auto exportDir =
+                m_exportDir / fmt::format("{:03}", data->frameIdx);
+            data->exportToFile(exportDir);
+          }
         }
       });
     }
   }
+
+  void shouldExportFrames(const fs::path &exportDir) {
+    m_exportAll = true;
+    m_exportDir = exportDir;
+  }
+
+  void stopExportingFrames() { m_exportAll = false; }
 
 signals:
   void imagesReady(std::shared_ptr<BScanData<ArpamFloat>> data);
@@ -42,4 +57,7 @@ private:
   std::shared_ptr<RFBuffer<ArpamFloat>> m_buffer;
 
   Recon::Reconstructor m_recontsructor;
+
+  std::atomic<bool> m_exportAll{false};
+  fs::path m_exportDir;
 };

@@ -296,11 +296,6 @@ void FrameController::receiveNewFrame(
     emit message(msg);
   }
 
-  // Export frame
-  if (m_exportingAllFrames && !m_exportDir.empty()) {
-    exportCurrentFrame(m_exportDir);
-  }
-
   auto msg = QString("receiveNewFrame took: %1").arg(timeit.get_ms());
   emit message(msg);
 }
@@ -404,7 +399,6 @@ void FrameController::exportCurrentFrame(const fs::path &exportDir) {
       (session + "_" + sequence + "_" + std::to_string(m_data->frameIdx));
 
   const auto savedirpath = exportDir / dirname;
-  fs::create_directory(savedirpath);
 
   m_data->exportToFile(savedirpath);
 
@@ -424,6 +418,8 @@ void FrameController::handleExportAllFramesBtnClick() {
     m_exportingAllFrames = false;
     m_exportDir.clear();
 
+    m_reconWorker->stopExportingFrames();
+
     m_btnExportAllFrames->setText("Export All Frames");
     m_actExportAllFrames->setText("Export All Frames");
 
@@ -442,8 +438,9 @@ void FrameController::handleExportAllFramesBtnClick() {
     m_actExportFrame->setEnabled(false);
 
     // Not currently exporting. Start
+    m_reconWorker->shouldExportFrames(m_exportDir);
     m_exportingAllFrames = true;
-    fs::create_directory(m_exportDir);
+    fs::create_directories(m_exportDir);
 
     updatePlayingState(true);
 
