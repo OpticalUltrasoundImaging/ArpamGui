@@ -28,6 +28,7 @@
 #include <rapidjson/rapidjson.h>
 #include <string>
 #include <uspam/json.hpp>
+#include <uspam/timeit.hpp>
 
 FrameController::FrameController(
 
@@ -42,7 +43,10 @@ FrameController::FrameController(
       m_reconParams(paramsController),
 
       m_coregDisplay(coregDisplay), m_AScanPlot(ascanPlot),
-      m_btnPlayPause(new QPushButton("Play", this)),
+
+      m_btnPlayPause(new QPushButton("Play")),
+      m_btnExportFrame(new QPushButton("Export frame")),
+      m_btnExportAllFrames(new QPushButton("Export all frames")),
 
       m_menu(new QMenu("Frames", this)),
       m_actOpenFileSelectDialog(new QAction("Open binfile")),
@@ -50,7 +54,12 @@ FrameController::FrameController(
 
       m_actPlayPause(new QAction("Play/Pause")),
       m_actNextFrame(new QAction("Next Frame")),
-      m_actPrevFrame(new QAction("Prev Frame"))
+      m_actPrevFrame(new QAction("Prev Frame")),
+      m_actExportFrame(new QAction("Export Frame")),
+      m_actExportAllFrames(new QAction("Export All Frames")),
+
+      m_exportDirDefault(qString2Path(
+          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)))
 
 {
 
@@ -91,7 +100,6 @@ FrameController::FrameController(
 
       connect(m_frameSlider, &QSlider::sliderReleased, this, [&] {
         const auto idx = m_frameSlider->value();
-        saveCurrAnnotationAndLoadNewFrame(idx);
         emit sigFrameNumUpdated(idx);
       });
     }
@@ -114,26 +122,28 @@ FrameController::FrameController(
 
       // Button to export current frame
       {
-        m_btnExportFrame = new QPushButton("Export current frame");
+        m_actExportFrame->setShortcut(Qt::CTRL | Qt::Key_E);
+        connect(m_actExportFrame, &QAction::triggered,
+                [this]() { exportCurrentFrame(m_exportDirDefault); });
+        m_menu->addAction(m_actExportFrame);
+
         m_btnExportFrame->setEnabled(false);
         vlayout->addWidget(m_btnExportFrame);
+        connect(m_btnExportFrame, &QPushButton::clicked, m_actExportFrame,
+                &QAction::trigger);
+      }
 
-        connect(m_btnExportFrame, &QPushButton::clicked, [this] {
-          // Write current frame buffer to a new folder on desktop
-          const auto desktopPath_ =
-              QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-          const auto desktopPath = qString2Path(desktopPath_);
+      // Button to export all frames
+      {
+        m_actExportAllFrames->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_E);
+        connect(m_actExportAllFrames, &QAction::triggered, this,
+                &FrameController::handleExportAllFramesBtnClick);
+        m_menu->addAction(m_actExportAllFrames);
 
-          const auto session = m_binPath.parent_path().stem().string();
-          const auto sequence = m_binPath.stem().string();
-          const auto dirname = (session + "_" + sequence + "_" +
-                                std::to_string(m_data->frameIdx));
-
-          const auto savedirpath = desktopPath / dirname;
-          fs::create_directories(savedirpath);
-
-          m_data->exportToFile(savedirpath);
-        });
+        m_btnExportAllFrames->setEnabled(false);
+        vlayout->addWidget(m_btnExportAllFrames);
+        connect(m_btnExportAllFrames, &QPushButton::clicked,
+                m_actExportAllFrames, &QAction::trigger);
       }
     }
 
@@ -169,12 +179,13 @@ FrameController::FrameController(
               QMetaObject::invokeMethod(m_producerFile,
                                         &RFProducerFile::setBinfile, path);
 
-              // Update canvas dipslay
-              {
-                const auto seq =
-                    path2QString(path.parent_path().stem() / path.stem());
-                m_coregDisplay->setSequenceName(seq);
-              }
+              // Update sequence name and canvas dipslay
+              const auto seqName = path.parent_path().stem() / path.stem();
+              m_sequenceName = path2QString(seqName);
+              m_coregDisplay->setSequenceName(m_sequenceName);
+
+              //  Update export path for exportAllFrames
+              m_exportDir = m_exportDirDefault / seqName;
             });
 
     // When frameController's changes it's frame number (through the drag bar
@@ -189,29 +200,8 @@ FrameController::FrameController(
             &CoregDisplay::setMaxIdx);
 
     // Result ready
-    connect(
-        m_reconWorker, &ReconWorker::imagesReady, this,
-        [this](std::shared_ptr<BScanData<ArpamFloat>> data) {
-          m_AScanPlot->setData(data);
-          m_AScanPlot->plotCurrentAScan();
-
-          m_data = std::move(data);
-          plotCurrentBScan();
-
-          const auto idx = m_data->frameIdx;
-          setFrameNum(idx);
-          m_coregDisplay->setIdx(idx);
-          // qDebug() << "FrameController received idx =" << idx;
-
-          // Display metrics
-          {
-            auto msg =
-                QString("Frame %1/%2: ").arg(idx).arg(m_producerFile->size());
-            QTextStream stream(&msg);
-            stream << m_data->metrics;
-            emit message(msg);
-          }
-        });
+    connect(m_reconWorker, &ReconWorker::imagesReady, this,
+            &FrameController::receiveNewFrame);
 
     connect(m_producerFile, &RFProducerFile::finishedProducing, this,
             [this] { this->updatePlayingState(false); });
@@ -256,6 +246,7 @@ void FrameController::acceptBinfile(const QString &filename) {
 
   m_btnPlayPause->setEnabled(true);
   m_btnExportFrame->setEnabled(true);
+  m_btnExportAllFrames->setEnabled(true);
   m_frameSlider->setEnabled(true);
   m_menu->setEnabled(true);
 
@@ -274,6 +265,39 @@ void FrameController::closeBinfile() {
   m_menu->setEnabled(false);
 
   m_actCloseBinfile->setEnabled(false);
+}
+
+void FrameController::receiveNewFrame(
+    std::shared_ptr<BScanData<ArpamFloat>> data) {
+
+  uspam::TimeIt timeit;
+
+  // Update AScan plot. AScan plot keeps a ref of data
+  m_AScanPlot->setData(data);
+  m_AScanPlot->plotCurrentAScan();
+
+  // Move the shared_ptr to m_data to elide 1 ref inc/dec
+  m_data = std::move(data);
+
+  // Update BScan plot
+  plotCurrentBScan();
+
+  // Update frame index display
+  const auto idx = m_data->frameIdx;
+  setFrameNum(idx);
+  m_coregDisplay->setIdx(idx);
+  // qDebug() << "FrameController received idx =" << idx;
+
+  // Display metrics
+  {
+    auto msg = QString("Frame %1/%2: ").arg(idx).arg(m_producerFile->size());
+    QTextStream stream(&msg);
+    stream << m_data->metrics;
+    emit message(msg);
+  }
+
+  auto msg = QString("receiveNewFrame took: %1").arg(timeit.get_ms());
+  emit message(msg);
 }
 
 void FrameController::setFrameNum(int frame) {
@@ -365,4 +389,62 @@ void FrameController::plotCurrentBScan() {
   // Display images
   m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->US.radial_img,
                          m_data->fct);
+}
+
+void FrameController::exportCurrentFrame(const fs::path &exportDir) {
+  uspam::TimeIt<false> timeit;
+  const auto session = m_binPath.parent_path().stem().string();
+  const auto sequence = m_binPath.stem().string();
+  const auto dirname =
+      (session + "_" + sequence + "_" + std::to_string(m_data->frameIdx));
+
+  const auto savedirpath = exportDir / dirname;
+
+  m_data->exportToFile(savedirpath);
+
+  auto elapsed = timeit.get_ms();
+
+  emit message(QString("Exported frame %1. Took %2 ms")
+                   .arg(m_data->frameIdx)
+                   .arg(elapsed));
+}
+
+void FrameController::exportAllFrames() {}
+
+void FrameController::handleExportAllFramesBtnClick() {
+  if (m_exportingAllFrames) {
+    // Currently exporting. Abort and restore
+    updatePlayingState(false);
+    m_exportingAllFrames = false;
+    m_exportDir.clear();
+
+    m_reconWorker->stopExportingFrames();
+
+    m_btnExportAllFrames->setText("Export All Frames");
+    m_actExportAllFrames->setText("Export All Frames");
+
+    m_btnPlayPause->setEnabled(true);
+    m_btnExportFrame->setEnabled(true);
+    m_actPlayPause->setEnabled(true);
+    m_actPrevFrame->setEnabled(true);
+    m_actNextFrame->setEnabled(true);
+    m_actExportFrame->setEnabled(true);
+  } else {
+    m_btnPlayPause->setEnabled(false);
+    m_btnExportFrame->setEnabled(false);
+    m_actPlayPause->setEnabled(false);
+    m_actPrevFrame->setEnabled(false);
+    m_actNextFrame->setEnabled(false);
+    m_actExportFrame->setEnabled(false);
+
+    // Not currently exporting. Start
+    m_reconWorker->shouldExportFrames(m_exportDir);
+    m_exportingAllFrames = true;
+    fs::create_directories(m_exportDir);
+
+    updatePlayingState(true);
+
+    m_btnExportAllFrames->setText("Abort export all");
+    m_actExportAllFrames->setText("Abort Export All");
+  }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "strConvUtils.hpp"
+#include "Common.hpp"
 #include <QImage>
 #include <QString>
 #include <armadillo>
@@ -9,8 +9,8 @@
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
+#include <future>
 #include <mutex>
-#include <stdexcept>
 #include <uspam/uspam.hpp>
 
 struct PerformanceMetrics {
@@ -51,22 +51,16 @@ template <uspam::Floating T> struct BScanData_ {
   void saveBScanData(const fs::path &directory,
                      const std::string &prefix = "") {
     // Save radial
-    {
-      auto path = directory / (prefix + "radial.png");
-      cv::imwrite(path.string(), radial);
-    }
+    const auto radialPath = (directory / (prefix + "radial.bmp")).string();
+    cv::imwrite(radialPath, radial);
 
     // Save env
-    {
-      auto path = directory / (prefix + "env.bin");
-      rfEnv.save(path.string(), arma::raw_binary);
-    }
+    const auto envPath = (directory / (prefix + "env.bin")).string();
+    rfEnv.save(envPath, arma::raw_binary);
 
     // Save rf
-    {
-      auto path = directory / (prefix + "rf.bin");
-      rf.save(path.string(), arma::raw_binary);
-    }
+    const auto rfPath = (directory / (prefix + "rf.bin")).string();
+    rf.save(rfPath, arma::raw_binary);
   }
 };
 
@@ -103,25 +97,29 @@ template <uspam::Floating T> struct BScanData {
       fs::create_directory(directory);
     }
 
+    // Save PA and US buffers/images
+    auto aPA = std::async(std::launch::async, &BScanData_<T>::saveBScanData,
+                          &PA, std::ref(directory), "PA");
+    auto aUS = std::async(std::launch::async, &BScanData_<T>::saveBScanData,
+                          &US, std::ref(directory), "US");
+    // PA.saveBScanData(directory, "PA");
+    // US.saveBScanData(directory, "US");
+
     // Save raw RF
-    {
-      const auto path = directory / "rf.bin";
-      rf.save(path.string(), arma::raw_binary);
-    }
+    const auto rfPath = (directory / "rf.bin").string();
+    rf.save(rfPath, arma::raw_binary);
 
     // Save frame index
     // Touch file to create an empty txt file with the frame idx as title
     { std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx)); }
 
-    // Save PA and US buffers/images
-    PA.saveBScanData(directory, "PA");
-    US.saveBScanData(directory, "US");
-
     // Save combined image
-    {
-      auto path = directory / "PAUSradial.png";
-      cv::imwrite(path.string(), PAUSradial);
-    }
+
+    auto pausPath = (directory / "PAUSradial.bmp").string();
+    cv::imwrite(pausPath, PAUSradial);
+
+    aUS.get();
+    aPA.get();
   }
 };
 
