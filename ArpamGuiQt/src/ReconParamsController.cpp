@@ -1,8 +1,8 @@
 #include "ReconParamsController.hpp"
+#include "CollapsibleGroupBox.hpp"
 #include "Common.hpp"
 #include "SaftParamsController.hpp"
 #include "uspam/beamformer/SAFT.hpp"
-#include "uspam/beamformer/beamformer.hpp"
 #include "uspam/reconParams.hpp"
 #include <QBoxLayout>
 #include <QCheckBox>
@@ -111,7 +111,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   const auto makeReconParamsControl = [&](const QString &groupBoxName,
                                           uspam::recon::ReconParams &p) {
-    auto *gb = new QGroupBox(groupBoxName);
+    auto *gb = new CollapsibleGroupBox(groupBoxName);
     auto *vlayout = new QVBoxLayout;
     gb->setLayout(vlayout);
 
@@ -369,7 +369,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
   // Registration params
   {
-    auto *gb = new QGroupBox(tr("Coregistration"));
+    auto *gb = new CollapsibleGroupBox(tr("Coregistration"));
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
