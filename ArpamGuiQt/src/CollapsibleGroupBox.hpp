@@ -6,7 +6,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <qboxlayout.h>
 
 class CollapsibleGroupBox : public QGroupBox {
   Q_OBJECT
