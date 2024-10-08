@@ -28,8 +28,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX",
-        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX"
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /DNOMINMAX",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /DNOMINMAX"
       }
     },
     {
@@ -40,37 +40,52 @@
       "generator": "Visual Studio 17 2022"
     },
     {
-      "name": "ninja",
-      "inherits": "base",
-      "displayName": "Ninja Multi-Config",
-      "description": "Generic Ninja Multi-Config with no compiler specified",
+      "name": "cl",
+      "inherits": "win64-cl-base",
+      "displayName": "CL",
+      "description": "Ninja Multi-Config + x64 MSVC",
       "generator": "Ninja Multi-Config"
     },
     {
-      "name": "cl",
-      "inherits": ["ninja", "win64-cl-base"],
-      "displayName": "CL",
-      "description": "Ninja Multi-Config + x64 MSVC"
+      "name": "cl-vecreport",
+      "inherits": "win64-cl-base",
+      "displayName": "CL (vec report)",
+      "description": "Ninja Multi-Config + x64 MSVC with autovec report",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX"
+      }
     },
     {
       "name": "clang",
-      "inherits": "ninja",
+      "inherits": "base",
       "displayName": "Clang",
       "description": "Ninja Multi-Config + Clang",
+      "generator": "Ninja Multi-Config",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math"
+      }
+    },
+    {
+      "name": "clang-vecreport",
+      "inherits": "clang",
+      "displayName": "Clang (vec report)",
+      "description": "Ninja Multi-Config + Clang with autovec report",
+      "cacheVariables": {
         "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
       }
     },
     {
       "name": "clang-x64",
-      "inherits": "ninja",
+      "inherits": "clang",
       "displayName": "Clang (x64)",
       "description": "Ninja Multi-Config + Clang (with Haswell instructions)",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_CXX_FLAGS": "-march=haswell -fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
       }
     }
@@ -93,24 +108,6 @@
       "displayName": "Win64 Debug",
       "configurePreset": "win64",
       "configuration": "Debug"
-    },
-    {
-      "name": "ninja-debug",
-      "displayName": "Ninja Debug",
-      "configurePreset": "ninja",
-      "configuration": "Debug"
-    },
-    {
-      "name": "ninja-relwithdebinfo",
-      "displayName": "Ninja RelWithDebInfo",
-      "configurePreset": "ninja",
-      "configuration": "RelWithDebInfo"
-    },
-    {
-      "name": "ninja-release",
-      "displayName": "Ninja Release",
-      "configurePreset": "ninja",
-      "configuration": "Release"
     },
     {
       "name": "clang-debug",
@@ -173,18 +170,6 @@
       "displayName": "Test (Release)",
       "configuration": "Release",
       "configurePreset": "win64"
-    },
-    {
-      "name": "test-ninja-debug",
-      "displayName": "Test (Debug)",
-      "configuration": "Debug",
-      "configurePreset": "ninja"
-    },
-    {
-      "name": "test-ninja-release",
-      "displayName": "Test (Release)",
-      "configuration": "Release",
-      "configurePreset": "ninja"
     },
     {
       "name": "test-clang-debug",
