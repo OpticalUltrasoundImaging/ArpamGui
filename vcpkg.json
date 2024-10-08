@@ -3,18 +3,18 @@
   "name": "arpam-gui",
   "version": "0.1",
   "dependencies": [
-    "fmt",
-    "qtbase",
-    "rapidjson",
-    "glslang",
-    "glfw3",
     "armadillo",
     "fftconv",
+    "fmt",
+    "gtest",
     "kfr",
+    "qcustomplot",
+    "qtbase",
+    "rapidjson",
     "tbb",
     {
       "name": "opencv4",
-      "features": ["contrib", "dnn", "tbb", "png", "world"]
+      "features": ["tbb", "tiff", "world"]
     },
     {
       "name": "fftw3",
@@ -25,10 +25,6 @@
       "name": "fftw3",
       "platform": "!x64",
       "features": ["threads"]
-    },
-    "qcustomplot",
-    "gtest",
-    "cli11",
-    "indicators"
+    }
   ]
 }
