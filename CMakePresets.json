@@ -28,8 +28,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX",
-        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX"
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /DNOMINMAX",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /DNOMINMAX"
       }
     },
     {
@@ -48,15 +48,30 @@
     },
     {
       "name": "cl",
-      "inherits": ["ninja", "win64-cl-base"],
+      "inherits": "win64-cl-base",
       "displayName": "CL",
-      "description": "Ninja Multi-Config + x64 MSVC"
+      "description": "Ninja Multi-Config + x64 MSVC",
+      "generator": "Ninja Multi-Config"
+    },
+    {
+      "name": "cl-vecreport",
+      "inherits": "win64-cl-base",
+      "displayName": "CL",
+      "description": "Ninja Multi-Config + x64 MSVC",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX",
+        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX"
+      }
     },
     {
       "name": "clang",
-      "inherits": "ninja",
+      "inherits": "base",
       "displayName": "Clang",
       "description": "Ninja Multi-Config + Clang",
+      "generator": "Ninja Multi-Config",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
