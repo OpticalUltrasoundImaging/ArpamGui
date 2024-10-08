@@ -5,8 +5,13 @@ set(VCPKG_LIBRARY_LINKAGE static)
 set(VCPKG_CMAKE_SYSTEM_NAME Darwin)
 set(VCPKG_OSX_ARCHITECTURES arm64)
 
+
 ### custom
 # Disable compiler tracking to increase binary cache hit rate
 # https://learn.microsoft.com/en-us/vcpkg/users/triplets
 # https://github.com/microsoft/vcpkg/pull/17526
-set(VCPKG_DISABLE_COMPILER_TRACKING ON)
+#set(VCPKG_DISABLE_COMPILER_TRACKING ON)
+
+# Pin macOS version to 14 (Sonoma).
+# Qt currently doesn't build on 15
+set(VCPKG_OSX_DEPLOYMENT_TARGET 14)
