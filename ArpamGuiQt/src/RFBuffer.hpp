@@ -78,8 +78,9 @@ template <uspam::Floating T> struct BScanData {
   cv::Mat PAUSradial; // CV_8U3C
   QImage PAUSradial_img;
 
-  // depth [m] of one radial pixel
-  double fct{};
+  // [mm] spacing of one radial pixel
+  double spacingRadialUS{};
+  double spacingRectUS{};
 
   // Frame idx
   int frameIdx{};

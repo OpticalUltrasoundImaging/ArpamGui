@@ -195,6 +195,10 @@ void AScanPlot::plotCurrentAScan() {
     m_AScanPlotIdx = idx;
   }
 
+  // Sound speed: 1500m/s. 1000 mm/m. 180e6 samples/second
+  const double spacingUS = m_data->spacingRectUS;
+  const double spacingPA = spacingUS * 2;
+
   /*
    * Plot AScan
    */
@@ -218,7 +222,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFBeamformedPA: {
     // PA rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spacingPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (PA)";
 
@@ -234,7 +238,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFBeamformedUS: {
     // US rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spacingUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (US)";
 
@@ -250,7 +254,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFEnvPA: {
     // PA rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spacingPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (PA)";
 
@@ -265,7 +269,7 @@ void AScanPlot::plotCurrentAScan() {
   } break;
   case PlotType::RFEnvUS: {
     // US rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spacingUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (US)";
 
@@ -284,7 +288,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.autoScaleY = false;
     plotMeta.yMax = 0;
     plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spacingPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (PA)";
 
@@ -303,7 +307,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.autoScaleY = false;
     plotMeta.yMax = 0;
     plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spacingUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (US)";
 

@@ -15,6 +15,11 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
+  /*
+  System
+  */
+  float soundSpeed{1500.0F}; // [m/s] Speed of sound
+  float fs{180e6};           // [Hz] Sampling frequency
 
   /*
   Geometry
@@ -45,6 +50,9 @@ struct ReconParams {
 
   int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
 
+  /*
+  Serialization
+  */
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;
   static ReconParams deserialize(const rapidjson::Value &obj);
@@ -53,6 +61,9 @@ struct ReconParams {
     const bool even = frameIdx % 2 == 0;
     return flipOnEven ? even : !even;
   }
+
+  // [m]
+  [[nodiscard]] auto pixelSpacing() const { return soundSpeed / fs; }
 };
 
 struct ReconParams2 {

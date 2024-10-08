@@ -113,25 +113,13 @@ void reconBScan(BScanData<ArpamFloat> &data,
     }
   }
 
-  // Compute scalebar scalar
-  // fct is the depth [m] of one radial pixel
-  data.fct = [&data] {
-    constexpr double soundSpeed = 1500.0; // [m/s] Sound speed
-    constexpr double fs = 180e6;          // [1/s] Sample frequency
-
-    // [m] multiplier to convert sampled US points to meters. 2x travel path
-    constexpr double fctRect = soundSpeed / fs / 2;
-
-    // [points]
+  // Compute scalebar scalar [mm]
+  {
+    data.spacingRectUS = paramsUS.soundSpeed / paramsUS.fs / 2 * 1000;
     const auto USpoints_rect = static_cast<double>(data.US.rf.n_rows);
-
-    // [points]
     const auto USpoints_radial = static_cast<double>(data.US.radial.rows) / 2;
-
-    // [m]
-    const auto fctRadial = fctRect * USpoints_rect / USpoints_radial;
-    return fctRadial;
-  }();
+    data.spacingRadialUS = data.spacingRectUS * USpoints_rect / USpoints_radial;
+  }
 
   {
     const uspam::TimeIt timeit;
