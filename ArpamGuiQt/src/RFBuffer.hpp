@@ -67,9 +67,6 @@ template <uspam::Floating T> struct BScanData_ {
 /*
  * Contains all the data for one BScan
  * From RF to Image
- *
- * For initialization, only PAUSpair need to be explicitly allocated since
- * `rf` will be overwritten, and cv::Mat and QImage have default constructors
  */
 template <uspam::Floating T> struct BScanData {
   // RF data

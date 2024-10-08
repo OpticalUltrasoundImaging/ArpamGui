@@ -73,12 +73,4 @@ void reconOneScan_device(const recon::ReconParams &params,
   CUDA_RT_CALL(cudaStreamSynchronize(stream));
 }
 
-void reconOneScan_device(const recon::ReconParams2 &params,
-                         io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,
-                         bool flip, cudaStream_t stream) {
-
-  reconOneScan_device(params.PA, rf.PA, rfLog.PA, flip, stream);
-  reconOneScan_device(params.US, rf.US, rfLog.US, flip, stream);
-}
-
 } // namespace uspam::cuda
