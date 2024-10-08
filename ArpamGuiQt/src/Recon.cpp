@@ -1,10 +1,8 @@
 #include "Recon.hpp"
 #include "Common.hpp"
-#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/ioParams.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
-#include <variant>
 
 namespace Recon {
 

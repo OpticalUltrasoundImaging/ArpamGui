@@ -15,23 +15,35 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
+
+  /*
+  Geometry
+  */
+  bool flipOnEven;
+  int rotateOffset;
+
+  /*
+  Beamforming
+  */
+  BeamformerType beamformerType;
+  BeamformerParams<float> beamformerParams;
+
+  /*
+  Filter
+  */
   FilterType filterType;
-
-  int firTaps;  // for FIR filter
-  int iirOrder; // for IIR filter
-
+  int firTaps;      // for FIR filter
+  int iirOrder;     // for IIR filter
   float bpLowFreq;  // Bandpass low freq
   float bpHighFreq; // Bandpass high freq
 
-  int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
-  int rotateOffset;
+  /*
+  Log compression
+  */
   float noiseFloor_mV;
-  float desiredDynamicRange;
+  float desiredDynamicRange; // [dB]
 
-  bool flipOnEven; // If true, flip on even. else flip on odd
-
-  BeamformerType beamformerType;
-  BeamformerParams<float> beamformerParams;
+  int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
 
   [[nodiscard]] rapidjson::Value
   serialize(rapidjson::Document::AllocatorType &allocator) const;
@@ -55,30 +67,32 @@ struct ReconParams2 {
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
 
-    ReconParams PA{FilterType::FIR,
-                   taps,
-                   order,
-                   0.03,
-                   0.22,
-                   750,
-                   rotateOffset,
-                   9.0F,
-                   30.0F,
-                   flipOnEven,
-                   BeamformerType::SAFT_CF,
-                   beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{FilterType::IIR,
-                   taps,
-                   order,
-                   0.1,
-                   0.3,
-                   1000,
-                   rotateOffset,
-                   6.0F,
-                   40.0F,
-                   flipOnEven,
-                   BeamformerType::NONE,
-                   beamformer::SaftDelayParams<float>::make_US()};
+    ReconParams PA{.rotateOffset = rotateOffset,
+                   .flipOnEven = flipOnEven,
+                   .filterType = FilterType::FIR,
+                   .firTaps = taps,
+                   .iirOrder = order,
+                   .bpLowFreq = 0.03,
+                   .bpHighFreq = 0.22,
+                   .truncate = 750,
+                   .noiseFloor_mV = 9.0F,
+                   .desiredDynamicRange = 30.0F,
+                   .beamformerType = BeamformerType::SAFT_CF,
+                   .beamformerParams =
+                       beamformer::SaftDelayParams<float>::make_PA()};
+    ReconParams US{.rotateOffset = rotateOffset,
+                   .flipOnEven = flipOnEven,
+                   .filterType = FilterType::IIR,
+                   .firTaps = taps,
+                   .iirOrder = order,
+                   .bpLowFreq = 0.1,
+                   .bpHighFreq = 0.3,
+                   .truncate = 1000,
+                   .noiseFloor_mV = 6.0F,
+                   .desiredDynamicRange = 40.0F,
+                   .beamformerType = BeamformerType::NONE,
+                   .beamformerParams =
+                       beamformer::SaftDelayParams<float>::make_US()};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
