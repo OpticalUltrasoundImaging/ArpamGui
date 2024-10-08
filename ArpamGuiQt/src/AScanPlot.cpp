@@ -1,7 +1,6 @@
 #include "AScanPlot.hpp"
 #include "CustomPlot.hpp"
 #include "Metrics/FreqSpectrum.hpp"
-#include "PlotCommon.hpp"
 #include <QBrush>
 #include <QButtonGroup>
 #include <QColor>
@@ -19,7 +18,6 @@
 #include <QVBoxLayout>
 #include <QVector>
 #include <Qt>
-#include <algorithm>
 #include <cmath>
 #include <numbers>
 #include <qcustomplot.h>

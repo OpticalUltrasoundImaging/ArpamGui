@@ -25,6 +25,7 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
+
     rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT>(
         timeDelay, rf, truncate);
 
