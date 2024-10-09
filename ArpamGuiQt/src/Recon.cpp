@@ -76,11 +76,11 @@ void reconBScan(BScanData<ArpamFloat> &data,
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
     auto a2 = std::async(std::launch::async, procOne, std::ref(params.system),
-                         std::ref(params.US), std::ref(data.US), flip);
+                         std::ref(params.US), std::ref(data.US), flip, false);
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(params.system, params.PA, data.PA, flip);
+          procOne(params.system, params.PA, data.PA, flip, true);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -97,7 +97,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(params.system, params.PA, data.PA, flip);
+          procOne(params.system, params.PA, data.PA, flip, true);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -105,7 +105,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(params.system, params.US, data.US, flip);
+          procOne(params.system, params.US, data.US, flip, false);
       perfMetrics.beamform_ms += beamform_ms;
       perfMetrics.recon_ms += recon_ms;
       perfMetrics.imageConversion_ms += imageConversion_ms;
@@ -175,7 +175,8 @@ void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {
 
 std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
                                         const uspam::recon::ReconParams &params,
-                                        BScanData_<T> &data, bool flip) {
+                                        BScanData_<T> &data, bool flip,
+                                        bool isPA) {
   /*
   Flip
   Beamform
@@ -351,7 +352,11 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
 
   {
     uspam::TimeIt timeit;
-    data.radial = uspam::imutil::makeRadial_v2(data.rfLog);
+    int offset = system.transducerOffset / system.dr();
+    if (!isPA) { // US
+      offset *= 2;
+    }
+    data.radial = uspam::imutil::makeRadial_v3(data.rfLog, offset);
 
     // cv::medianBlur(data.radial, data.radial, 3);
 
