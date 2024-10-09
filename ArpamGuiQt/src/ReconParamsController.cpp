@@ -167,6 +167,27 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         return std::tuple{label, sp};
       };
 
+  const auto makeLabeledCheckbox = [this](QGridLayout *layout, int row,
+                                          const QString &name,
+                                          const QString &desc, bool &value) {
+    layout->addWidget(new QLabel(name), row, 0);
+
+    auto *cb = new QCheckBox();
+    layout->addWidget(cb, row, 1);
+    using Qt::CheckState;
+
+    connect(cb, &QCheckBox::checkStateChanged, this,
+            [this, &value](CheckState state) {
+              value = state == CheckState::Checked;
+              _paramsUpdatedInternal();
+            });
+
+    updateGuiFromParamsCallbacks.emplace_back([this, cb, &value] {
+      cb->setCheckState(value ? Qt::CheckState::Checked
+                              : Qt::CheckState::Unchecked);
+    });
+  };
+
   // Presets
   {
     auto *gb = new CollapsibleGroupBox("Presets");
@@ -190,7 +211,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
     {
       auto *btn = new QPushButton("Probe 2");
-      layout->addWidget(btn, 1, 1);
+      layout->addWidget(btn, 2, 0);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v2GUIprobe2);
     }
@@ -228,27 +249,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     makeLabeledDoubleSpinbox(layout, row++, "Illumination angle", "", " deg",
                              params.system.illumAngleDeg, {0.0, 25.0}, 0.1);
 
-    {
-      auto *label = new QLabel("Flip on even");
-      label->setToolTip("Flip the image on even or odd indices.");
-      layout->addWidget(label, row, 0);
-
-      auto *cb = new QCheckBox();
-      layout->addWidget(cb, row++, 1);
-      using Qt::CheckState;
-
-      connect(cb, &QCheckBox::checkStateChanged, this,
-              [this](CheckState state) {
-                this->params.system.flipOnEven = state == CheckState::Checked;
-                _paramsUpdatedInternal();
-              });
-
-      updateGuiFromParamsCallbacks.emplace_back([this, cb] {
-        cb->setCheckState(this->params.system.flipOnEven
-                              ? Qt::CheckState::Checked
-                              : Qt::CheckState::Unchecked);
-      });
-    }
+    makeLabeledCheckbox(layout, row++, "Flip on even",
+                        "Flip the image on even or odd indices.",
+                        params.system.flipOnEven);
 
     makeLabeledSpinbox(layout, row++, "Alines Per Bscan", "", "",
                        ioparams.alinesPerBscan, {500, 2000});
@@ -256,7 +259,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     makeLabeledSpinbox(layout, row++, "Rotation offset", "", " lines",
                        params.system.rotateOffset, {-500, 500});
 
-    makeLabeledSpinbox(layout, row++, "Samples Per Ascan (PA)",
+    makeLabeledSpinbox(layout, row++, "RF size (PA)",
                        "Samples per Ascan for PA can be changed here. Samples "
                        "per Ascan for US will be double this.",
                        " pts", ioparams.rfSizePA, {2500, 3000});
@@ -289,7 +292,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *layout = new QGridLayout;
       vlayout->addLayout(layout);
-      int row = 1;
+      int row = 0;
+
+      makeLabeledCheckbox(layout, row++, "Background subtract", "",
+                          p.backgroundSubtract);
 
       // Filter type and order control
       {

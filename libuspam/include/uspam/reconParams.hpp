@@ -15,27 +15,30 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
+  bool backgroundSubtract{false};
+
   /*
   Beamforming
   */
-  BeamformerType beamformerType;
+  BeamformerType beamformerType{BeamformerType::NONE};
 
   /*
   Filter
   */
-  FilterType filterType;
-  int firTaps;      // for FIR filter
-  int iirOrder;     // for IIR filter
-  float bpLowFreq;  // Bandpass low freq
-  float bpHighFreq; // Bandpass high freq
+  FilterType filterType{FilterType::FIR};
+  int firTaps{65};       // for FIR filter
+  int iirOrder{3};       // for IIR filter
+  float bpLowFreq{0.1};  // Bandpass low freq
+  float bpHighFreq{0.3}; // Bandpass high freq
 
   /*
   Log compression
   */
-  float noiseFloor_mV;
-  float desiredDynamicRange; // [dB]
+  float noiseFloor_mV{3.0F};
+  float desiredDynamicRange{40.0}; // [dB]
 
-  int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
+  int truncate{200}; // num samples at the beginning to zero (pulser/laser
+                     // artifacts)
 
   /*
   Serialization
@@ -63,6 +66,7 @@ struct ReconParams2 {
     constexpr int order = 3;
 
     ReconParams PA{
+        .backgroundSubtract = true,
         .beamformerType = BeamformerType::SAFT_CF,
         .filterType = FilterType::FIR,
         .firTaps = taps,
@@ -75,6 +79,7 @@ struct ReconParams2 {
     };
 
     ReconParams US{
+        .backgroundSubtract = false,
         .beamformerType = BeamformerType::NONE,
         .filterType = FilterType::IIR,
         .firTaps = taps,

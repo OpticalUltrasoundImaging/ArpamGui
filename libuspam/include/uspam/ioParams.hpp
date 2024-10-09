@@ -96,7 +96,9 @@ public:
 
   template <typename T1, typename Tb, typename Tout>
   auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
-                       arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS) const {
+                       arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS,
+                       const bool subtractPA = true,
+                       const bool subtractUS = true) const {
 
     const auto USstart = this->rfSizePA;
     auto offsetUS = this->offsetUS;
@@ -118,15 +120,22 @@ public:
 
         // PA
         for (int i = 0; i < this->rfSizePA; ++i) {
-          // split.PA(i, j) = static_cast<Tout>(rf(i, j));
-          rfPA(i, j) =
-              static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
+          if (subtractPA) {
+            rfPA(i, j) =
+                static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
+          } else {
+            rfPA(i, j) = static_cast<Tout>(rf(i, j));
+          }
         }
 
         // US
         for (int i = 0; i < this->rfSizeUS(); ++i) {
-          rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
-                                         background(i + USstart));
+          if (subtractUS) {
+            rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
+                                           background(i + USstart));
+          } else {
+            rfUS(i, j) = static_cast<Tout>(rf(i + USstart, j));
+          }
         }
 
         {
