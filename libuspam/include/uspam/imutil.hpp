@@ -67,6 +67,26 @@ template <typename T> auto makeRadial_v2(const arma::Mat<T> &mat) {
   return cv_mat;
 }
 
+template <typename T> auto makeRadial_v3(const arma::Mat<T> &mat, int offset) {
+  // NOLINTNEXTLINE(*-casting)
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+
+  cv::copyMakeBorder(cv_mat, cv_mat, 0, 0, offset, 0, cv::BORDER_CONSTANT,
+                     cv::Scalar(0));
+
+  const int r = std::min(cv_mat.rows, cv_mat.cols);
+  const cv::Size dsize{r, r};
+  const cv::Point2f center{static_cast<float>(r) / 2,
+                           static_cast<float>(r) / 2};
+  const auto maxRadius{static_cast<double>(r) / 2};
+
+  cv::warpPolar(cv_mat, cv_mat, dsize, center, maxRadius,
+                cv::WARP_INVERSE_MAP | cv::WARP_FILL_OUTLIERS);
+  cv::rotate(cv_mat, cv_mat, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+  return cv_mat;
+}
+
 // equivalent to arma::fliplr but inplace
 template <typename T> void fliplr_inplace(arma::Mat<T> &mat) {
   const int n = mat.n_cols;
