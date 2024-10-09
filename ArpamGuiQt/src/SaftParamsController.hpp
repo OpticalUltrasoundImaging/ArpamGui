@@ -13,14 +13,14 @@ public:
   using T = float;
 
   explicit SaftParamsController(
-      uspam::beamformer::SaftDelayParams<T> params =
-          uspam::beamformer::SaftDelayParams<T>::make_PA());
+      uspam::beamformer::BeamformerParams<T> params =
+          uspam::beamformer::BeamformerParams<T>::make_PA());
 
 signals:
-  void paramsUpdated(uspam::beamformer::SaftDelayParams<T>);
+  void paramsUpdated(uspam::beamformer::BeamformerParams<T>);
 
 private:
   inline void _paramsUpdatedInternal() { emit paramsUpdated(m_params); }
 
-  uspam::beamformer::SaftDelayParams<T> m_params;
+  uspam::beamformer::BeamformerParams<T> m_params;
 };
