@@ -2,7 +2,6 @@
 #include "CollapsibleGroupBox.hpp"
 #include "Common.hpp"
 #include "SaftParamsController.hpp"
-#include "uspam/beamformer/SAFT.hpp"
 #include "uspam/reconParams.hpp"
 #include <QBoxLayout>
 #include <QCheckBox>
@@ -17,7 +16,6 @@
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
-#include <variant>
 #include <vector>
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -413,17 +411,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
     // Beamformer Params
     {
-      SaftParamsController *saftParamsController{};
-      if (std::holds_alternative<
-              uspam::beamformer::SaftDelayParams<ArpamFloat>>(
-              p.beamformerParams)) {
-        const auto &params =
-            std::get<uspam::beamformer::SaftDelayParams<ArpamFloat>>(
-                p.beamformerParams);
-        saftParamsController = new SaftParamsController(params);
-      } else {
-        saftParamsController = new SaftParamsController;
-      }
+      auto *saftParamsController = new SaftParamsController(p.beamformerParams);
 
       vlayout->addWidget(saftParamsController);
 
@@ -440,7 +428,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       saftParamsController->hide();
 
       connect(saftParamsController, &SaftParamsController::paramsUpdated,
-              [this, &p](uspam::beamformer::SaftDelayParams<float> params) {
+              [this, &p](uspam::beamformer::BeamformerParams<float> params) {
                 p.beamformerParams = params;
                 this->_paramsUpdatedInternal();
               });

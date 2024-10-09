@@ -20,12 +20,12 @@ void Expect_EQ_BeamformerParams(
     const uspam::beamformer::BeamformerParams<float> &p2) {
   using T = float;
 
-  if (std::holds_alternative<uspam::beamformer::SaftDelayParams<T>>(p1)) {
+  if (std::holds_alternative<uspam::beamformer::BeamformerParams<T>>(p1)) {
     EXPECT_TRUE(
-        std::holds_alternative<uspam::beamformer::SaftDelayParams<T>>(p2));
+        std::holds_alternative<uspam::beamformer::BeamformerParams<T>>(p2));
 
-    const auto &_p1 = std::get<uspam::beamformer::SaftDelayParams<T>>(p1);
-    const auto &_p2 = std::get<uspam::beamformer::SaftDelayParams<T>>(p2);
+    const auto &_p1 = std::get<uspam::beamformer::BeamformerParams<T>>(p1);
+    const auto &_p2 = std::get<uspam::beamformer::BeamformerParams<T>>(p2);
 
     EXPECT_EQ(_p1.rt, _p2.rt);
     EXPECT_EQ(_p1.vs, _p2.vs);

@@ -9,7 +9,7 @@
 namespace beamformer = uspam::beamformer;
 
 TEST(SaftTimeDelayParamTest, Correct) {
-  beamformer::SaftDelayParams<double> saftParams{};
+  beamformer::BeamformerParams<double> saftParams{};
   saftParams.rt = 6.2;
   saftParams.vs = 1.5e3;
   saftParams.dt = 1.0 / 180e6;
@@ -36,7 +36,7 @@ TEST(SaftTimeDelayParamTest, Correct) {
 TEST(SaftApply, Correct) {
   using T = float;
 
-  const auto saftParams = beamformer::SaftDelayParams<T>::make_PA();
+  const auto saftParams = beamformer::BeamformerParams<T>::make_PA();
   const auto timeDelay =
       beamformer::computeSaftTimeDelay(saftParams, 769, 2450);
 

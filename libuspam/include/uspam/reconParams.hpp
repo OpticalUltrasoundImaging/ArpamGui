@@ -1,11 +1,10 @@
 #pragma once
 
-#include "uspam/beamformer/SAFT.hpp"
-#include "uspam/beamformer/beamformer.hpp"
+#include "uspam/beamformer/BeamformerParams.hpp"
+#include "uspam/beamformer/BeamformerType.hpp"
 #include <armadillo>
 #include <filesystem>
 #include <rapidjson/document.h>
-#include <variant>
 
 namespace uspam::recon {
 namespace fs = std::filesystem;
@@ -81,8 +80,8 @@ struct ReconParams2 {
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
 
-    auto PAsaft = beamformer::SaftDelayParams<float>::make_PA();
-    auto USsaft = beamformer::SaftDelayParams<float>::make_US();
+    auto PAsaft = beamformer::BeamformerParams<float>::make_PA();
+    auto USsaft = beamformer::BeamformerParams<float>::make_US();
 
     PAsaft.vs = soundSpeed;
     USsaft.vs = soundSpeed;
@@ -145,19 +144,8 @@ struct ReconParams2 {
   bool deserializeFromFile(const fs::path &path);
 
   void updateSaftParamsFromReconParams() {
-    if (std::holds_alternative<beamformer::SaftDelayParams<float>>(
-            PA.beamformerParams)) {
-      auto &bfParams =
-          std::get<beamformer::SaftDelayParams<float>>(PA.beamformerParams);
-      bfParams.vs = PA.soundSpeed;
-    }
-
-    if (std::holds_alternative<beamformer::SaftDelayParams<float>>(
-            US.beamformerParams)) {
-      auto &bfParams =
-          std::get<beamformer::SaftDelayParams<float>>(US.beamformerParams);
-      bfParams.vs = US.soundSpeed;
-    }
+    PA.beamformerParams.vs = PA.soundSpeed;
+    US.beamformerParams.vs = US.soundSpeed;
   }
 };
 
