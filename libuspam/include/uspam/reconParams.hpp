@@ -87,35 +87,39 @@ struct ReconParams2 {
     PAsaft.vs = soundSpeed;
     USsaft.vs = soundSpeed;
 
-    ReconParams PA{.soundSpeed = soundSpeed,
-                   .fs = fs,
-                   .rotateOffset = rotateOffset,
-                   .flipOnEven = flipOnEven,
-                   .filterType = FilterType::FIR,
-                   .firTaps = taps,
-                   .iirOrder = order,
-                   .bpLowFreq = 0.03,
-                   .bpHighFreq = 0.22,
-                   .truncate = 750,
-                   .noiseFloor_mV = 9.0F,
-                   .desiredDynamicRange = 30.0F,
-                   .beamformerType = BeamformerType::SAFT_CF,
-                   .beamformerParams = PAsaft};
+    ReconParams PA{
+        .soundSpeed = soundSpeed,
+        .fs = fs,
+        .flipOnEven = flipOnEven,
+        .rotateOffset = rotateOffset,
+        .beamformerType = BeamformerType::SAFT_CF,
+        .beamformerParams = PAsaft,
+        .filterType = FilterType::FIR,
+        .firTaps = taps,
+        .iirOrder = order,
+        .bpLowFreq = 0.03,
+        .bpHighFreq = 0.22,
+        .noiseFloor_mV = 9.0F,
+        .desiredDynamicRange = 30.0F,
+        .truncate = 750,
+    };
 
-    ReconParams US{.soundSpeed = soundSpeed,
-                   .fs = fs,
-                   .rotateOffset = rotateOffset,
-                   .flipOnEven = flipOnEven,
-                   .filterType = FilterType::IIR,
-                   .firTaps = taps,
-                   .iirOrder = order,
-                   .bpLowFreq = 0.1,
-                   .bpHighFreq = 0.3,
-                   .truncate = 1000,
-                   .noiseFloor_mV = 6.0F,
-                   .desiredDynamicRange = 40.0F,
-                   .beamformerType = BeamformerType::NONE,
-                   .beamformerParams = USsaft};
+    ReconParams US{
+        .soundSpeed = soundSpeed,
+        .fs = fs,
+        .flipOnEven = flipOnEven,
+        .rotateOffset = rotateOffset,
+        .beamformerType = BeamformerType::NONE,
+        .beamformerParams = USsaft,
+        .filterType = FilterType::IIR,
+        .firTaps = taps,
+        .iirOrder = order,
+        .bpLowFreq = 0.1,
+        .bpHighFreq = 0.3,
+        .noiseFloor_mV = 6.0F,
+        .desiredDynamicRange = 40.0F,
+        .truncate = 1000,
+    };
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
