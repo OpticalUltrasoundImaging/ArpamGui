@@ -187,13 +187,10 @@ void AScanPlot::plotCurrentAScan() {
       idx = AScansPerBScan - 1 - idx;
     }
 
-    const auto msg =
-        QString("AScan: %1. Flip: %2").arg(idx).arg(flip ? "true" : "false");
-
     m_AScanPlotIdx = idx;
   }
 
-  // Sound speed: 1500m/s. 1000 mm/m. 180e6 samples/second
+  // [mm]
   const double spacingUS = m_data->spacingRectUS;
   const double spacingPA = spacingUS * 2;
 

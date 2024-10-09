@@ -5,6 +5,7 @@
 #include <armadillo>
 #include <filesystem>
 #include <rapidjson/document.h>
+#include <variant>
 
 namespace uspam::recon {
 namespace fs = std::filesystem;
@@ -19,7 +20,7 @@ struct ReconParams {
   System
   */
   float soundSpeed{1500.0F}; // [m/s] Speed of sound
-  float fs{180e6};           // [Hz] Sampling frequency
+  float fs{180.0e6F};        // [Hz] Sampling frequency
 
   /*
   Geometry
@@ -73,12 +74,22 @@ struct ReconParams2 {
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline ReconParams2 system2024v1() {
     // NOLINTBEGIN(*-magic-numbers)
-    constexpr int taps = 95;
+    constexpr float soundSpeed = 1500.0F;
+    constexpr float fs = 180.0e6F;
+    constexpr int taps = 65;
     constexpr int order = 3;
     constexpr int rotateOffset = 25;
     constexpr bool flipOnEven = true;
 
-    ReconParams PA{.rotateOffset = rotateOffset,
+    auto PAsaft = beamformer::SaftDelayParams<float>::make_PA();
+    auto USsaft = beamformer::SaftDelayParams<float>::make_US();
+
+    PAsaft.vs = soundSpeed;
+    USsaft.vs = soundSpeed;
+
+    ReconParams PA{.soundSpeed = soundSpeed,
+                   .fs = fs,
+                   .rotateOffset = rotateOffset,
                    .flipOnEven = flipOnEven,
                    .filterType = FilterType::FIR,
                    .firTaps = taps,
@@ -89,9 +100,11 @@ struct ReconParams2 {
                    .noiseFloor_mV = 9.0F,
                    .desiredDynamicRange = 30.0F,
                    .beamformerType = BeamformerType::SAFT_CF,
-                   .beamformerParams =
-                       beamformer::SaftDelayParams<float>::make_PA()};
-    ReconParams US{.rotateOffset = rotateOffset,
+                   .beamformerParams = PAsaft};
+
+    ReconParams US{.soundSpeed = soundSpeed,
+                   .fs = fs,
+                   .rotateOffset = rotateOffset,
                    .flipOnEven = flipOnEven,
                    .filterType = FilterType::IIR,
                    .firTaps = taps,
@@ -102,8 +115,7 @@ struct ReconParams2 {
                    .noiseFloor_mV = 6.0F,
                    .desiredDynamicRange = 40.0F,
                    .beamformerType = BeamformerType::NONE,
-                   .beamformerParams =
-                       beamformer::SaftDelayParams<float>::make_US()};
+                   .beamformerParams = USsaft};
 
     return ReconParams2{PA, US};
     // NOLINTEND(*-magic-numbers)
@@ -127,6 +139,22 @@ struct ReconParams2 {
   // Deserialize from JSON
   bool deserialize(const rapidjson::Document &doc);
   bool deserializeFromFile(const fs::path &path);
+
+  void updateSaftParamsFromReconParams() {
+    if (std::holds_alternative<beamformer::SaftDelayParams<float>>(
+            PA.beamformerParams)) {
+      auto &bfParams =
+          std::get<beamformer::SaftDelayParams<float>>(PA.beamformerParams);
+      bfParams.vs = PA.soundSpeed;
+    }
+
+    if (std::holds_alternative<beamformer::SaftDelayParams<float>>(
+            US.beamformerParams)) {
+      auto &bfParams =
+          std::get<beamformer::SaftDelayParams<float>>(US.beamformerParams);
+      bfParams.vs = US.soundSpeed;
+    }
+  }
 };
 
 } // namespace uspam::recon

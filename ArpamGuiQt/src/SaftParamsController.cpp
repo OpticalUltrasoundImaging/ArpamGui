@@ -5,15 +5,16 @@ SaftParamsController::SaftParamsController(
     : QWidget(nullptr), m_params(params) {
 
   const auto makeQDoubleSpinBox = [this](const std::pair<double, double> &range,
-                                         double singleStep, T &value) {
+                                         const double singleStep, T &value) {
     auto *spinBox = new QDoubleSpinBox;
     spinBox->setRange(range.first, range.second);
     spinBox->setSingleStep(singleStep);
     spinBox->setValue(static_cast<double>(value));
-    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [&](double newValue) {
-      value = static_cast<T>(newValue);
-      this->_paramsUpdatedInternal();
-    });
+    connect(spinBox, &QDoubleSpinBox::valueChanged, this,
+            [&](const double newValue) {
+              value = static_cast<T>(newValue);
+              this->_paramsUpdatedInternal();
+            });
     return spinBox;
   };
 
