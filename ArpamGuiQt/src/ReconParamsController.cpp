@@ -8,62 +8,17 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QGridLayout>
 #include <QIntValidator>
+#include <QLabel>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSpinBox>
 #include <QValidator>
 #include <QVariant>
 #include <Qt>
-#include <qgridlayout.h>
-#include <ranges>
-#include <sstream>
-#include <string>
 #include <variant>
 #include <vector>
-
-namespace {
-
-class DoubleListValidator : public QValidator {
-public:
-  explicit DoubleListValidator(QObject *parent = nullptr) : QValidator(parent) {
-    // Regex to match a list of doubles separated by commas.
-    // It handles optional whitespace around commas and after the last number.
-    regex = QRegularExpression("");
-    regex.optimize();
-  }
-
-  QValidator::State validate(QString &input, int &pos) const override {
-    if (input.isEmpty() || input.endsWith(",")) {
-      // Allow empty string or trailing comma to facilitate typing
-      return QValidator::Intermediate;
-    }
-    auto match = regex.match(input, pos);
-    if (match.hasMatch()) {
-      return QValidator::Acceptable;
-    }
-    return QValidator::Invalid;
-  }
-
-private:
-  QRegularExpression regex;
-};
-
-template <typename T>
-auto vectorToStdString(const std::vector<T> &vec) -> std::string {
-  if (vec.empty()) {
-    return {};
-  }
-
-  std::stringstream ss;
-  ss << vec.front();
-  for (const auto &val : vec | std::views::drop(1)) {
-    ss << ", " << val;
-  }
-  return ss.str();
-}
-
-} // namespace
 
 // NOLINTBEGIN(*-magic-numbers)
 
@@ -72,8 +27,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       ioparams(uspam::io::IOParams::system2024v2GUI()) {
   auto *layout = new QVBoxLayout();
   this->setLayout(layout);
-
-  auto *doubleListValidator = new DoubleListValidator(this);
 
   const auto makeQSpinBox = [this](int &value, const std::pair<int, int> &range,
                                    const int step = 1) {
@@ -215,6 +168,82 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
         return std::tuple{label, sp};
       };
+
+  // Presets
+  {
+    auto *gb = new CollapsibleGroupBox("Presets");
+    layout->addWidget(gb);
+    auto *layout = new QGridLayout;
+    gb->setLayout(layout);
+
+    {
+      auto *btn = new QPushButton("Labview (2024v1)");
+      layout->addWidget(btn, 0, 0);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v1);
+    }
+
+    {
+      auto *btn = new QPushButton("ArpamGui (2024v2)");
+      layout->addWidget(btn, 0, 1);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v2GUI);
+    }
+  }
+
+  // Registration params
+  {
+    auto *gb = new CollapsibleGroupBox("Registration");
+    layout->addWidget(gb);
+    auto *layout = new QGridLayout;
+    gb->setLayout(layout);
+    int row = 0;
+
+    {
+      auto *label = new QLabel("Flip on even");
+      label->setToolTip("Flip the image on even or odd indices.");
+      layout->addWidget(label, row, 0);
+      auto *cb = new QCheckBox();
+      layout->addWidget(cb, row++, 1);
+      using Qt::CheckState;
+
+      connect(cb, &QCheckBox::checkStateChanged, this,
+              [this, cb](CheckState state) {
+                const auto checked = state == CheckState::Checked;
+                this->params.PA.flipOnEven = checked;
+                this->params.US.flipOnEven = checked;
+                _paramsUpdatedInternal();
+              });
+
+      updateGuiFromParamsCallbacks.emplace_back([this, cb] {
+        cb->setCheckState(this->params.PA.flipOnEven
+                              ? Qt::CheckState::Checked
+                              : Qt::CheckState::Unchecked);
+      });
+    }
+
+    makeLabeledSpinbox2(layout, row++, "Rotation offset", "", " lines",
+                        params.US.rotateOffset, params.PA.rotateOffset,
+                        {-500, 500});
+
+    makeLabeledSpinbox(layout, row++, "Alines Per Bscan", "", "",
+                       ioparams.alinesPerBscan, {500, 2000});
+
+    makeLabeledSpinbox(layout, row++, "Samples Per Ascan (PA)",
+                       "Samples per Ascan for PA can be changed here. Samples "
+                       "per Ascan for US will be double this.",
+                       " pts", ioparams.rfSizePA, {2500, 3000});
+
+    makeLabeledSpinbox(layout, row++, "OffsetUS",
+                       "Change this (in no. of samples) to move how close the "
+                       "US signals are in relation to the axis of rotation.",
+                       " pts", ioparams.offsetUS, {-2000, 2000});
+
+    makeLabeledSpinbox(
+        layout, row++, "OffsetPA",
+        "Change this (in no. of samples) to coregister PA and US.", " pts",
+        ioparams.offsetPA, {-2000, 2000});
+  }
 
   // System parameters
   {
@@ -420,82 +449,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     return gb;
   };
 
-  layout->addWidget(makeReconParamsControl(tr("PA"), this->params.PA));
-  layout->addWidget(makeReconParamsControl(tr("US"), this->params.US));
-
-  // Registration params
-  {
-    auto *gb = new CollapsibleGroupBox(tr("Coregistration"));
-    layout->addWidget(gb);
-    auto *layout = new QGridLayout;
-    gb->setLayout(layout);
-    int row = 0;
-
-    {
-      auto *label = new QLabel("Flip on even");
-      label->setToolTip("Flip the image on even or odd indices.");
-      layout->addWidget(label, row, 0);
-      auto *cb = new QCheckBox();
-      layout->addWidget(cb, row++, 1);
-      using Qt::CheckState;
-
-      connect(cb, &QCheckBox::checkStateChanged, this,
-              [this, cb](CheckState state) {
-                const auto checked = state == CheckState::Checked;
-                this->params.PA.flipOnEven = checked;
-                this->params.US.flipOnEven = checked;
-                _paramsUpdatedInternal();
-              });
-
-      updateGuiFromParamsCallbacks.emplace_back([this, cb] {
-        cb->setCheckState(this->params.PA.flipOnEven
-                              ? Qt::CheckState::Checked
-                              : Qt::CheckState::Unchecked);
-      });
-    }
-
-    makeLabeledSpinbox2(layout, row++, "Rotation offset", "", " lines",
-                        params.US.rotateOffset, params.PA.rotateOffset,
-                        {-500, 500});
-
-    makeLabeledSpinbox(layout, row++, "Alines Per Bscan", "", "",
-                       ioparams.alinesPerBscan, {500, 2000});
-
-    makeLabeledSpinbox(layout, row++, "Samples Per Ascan (PA)",
-                       "Samples per Ascan for PA can be changed here. Samples "
-                       "per Ascan for US will be double this.",
-                       " pts", ioparams.rfSizePA, {2500, 3000});
-
-    makeLabeledSpinbox(layout, row++, "OffsetUS",
-                       "Change this (in no. of samples) to move how close the "
-                       "US signals are in relation to the axis of rotation.",
-                       " pts", ioparams.offsetUS, {-2000, 2000});
-
-    makeLabeledSpinbox(
-        layout, row++, "OffsetPA",
-        "Change this (in no. of samples) to coregister PA and US.", " pts",
-        ioparams.offsetPA, {-2000, 2000});
-  }
-
-  // Reset buttons
-  {
-    auto *_layout = new QVBoxLayout;
-    layout->addLayout(_layout);
-
-    {
-      auto *btn = new QPushButton("Preset 2024v1 (Labview)");
-      _layout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, this,
-              &ReconParamsController::resetParams2024v1);
-    }
-
-    {
-      auto *btn = new QPushButton("Preset 2024v2 (ArpamGui)");
-      _layout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, this,
-              &ReconParamsController::resetParams2024v2GUI);
-    }
-  }
+  layout->addWidget(makeReconParamsControl("PA", this->params.PA));
+  layout->addWidget(makeReconParamsControl("US", this->params.US));
 
   layout->addStretch();
 

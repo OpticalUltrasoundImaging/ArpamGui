@@ -1,8 +1,6 @@
 #pragma once
 
 #include <Common.hpp>
-#include <QGridLayout>
-#include <QLabel>
 #include <QWidget>
 #include <QtDebug>
 #include <uspam/io.hpp>
