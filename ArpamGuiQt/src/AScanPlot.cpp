@@ -172,10 +172,10 @@ void AScanPlot::plotCurrentAScan() {
   // Correct for flip and rotation in the selected AScan idx
   // and store result in m_AScanPlotIdx
   {
-    const bool flip = m_reconParams->params.PA.flip(m_data->frameIdx);
+    const bool flip = m_reconParams->params.system.flip(m_data->frameIdx);
     auto idx = m_AScanPlotIdx_canvas;
     if (flip) {
-      idx -= m_reconParams->params.PA.rotateOffset;
+      idx -= m_reconParams->params.system.rotateOffset;
 
       constexpr int AScansPerBScan = 1000;
       if (idx < 0) {

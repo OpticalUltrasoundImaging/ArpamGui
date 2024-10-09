@@ -23,7 +23,6 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
   obj.AddMember("truncate", truncate, allocator);
   obj.AddMember("noiseFloor", noiseFloor_mV, allocator);
   obj.AddMember("desiredDynamicRange", desiredDynamicRange, allocator);
-  obj.AddMember("rotateOffset", rotateOffset, allocator);
 
   {
     rapidjson::Value v;
@@ -33,15 +32,13 @@ ReconParams::serialize(rapidjson::Document::AllocatorType &allocator) const {
     obj.AddMember("beamformerType", v, allocator);
   }
 
-  // TODO beamformer params
-
   return obj;
 }
 
 ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
   using json::deserializeArray;
 
-  ReconParams params;
+  ReconParams params{};
 
   params.filterType = static_cast<FilterType>(obj["filterType"].GetInt());
 
@@ -52,7 +49,6 @@ ReconParams ReconParams::deserialize(const rapidjson::Value &obj) {
   params.bpLowFreq = obj["bpLowFreq"].GetFloat();
 
   params.truncate = obj["truncate"].GetInt();
-  params.rotateOffset = obj["rotateOffset"].GetInt();
   params.noiseFloor_mV = obj["noiseFloor"].GetFloat();
   params.desiredDynamicRange = obj["desiredDynamicRange"].GetFloat();
 

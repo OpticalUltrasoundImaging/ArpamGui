@@ -1,7 +1,6 @@
 #include "ReconParamsController.hpp"
 #include "CollapsibleGroupBox.hpp"
 #include "Common.hpp"
-#include "SaftParamsController.hpp"
 #include "uspam/reconParams.hpp"
 #include <QBoxLayout>
 #include <QCheckBox>
@@ -189,43 +188,65 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     }
   }
 
-  // Registration params
+  // System parameters
   {
-    auto *gb = new CollapsibleGroupBox("Registration");
+    auto *gb = new CollapsibleGroupBox("System");
     layout->addWidget(gb);
     auto *layout = new QGridLayout;
     gb->setLayout(layout);
     int row = 0;
 
+    // Sound speed
+    makeLabeledDoubleSpinbox(layout, row++, "Sound speed", "", " m/s",
+                             params.system.soundSpeed, {1300.0, 1700.0}, 10.0);
+
+    // Sampling freq
+    makeLabeledDoubleSpinbox(
+        layout, row++, "Sampling Freq",
+        "This only affects reconstruction and doesn't change the acquisition",
+        " MHz", params.system.fs, {0.0, 200.0}, 10.0, 1.0E6);
+
+    // Imaging head
+    makeLabeledDoubleSpinbox(layout, row++, "Transducer offset", "", " mm",
+                             params.system.transducerOffset, {0.0, 20.0}, 0.1);
+
+    makeLabeledDoubleSpinbox(layout, row++, "Focal length", "", " mm",
+                             params.system.focalLength, {0.0, 25.0}, 0.1);
+
+    makeLabeledDoubleSpinbox(layout, row++, "Transducer diameter", "", " mm",
+                             params.system.transducerDiameter, {0.0, 25.0},
+                             0.1);
+
+    makeLabeledDoubleSpinbox(layout, row++, "Illumination angle", "", " deg",
+                             params.system.illumAngleDeg, {0.0, 25.0}, 0.1);
+
     {
       auto *label = new QLabel("Flip on even");
       label->setToolTip("Flip the image on even or odd indices.");
       layout->addWidget(label, row, 0);
+
       auto *cb = new QCheckBox();
       layout->addWidget(cb, row++, 1);
       using Qt::CheckState;
 
       connect(cb, &QCheckBox::checkStateChanged, this,
-              [this, cb](CheckState state) {
-                const auto checked = state == CheckState::Checked;
-                this->params.PA.flipOnEven = checked;
-                this->params.US.flipOnEven = checked;
+              [this](CheckState state) {
+                this->params.system.flipOnEven = state == CheckState::Checked;
                 _paramsUpdatedInternal();
               });
 
       updateGuiFromParamsCallbacks.emplace_back([this, cb] {
-        cb->setCheckState(this->params.PA.flipOnEven
+        cb->setCheckState(this->params.system.flipOnEven
                               ? Qt::CheckState::Checked
                               : Qt::CheckState::Unchecked);
       });
     }
 
-    makeLabeledSpinbox2(layout, row++, "Rotation offset", "", " lines",
-                        params.US.rotateOffset, params.PA.rotateOffset,
-                        {-500, 500});
-
     makeLabeledSpinbox(layout, row++, "Alines Per Bscan", "", "",
                        ioparams.alinesPerBscan, {500, 2000});
+
+    makeLabeledSpinbox(layout, row++, "Rotation offset", "", " lines",
+                       params.system.rotateOffset, {-500, 500});
 
     makeLabeledSpinbox(layout, row++, "Samples Per Ascan (PA)",
                        "Samples per Ascan for PA can be changed here. Samples "
@@ -241,26 +262,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         layout, row++, "OffsetPA",
         "Change this (in no. of samples) to coregister PA and US.", " pts",
         ioparams.offsetPA, {-2000, 2000});
-  }
-
-  // System parameters
-  {
-    auto *gb = new CollapsibleGroupBox("System");
-    layout->addWidget(gb);
-    auto *layout = new QGridLayout;
-    gb->setLayout(layout);
-    int row = 1;
-
-    // Sound speed
-    makeLabeledDoubleSpinbox2(layout, row++, "Sound speed", "", " m/s",
-                              params.US.soundSpeed, params.PA.soundSpeed,
-                              {1300.0, 1700.0}, 10.0);
-
-    // Sampling freq
-    makeLabeledDoubleSpinbox2(
-        layout, row++, "Sampling Freq",
-        "This only affects reconstruction and doesn't change the acquisition",
-        " MHz", params.US.fs, params.PA.fs, {0.0, 200.0}, 10.0, 1.0E6);
   }
 
   const QString &help_Truncate = "Truncate num points from the beginning to "
@@ -404,34 +405,6 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           }
         });
       }
-    }
-
-    auto *btnShowReconParams = new QPushButton("Show SAFT Parameters");
-    vlayout->addWidget(btnShowReconParams);
-
-    // Beamformer Params
-    {
-      auto *saftParamsController = new SaftParamsController(p.beamformerParams);
-
-      vlayout->addWidget(saftParamsController);
-
-      connect(btnShowReconParams, &QPushButton::pressed,
-              [btnShowReconParams, saftParamsController] {
-                if (saftParamsController->isVisible()) {
-                  saftParamsController->setVisible(false);
-                  btnShowReconParams->setText("Show SAFT Parameters");
-                } else {
-                  saftParamsController->setVisible(true);
-                  btnShowReconParams->setText("Hide SAFT Parameters");
-                }
-              });
-      saftParamsController->hide();
-
-      connect(saftParamsController, &SaftParamsController::paramsUpdated,
-              [this, &p](uspam::beamformer::BeamformerParams<float> params) {
-                p.beamformerParams = params;
-                this->_paramsUpdatedInternal();
-              });
     }
 
     return gb;

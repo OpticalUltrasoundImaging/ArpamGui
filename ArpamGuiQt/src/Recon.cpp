@@ -1,5 +1,6 @@
 #include "Recon.hpp"
 #include "Common.hpp"
+#include "uspam/SystemParams.hpp"
 #include "uspam/beamformer/Beamformer.hpp"
 #include "uspam/ioParams.hpp"
 #include <future>
@@ -70,19 +71,16 @@ void reconBScan(BScanData<ArpamFloat> &data,
   /*
   Recon
   */
-  const auto &paramsPA = params.PA;
-  const auto &paramsUS = params.US;
-
-  const bool flip = paramsPA.flip(data.frameIdx);
+  const bool flip = params.system.flip(data.frameIdx);
 
   constexpr bool USE_ASYNC = true;
   if constexpr (USE_ASYNC) {
-    auto a2 = std::async(std::launch::async, procOne, std::ref(paramsUS),
-                         std::ref(data.US), flip);
+    auto a2 = std::async(std::launch::async, procOne, std::ref(params.system),
+                         std::ref(params.US), std::ref(data.US), flip);
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(paramsPA, data.PA, flip);
+          procOne(params.system, params.PA, data.PA, flip);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -99,7 +97,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(paramsPA, data.PA, flip);
+          procOne(params.system, params.PA, data.PA, flip);
       perfMetrics.beamform_ms = beamform_ms;
       perfMetrics.recon_ms = recon_ms;
       perfMetrics.imageConversion_ms = imageConversion_ms;
@@ -107,7 +105,7 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
     {
       const auto [beamform_ms, recon_ms, imageConversion_ms] =
-          procOne(paramsUS, data.US, flip);
+          procOne(params.system, params.US, data.US, flip);
       perfMetrics.beamform_ms += beamform_ms;
       perfMetrics.recon_ms += recon_ms;
       perfMetrics.imageConversion_ms += imageConversion_ms;
@@ -116,7 +114,8 @@ void reconBScan(BScanData<ArpamFloat> &data,
 
   // Compute scalebar scalar [mm]
   {
-    data.spacingRectUS = paramsUS.soundSpeed / paramsUS.fs / 2 * 1000;
+
+    data.spacingRectUS = params.system.dr() / 2;
     const auto USpoints_rect = static_cast<double>(data.US.rf.n_rows);
     const auto USpoints_radial = static_cast<double>(data.US.radial.rows) / 2;
     data.spacingRadialUS = data.spacingRectUS * USpoints_rect / USpoints_radial;
@@ -174,7 +173,8 @@ void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir) {
   }
 }
 
-std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
+std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
+                                        const uspam::recon::ReconParams &params,
                                         BScanData_<T> &data, bool flip) {
   /*
   Flip
@@ -219,22 +219,16 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
     uspam::imutil::fliplr_inplace(rf);
 
     // Rotate
-    if (params.rotateOffset != 0) {
-      rf = arma::shift(rf, params.rotateOffset, 1);
+    if (system.rotateOffset != 0) {
+      rf = arma::shift(rf, system.rotateOffset, 1);
     }
   }
 
   // Beamform
   {
     uspam::TimeIt timeit;
-    uspam::beamformer::beamform(rf, rfBeamformed, params.beamformerType,
-                                params.beamformerParams, params.truncate);
-
-    if (rfBeamformed.max() > 2) {
-      // Trap here
-      auto memptr = rfBeamformed.memptr();
-    }
-
+    uspam::beamformer::beamform(rf, rfBeamformed, params.beamformerType, system,
+                                params.truncate);
     beamform_ms = timeit.get_ms();
   }
 
