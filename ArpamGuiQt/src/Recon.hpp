@@ -32,7 +32,8 @@ QImage cvMatToQImage(const cv::Mat &mat);
 
 // template <uspam::Floating T>
 using T = ArpamFloat;
-std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
+std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
+                                        const uspam::recon::ReconParams &params,
                                         BScanData_<T> &data, bool flip);
 
 class ImageWriteTask : public QRunnable {

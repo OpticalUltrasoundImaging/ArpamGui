@@ -1,7 +1,7 @@
 #pragma once
 
 #include <type_traits>
-#include <uspam/beamformer/BeamformerParams.hpp>
+#include <uspam/SystemParams.hpp>
 #include <uspam/beamformer/BeamformerType.hpp>
 #include <uspam/beamformer/SAFT.hpp>
 
@@ -9,26 +9,24 @@ namespace uspam::beamformer {
 
 template <typename T>
 void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
-              BeamformerType beamformer, BeamformerParams<T> beamformerParams,
+              const BeamformerType beamformer, const SystemParams &system,
               size_t truncate = 0)
   requires std::is_floating_point_v<T>
 {
   switch (beamformer) {
   case BeamformerType::SAFT: {
-    const auto timeDelay =
-        uspam::beamformer::computeSaftTimeDelay<T>(beamformerParams);
+    const auto timeDelay = computeSaftTimeDelay(system);
 
-    rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT>(
-        timeDelay, rf, truncate);
+    rfBeamformed =
+        apply_saft_v2<T, BeamformerType::SAFT>(timeDelay, rf, truncate);
 
   } break;
 
   case BeamformerType::SAFT_CF: {
-    const auto timeDelay =
-        uspam::beamformer::computeSaftTimeDelay<T>(beamformerParams);
+    const auto timeDelay = computeSaftTimeDelay(system);
 
-    rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT_CF>(
-        timeDelay, rf, truncate);
+    rfBeamformed =
+        apply_saft_v2<T, BeamformerType::SAFT_CF>(timeDelay, rf, truncate);
   } break;
 
   case BeamformerType::NONE:
