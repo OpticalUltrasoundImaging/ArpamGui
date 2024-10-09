@@ -115,42 +115,45 @@ public:
     rfUS.set_size(rfSizeUS(), rf.n_cols);
 
     // Split
-    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-      for (int j = range.start; j < range.end; ++j) {
+    const auto range = cv::Range(0, rf.n_cols);
+    // cv::parallel_for_(range, [&](const cv::Range &range) {
+    for (int j = range.start; j < range.end; ++j) {
 
-        // PA
-        for (int i = 0; i < this->rfSizePA; ++i) {
-          if (subtractPA) {
-            rfPA(i, j) =
-                static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
-          } else {
-            rfPA(i, j) = static_cast<Tout>(rf(i, j));
-          }
-        }
-
-        // US
-        for (int i = 0; i < this->rfSizeUS(); ++i) {
-          if (subtractUS) {
-            rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
-                                           background(i + USstart));
-          } else {
-            rfUS(i, j) = static_cast<Tout>(rf(i + USstart, j));
-          }
-        }
-
-        {
-          auto ptr = rfPA.colptr(j);
-          std::rotate(ptr, ptr + offsetPA, ptr + rfPA.n_rows);
-          // rfPA.rows(0, this->offset_PA - 1).zeros();
-        }
-
-        {
-          auto ptr = rfUS.colptr(j);
-          std::rotate(ptr, ptr + offsetUS, ptr + rfUS.n_rows);
-          // rfUS.rows(0, this->offset_US - 1).zeros();
+      // PA
+      for (int i = 0; i < std::min<int>(this->rfSizePA, rf.n_rows - 0); ++i) {
+        if (subtractPA) {
+          rfPA(i, j) =
+              static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
+        } else {
+          rfPA(i, j) = static_cast<Tout>(rf(i, j));
         }
       }
-    });
+
+      // US
+      const auto USend = std::min<int>(this->rfSizeUS(),
+                                       static_cast<int>(rf.n_rows - USstart));
+      for (int i = 0; i < USend; ++i) {
+        if (subtractUS) {
+          rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
+                                         background(i + USstart));
+        } else {
+          rfUS(i, j) = static_cast<Tout>(rf(i + USstart, j));
+        }
+      }
+
+      {
+        auto ptr = rfPA.colptr(j);
+        std::rotate(ptr, ptr + offsetPA, ptr + rfPA.n_rows);
+        // rfPA.rows(0, this->offset_PA - 1).zeros();
+      }
+
+      {
+        auto ptr = rfUS.colptr(j);
+        std::rotate(ptr, ptr + offsetUS, ptr + rfUS.n_rows);
+        // rfUS.rows(0, this->offset_US - 1).zeros();
+      }
+    }
+    // });
   };
 
   // Split a single Aline
