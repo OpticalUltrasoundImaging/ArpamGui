@@ -5,6 +5,8 @@
 #include <opencv2/core.hpp>
 #include <rapidjson/document.h>
 
+// NOLINTBEGIN(*-magic-numbers)
+
 namespace uspam::io {
 namespace fs = std::filesystem;
 
@@ -25,20 +27,18 @@ public:
 
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
-    // NOLINTBEGIN(*-magic-numbers)
     return IOParams{.alinesPerBscan = 1000,
                     .rfSizePA = 2650,
                     .offsetUS = -100,
                     .offsetPA = -200,
                     .byteOffset = 1};
-    // NOLINTEND(*-magic-numbers)
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
     auto params = system2024v1();
     params.byteOffset = 0;
-    params.offsetPA = 0;
+    params.offsetPA = -100;
     return params;
   }
 
@@ -206,3 +206,5 @@ public:
   }
 };
 } // namespace uspam::io
+
+// NOLINTEND(*-magic-numbers)

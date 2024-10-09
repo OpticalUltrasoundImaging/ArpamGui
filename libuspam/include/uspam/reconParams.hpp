@@ -71,7 +71,7 @@ struct ReconParams2 {
         .bpHighFreq = 0.22,
         .noiseFloor_mV = 9.0F,
         .desiredDynamicRange = 30.0F,
-        .truncate = 750,
+        .truncate = 500,
     };
 
     ReconParams US{
@@ -92,7 +92,13 @@ struct ReconParams2 {
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline ReconParams2 system2024v2GUI() {
     auto params = system2024v1();
-    params.system.rotateOffset = 0;
+    params.system.rotateOffset = 5;
+    return params;
+  }
+
+  static inline ReconParams2 system2024v2GUIprobe2() {
+    auto params = system2024v2GUI();
+    params.system.flipOnEven = false;
     return params;
   }
 
