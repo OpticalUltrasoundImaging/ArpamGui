@@ -89,8 +89,6 @@ qt_add_executable(${EXE_NAME}
     src/Metrics/FWHMTracer.hpp
     src/Metrics/FreqSpectrum.hpp
     src/Metrics/FreqSpectrum.cpp
-    src/SaftParamsController.hpp
-    src/SaftParamsController.cpp
     src/RFProducerFile.hpp
     src/RFProducerFile.cpp
     src/ReconWorker.hpp
