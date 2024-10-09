@@ -286,7 +286,6 @@ void FrameController::receiveNewFrame(
   const auto idx = m_data->frameIdx;
   setFrameNum(idx);
   m_coregDisplay->setIdx(idx);
-  // qDebug() << "FrameController received idx =" << idx;
 
   // Display metrics
   {
@@ -295,9 +294,6 @@ void FrameController::receiveNewFrame(
     stream << m_data->metrics;
     emit message(msg);
   }
-
-  auto msg = QString("receiveNewFrame took: %1").arg(timeit.get_ms());
-  emit message(msg);
 }
 
 void FrameController::setFrameNum(int frame) {
@@ -388,7 +384,7 @@ void FrameController::saveCurrAnnotationAndLoadNewFrame(int newFrame) {
 void FrameController::plotCurrentBScan() {
   // Display images
   m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->US.radial_img,
-                         m_data->fct);
+                         m_data->spacingRadialUS);
 }
 
 void FrameController::exportCurrentFrame(const fs::path &exportDir) {

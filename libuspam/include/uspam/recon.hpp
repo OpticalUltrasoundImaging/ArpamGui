@@ -108,16 +108,6 @@ auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
   return dynamicRangeDB;
 }
 
-// FIR filter + Envelope detection + log compression for PA/US pair
-// rf contains the RF signal, and results are saved to rfLog
-template <Floating T>
-void reconOneScan(const ReconParams2 &params, io::PAUSpair<T> &rf,
-                  io::PAUSpair<T> &rfBeamformed, io::PAUSpair<uint8_t> &rfLog,
-                  bool flip) {
-  reconOneScan<T>(params.PA, rf.PA, rfBeamformed.PA, rfLog.PA, flip);
-  reconOneScan<T>(params.US, rf.US, rfBeamformed.US, rfLog.US, flip);
-}
-
 // Beamform + FIR filter + Envelope detection + log compression for one
 // template <Floating T>
 // void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,

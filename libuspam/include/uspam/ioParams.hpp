@@ -10,48 +10,32 @@ namespace fs = std::filesystem;
 
 constexpr int RF_ALINE_SIZE = 8192;
 
-// Container that holds coregistered PA and US data
-template <typename T> struct PAUSpair {
-  arma::Mat<T> PA;
-  arma::Mat<T> US;
-
-  template <typename Tother>
-  static auto zeros_like(const PAUSpair<Tother> &other) {
-    return PAUSpair{arma::Mat<T>(other.PA.n_rows, other.PA.n_cols),
-                    arma::Mat<T>(other.US.n_rows, other.US.n_cols)};
-  }
-
-  template <typename Tother>
-  static auto empty_like(const PAUSpair<Tother> &other) {
-    return PAUSpair{
-        arma::Mat<T>(other.PA.n_rows, other.PA.n_cols, arma::fill::none),
-        arma::Mat<T>(other.US.n_rows, other.US.n_cols, arma::fill::none)};
-  }
-};
-
 struct IOParams {
   int alinesPerBscan{};
   int rfSizePA{};
 
-  int offsetUS{};
-  // Number of points
-  int offsetPA{};
+  int offsetUS{}; // [samples]
+  int offsetPA{}; // [samples]
 
   // Byte offset at beginning of file.
   int byteOffset = 0;
 
 public:
-  [[nodiscard]] auto rf_size_US() const { return rfSizePA * 2; }
+  [[nodiscard]] auto rfSizeUS() const { return rfSizePA * 2; }
 
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
-    // NOLINTNEXTLINE(*-magic-numbers)
-    return IOParams{1000, 2650, -100, -200, 1};
+    // NOLINTBEGIN(*-magic-numbers)
+    return IOParams{.alinesPerBscan = 1000,
+                    .rfSizePA = 2650,
+                    .offsetUS = -100,
+                    .offsetPA = -200,
+                    .byteOffset = 1};
+    // NOLINTEND(*-magic-numbers)
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
-    // NOLINTNEXTLINE(*-magic-numbers)
     auto params = system2024v1();
     params.byteOffset = 0;
     params.offsetPA = 0;
@@ -67,24 +51,13 @@ public:
   bool deserialize(const rapidjson::Document &doc);
   bool deserializeFromFile(const fs::path &path);
 
-  template <typename T> PAUSpair<T> allocateSplitPair() const {
-    arma::Mat<T> rfPA(rfSizePA, alinesPerBscan, arma::fill::none);
-    arma::Mat<T> rfUS(rf_size_US(), alinesPerBscan, arma::fill::none);
-    return {rfPA, rfUS};
-  }
-
-  template <typename T1, typename T2>
-  void splitRfPAUS(const arma::Mat<T1> &rf, PAUSpair<T2> &split) const {
-    splitRfPAUS(rf, split.PA, split.US);
-  }
-
   template <typename T1, typename T2>
   void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
                    arma::Mat<T2> &US) const {
     const auto USstart = this->rfSizePA;
 
     PA.resize(rfSizePA, rf.n_cols);
-    US.resize(rf_size_US(), rf.n_cols);
+    US.resize(rfSizeUS(), rf.n_cols);
 
     cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
       for (int j = range.start; j < range.end; ++j) {
@@ -97,7 +70,7 @@ public:
           PAcol[i] = static_cast<T2>(rfcol[i]);
         }
 
-        for (int i = 0; i < rf_size_US(); ++i) {
+        for (int i = 0; i < rfSizeUS(); ++i) {
           UScol[i] = static_cast<T2>(rfcol[i + USstart]);
         }
         // NOLINTEND(*-pointer-arithmetic)
@@ -128,7 +101,7 @@ public:
     const auto USstart = this->rfSizePA;
     auto offsetUS = this->offsetUS;
     while (offsetUS < 0) {
-      offsetUS = this->rf_size_US() + offsetUS;
+      offsetUS = this->rfSizeUS() + offsetUS;
     }
     auto offsetPA = this->offsetPA;
     while (offsetPA < 0) {
@@ -137,7 +110,7 @@ public:
 
     // Ensure rfPA and rfUS have enough space
     rfPA.set_size(rfSizePA, rf.n_cols);
-    rfUS.set_size(rf_size_US(), rf.n_cols);
+    rfUS.set_size(rfSizeUS(), rf.n_cols);
 
     // Split
     cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
@@ -151,7 +124,7 @@ public:
         }
 
         // US
-        for (int i = 0; i < this->rf_size_US(); ++i) {
+        for (int i = 0; i < this->rfSizeUS(); ++i) {
           rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
                                          background(i + USstart));
         }

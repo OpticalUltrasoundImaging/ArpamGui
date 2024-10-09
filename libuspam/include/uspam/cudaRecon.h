@@ -18,8 +18,4 @@ void reconOneScan_device(const recon::ReconParams &params,
                          arma::Mat<double> &rf, arma::Mat<double> &rfLog,
                          bool flip, cudaStream_t stream);
 
-// CUDA FIR filter + Envelope detection + log compression
-void reconOneScan_device(const recon::ReconParams2 &params,
-                         io::PAUSpair<double> &rf, io::PAUSpair<double> &rfLog,
-                         bool flip = false);
 } // namespace uspam::cuda

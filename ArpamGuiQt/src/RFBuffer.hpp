@@ -67,9 +67,6 @@ template <uspam::Floating T> struct BScanData_ {
 /*
  * Contains all the data for one BScan
  * From RF to Image
- *
- * For initialization, only PAUSpair need to be explicitly allocated since
- * `rf` will be overwritten, and cv::Mat and QImage have default constructors
  */
 template <uspam::Floating T> struct BScanData {
   // RF data
@@ -81,8 +78,9 @@ template <uspam::Floating T> struct BScanData {
   cv::Mat PAUSradial; // CV_8U3C
   QImage PAUSradial_img;
 
-  // depth [m] of one radial pixel
-  double fct{};
+  // [mm] spacing of one radial pixel
+  double spacingRadialUS{};
+  double spacingRectUS{};
 
   // Frame idx
   int frameIdx{};

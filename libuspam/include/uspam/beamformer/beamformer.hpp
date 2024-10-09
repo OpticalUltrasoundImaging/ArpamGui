@@ -18,20 +18,21 @@ void beamform(const arma::Mat<T> &rf, arma::Mat<T> &rfBeamformed,
 {
   switch (beamformer) {
   case BeamformerType::SAFT: {
-    const auto saftParams =
+    const auto &saftParams =
         std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
             ? std::get<SaftDelayParams<T>>(beamformerParams)
             : SaftDelayParams<T>::make_PA();
 
     const auto timeDelay =
         uspam::beamformer::computeSaftTimeDelay<T>(saftParams);
+
     rfBeamformed = uspam::beamformer::apply_saft_v2<T, BeamformerType::SAFT>(
         timeDelay, rf, truncate);
 
   } break;
 
   case BeamformerType::SAFT_CF: {
-    const auto saftParams =
+    const auto &saftParams =
         std::holds_alternative<SaftDelayParams<T>>(beamformerParams)
             ? std::get<SaftDelayParams<T>>(beamformerParams)
             : SaftDelayParams<T>::make_PA();

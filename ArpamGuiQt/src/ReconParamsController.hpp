@@ -1,15 +1,8 @@
 #pragma once
 
-#include <QGridLayout>
-#include <QGroupBox>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QLineEdit>
-#include <QSlider>
-#include <QVBoxLayout>
+#include <Common.hpp>
 #include <QWidget>
 #include <QtDebug>
-#include <QtLogging>
 #include <uspam/io.hpp>
 #include <uspam/recon.hpp>
 

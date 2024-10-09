@@ -1,7 +1,6 @@
 #include "AScanPlot.hpp"
 #include "CustomPlot.hpp"
 #include "Metrics/FreqSpectrum.hpp"
-#include "PlotCommon.hpp"
 #include <QBrush>
 #include <QButtonGroup>
 #include <QColor>
@@ -19,7 +18,6 @@
 #include <QVBoxLayout>
 #include <QVector>
 #include <Qt>
-#include <algorithm>
 #include <cmath>
 #include <numbers>
 #include <qcustomplot.h>
@@ -189,11 +187,12 @@ void AScanPlot::plotCurrentAScan() {
       idx = AScansPerBScan - 1 - idx;
     }
 
-    const auto msg =
-        QString("AScan: %1. Flip: %2").arg(idx).arg(flip ? "true" : "false");
-
     m_AScanPlotIdx = idx;
   }
+
+  // [mm]
+  const double spacingUS = m_data->spacingRectUS;
+  const double spacingPA = spacingUS * 2;
 
   /*
    * Plot AScan
@@ -218,7 +217,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFBeamformedPA: {
     // PA rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spacingPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (PA)";
 
@@ -234,7 +233,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFBeamformedUS: {
     // US rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spacingUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "Beamformed RF (US)";
 
@@ -250,7 +249,7 @@ void AScanPlot::plotCurrentAScan() {
 
   case PlotType::RFEnvPA: {
     // PA rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spacingPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (PA)";
 
@@ -265,7 +264,7 @@ void AScanPlot::plotCurrentAScan() {
   } break;
   case PlotType::RFEnvUS: {
     // US rfEnv
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spacingUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Envelope (US)";
 
@@ -284,7 +283,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.autoScaleY = false;
     plotMeta.yMax = 0;
     plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
-    plotMeta.xScaler = MM_PER_PIXEL_PA;
+    plotMeta.xScaler = spacingPA;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (PA)";
 
@@ -303,7 +302,7 @@ void AScanPlot::plotCurrentAScan() {
     plotMeta.autoScaleY = false;
     plotMeta.yMax = 0;
     plotMeta.yMax = 256; // NOLINT(*-magic-numbers)
-    plotMeta.xScaler = MM_PER_PIXEL_US;
+    plotMeta.xScaler = spacingUS;
     plotMeta.xUnit = "mm";
     plotMeta.name = "RF Log (US)";
 
