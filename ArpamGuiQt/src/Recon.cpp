@@ -1,5 +1,6 @@
 #include "Recon.hpp"
 #include "Common.hpp"
+#include "uspam/beamformer/Beamformer.hpp"
 #include "uspam/ioParams.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
@@ -226,8 +227,8 @@ std::tuple<float, float, float> procOne(const uspam::recon::ReconParams &params,
   // Beamform
   {
     uspam::TimeIt timeit;
-    beamform(rf, rfBeamformed, params.beamformerType, params.beamformerParams,
-             params.truncate);
+    uspam::beamformer::beamform(rf, rfBeamformed, params.beamformerType,
+                                params.beamformerParams, params.truncate);
 
     if (rfBeamformed.max() > 2) {
       // Trap here
