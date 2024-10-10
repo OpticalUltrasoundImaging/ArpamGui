@@ -273,6 +273,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         layout, row++, "OffsetPA",
         "Change this (in no. of samples) to coregister PA and US.", " pts",
         ioparams.offsetPA, {-2000, 2000});
+
+    makeLabeledDoubleSpinbox(layout, row++, "SAFT delay multiplier", "", "",
+                             params.system.saftTimeDelayMultiplier, {0.1, 10.0},
+                             0.1);
   }
 
   const QString &help_Truncate = "Truncate num points from the beginning to "
