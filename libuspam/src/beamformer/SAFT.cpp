@@ -13,43 +13,47 @@ arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
   arma::Mat<uint8_t> n_saft(rf.n_rows, rf.n_cols, arma::fill::ones);
   arma::Mat<Float> CF_denom = arma::square(rf);
 
-  cv::parallel_for_(
-      cv::Range(timeDelay.zStart, timeDelay.zEnd), [&](const cv::Range range) {
-        for (int j = 0; j < nScans; ++j) {
-          for (int iz = range.start; iz < range.end; ++iz) {
-            // for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
+  const auto range = cv::Range(timeDelay.zStart, timeDelay.zEnd);
+#if defined(WIN32)
+  cv::parallel_for_(range, [&](const cv::Range range) {
+#endif
+    for (int j = 0; j < nScans; ++j) {
+      for (int iz = range.start; iz < range.end; ++iz) {
+        // for (int iz = timeDelay.zStart; iz < timeDelay.zEnd; ++iz) {
 
-            const auto NLines = timeDelay.saftLines.at(iz - timeDelay.zStart);
+        const auto NLines = timeDelay.saftLines.at(iz - timeDelay.zStart);
 
-            for (int dj_saft = 0; dj_saft < NLines; ++dj_saft) {
-              const auto dt =
-                  timeDelay.timeDelay.at(iz - timeDelay.zStart, dj_saft);
-              const int iz_delayed = static_cast<int>(std::round(iz + dt));
+        for (int dj_saft = 0; dj_saft < NLines; ++dj_saft) {
+          const auto dt =
+              timeDelay.timeDelay.at(iz - timeDelay.zStart, dj_saft);
+          const int iz_delayed = static_cast<int>(std::round(iz + dt));
 
-              if (iz_delayed >= nPts) {
-                continue;
-              }
+          if (iz_delayed >= nPts) {
+            continue;
+          }
 
-              const auto val = rf.at(iz_delayed, j);
-              const auto valSq = val * val;
+          const auto val = rf.at(iz_delayed, j);
+          const auto valSq = val * val;
 
-              {
-                const auto j_saft = (j - dj_saft + nScans) % nScans;
-                rf_saft.at(iz, j_saft) += val;
-                CF_denom.at(iz, j_saft) += valSq;
-                n_saft.at(iz, j_saft) += 1;
-              }
+          {
+            const auto j_saft = (j - dj_saft + nScans) % nScans;
+            rf_saft.at(iz, j_saft) += val;
+            CF_denom.at(iz, j_saft) += valSq;
+            n_saft.at(iz, j_saft) += 1;
+          }
 
-              {
-                const auto j_saft = (j + dj_saft + nScans) % nScans;
-                rf_saft.at(iz, j_saft) += val;
-                CF_denom.at(iz, j_saft) += valSq;
-                n_saft.at(iz, j_saft) += 1;
-              }
-            }
+          {
+            const auto j_saft = (j + dj_saft + nScans) % nScans;
+            rf_saft.at(iz, j_saft) += val;
+            CF_denom.at(iz, j_saft) += valSq;
+            n_saft.at(iz, j_saft) += 1;
           }
         }
-      });
+      }
+    }
+#if defined(WIN32)
+  });
+#endif
 
   // CF = PA_saft ** 2 / (CF_denom * n_saft)
   // rf_saft_cf = rf_saft * CF / n_saft

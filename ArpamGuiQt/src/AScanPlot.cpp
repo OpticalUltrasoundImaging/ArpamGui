@@ -1,15 +1,10 @@
 #include "AScanPlot.hpp"
 #include "CustomPlot.hpp"
 #include "Metrics/FreqSpectrum.hpp"
-#include <QBrush>
 #include <QButtonGroup>
-#include <QColor>
-#include <QCursor>
 #include <QFrame>
 #include <QGridLayout>
-#include <QHBoxLayout>
 #include <QMouseEvent>
-#include <QPen>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSizePolicy>
@@ -38,7 +33,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
     customPlot->yAxis->setLabel("Signal (V)");
 
     // Set minimum size
-    customPlot->setMinimumHeight(200); // NOLINT(*-magic-numbers)
+    customPlot->setMinimumHeight(160); // NOLINT(*-magic-numbers)
 
     // generate some data
     {
@@ -153,7 +148,7 @@ AScanPlot::AScanPlot(ReconParamsController *reconParams, QWidget *parent)
 
   this->setSizePolicy(QSizePolicy::MinimumExpanding,
                       QSizePolicy::MinimumExpanding);
-  this->setMinimumSize(QSize{500, 500}); // NOLINT(*-magic-numbers)
+  this->setMinimumSize(QSize{400, 500}); // NOLINT(*-magic-numbers)
 }
 
 void AScanPlot::showPointToolTip(QMouseEvent *event) {

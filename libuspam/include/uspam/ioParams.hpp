@@ -5,6 +5,8 @@
 #include <opencv2/core.hpp>
 #include <rapidjson/document.h>
 
+// NOLINTBEGIN(*-magic-numbers)
+
 namespace uspam::io {
 namespace fs = std::filesystem;
 
@@ -25,20 +27,18 @@ public:
 
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
-    // NOLINTBEGIN(*-magic-numbers)
     return IOParams{.alinesPerBscan = 1000,
                     .rfSizePA = 2650,
                     .offsetUS = -100,
                     .offsetPA = -200,
                     .byteOffset = 1};
-    // NOLINTEND(*-magic-numbers)
   }
 
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline IOParams system2024v2GUI() {
     auto params = system2024v1();
     params.byteOffset = 0;
-    params.offsetPA = 0;
+    params.offsetPA = -100;
     return params;
   }
 
@@ -96,7 +96,9 @@ public:
 
   template <typename T1, typename Tb, typename Tout>
   auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
-                       arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS) const {
+                       arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS,
+                       const bool subtractPA = true,
+                       const bool subtractUS = true) const {
 
     const auto USstart = this->rfSizePA;
     auto offsetUS = this->offsetUS;
@@ -113,20 +115,30 @@ public:
     rfUS.set_size(rfSizeUS(), rf.n_cols);
 
     // Split
-    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
+    const auto range = cv::Range(0, rf.n_cols);
+    cv::parallel_for_(range, [&](const cv::Range &range) {
       for (int j = range.start; j < range.end; ++j) {
 
         // PA
-        for (int i = 0; i < this->rfSizePA; ++i) {
-          // split.PA(i, j) = static_cast<Tout>(rf(i, j));
-          rfPA(i, j) =
-              static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
+        for (int i = 0; i < std::min<int>(this->rfSizePA, rf.n_rows - 0); ++i) {
+          if (subtractPA) {
+            rfPA(i, j) =
+                static_cast<Tout>(static_cast<Tb>(rf(i, j)) - background(i));
+          } else {
+            rfPA(i, j) = static_cast<Tout>(rf(i, j));
+          }
         }
 
         // US
-        for (int i = 0; i < this->rfSizeUS(); ++i) {
-          rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
-                                         background(i + USstart));
+        const auto USend = std::min<int>(this->rfSizeUS(),
+                                         static_cast<int>(rf.n_rows - USstart));
+        for (int i = 0; i < USend; ++i) {
+          if (subtractUS) {
+            rfUS(i, j) = static_cast<Tout>(static_cast<Tb>(rf(i + USstart, j)) -
+                                           background(i + USstart));
+          } else {
+            rfUS(i, j) = static_cast<Tout>(rf(i + USstart, j));
+          }
         }
 
         {
@@ -206,3 +218,5 @@ public:
   }
 };
 } // namespace uspam::io
+
+// NOLINTEND(*-magic-numbers)

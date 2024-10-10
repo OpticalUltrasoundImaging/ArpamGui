@@ -29,6 +29,11 @@ struct SystemParams {
   int alinesPerBscan{1000};
   int rotateOffset{};
 
+  /*
+  SAFT timedelay multiplier
+  */
+  float saftTimeDelayMultiplier{1.5};
+
   // [mm] spatial step size
   [[nodiscard]] float dr() const { return soundSpeed / fs * 1000; }
 

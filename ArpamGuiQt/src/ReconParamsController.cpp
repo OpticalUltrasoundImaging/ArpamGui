@@ -20,7 +20,8 @@
 // NOLINTBEGIN(*-magic-numbers)
 
 ReconParamsController::ReconParamsController(QWidget *parent)
-    : QWidget(parent), params(uspam::recon::ReconParams2::system2024v2GUI()),
+    : QWidget(parent),
+      params(uspam::recon::ReconParams2::system2024v2GUIprobe2()),
       ioparams(uspam::io::IOParams::system2024v2GUI()) {
   auto *layout = new QVBoxLayout();
   this->setLayout(layout);
@@ -166,6 +167,27 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         return std::tuple{label, sp};
       };
 
+  const auto makeLabeledCheckbox = [this](QGridLayout *layout, int row,
+                                          const QString &name,
+                                          const QString &desc, bool &value) {
+    layout->addWidget(new QLabel(name), row, 0);
+
+    auto *cb = new QCheckBox();
+    layout->addWidget(cb, row, 1);
+    using Qt::CheckState;
+
+    connect(cb, &QCheckBox::checkStateChanged, this,
+            [this, &value](CheckState state) {
+              value = state == CheckState::Checked;
+              _paramsUpdatedInternal();
+            });
+
+    updateGuiFromParamsCallbacks.emplace_back([this, cb, &value] {
+      cb->setCheckState(value ? Qt::CheckState::Checked
+                              : Qt::CheckState::Unchecked);
+    });
+  };
+
   // Presets
   {
     auto *gb = new CollapsibleGroupBox("Presets");
@@ -174,17 +196,24 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     gb->setLayout(layout);
 
     {
-      auto *btn = new QPushButton("Labview (2024v1)");
-      layout->addWidget(btn, 0, 0);
+      auto *btn = new QPushButton("Legacy Labview");
+      layout->addWidget(btn, 0, 0, 1, 2);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v1);
     }
 
     {
-      auto *btn = new QPushButton("ArpamGui (2024v2)");
-      layout->addWidget(btn, 0, 1);
+      auto *btn = new QPushButton("Probe 1");
+      layout->addWidget(btn, 1, 0);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v2GUI);
+    }
+
+    {
+      auto *btn = new QPushButton("Probe 2");
+      layout->addWidget(btn, 1, 1);
+      connect(btn, &QPushButton::pressed, this,
+              &ReconParamsController::resetParams2024v2GUIprobe2);
     }
   }
 
@@ -220,27 +249,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     makeLabeledDoubleSpinbox(layout, row++, "Illumination angle", "", " deg",
                              params.system.illumAngleDeg, {0.0, 25.0}, 0.1);
 
-    {
-      auto *label = new QLabel("Flip on even");
-      label->setToolTip("Flip the image on even or odd indices.");
-      layout->addWidget(label, row, 0);
-
-      auto *cb = new QCheckBox();
-      layout->addWidget(cb, row++, 1);
-      using Qt::CheckState;
-
-      connect(cb, &QCheckBox::checkStateChanged, this,
-              [this](CheckState state) {
-                this->params.system.flipOnEven = state == CheckState::Checked;
-                _paramsUpdatedInternal();
-              });
-
-      updateGuiFromParamsCallbacks.emplace_back([this, cb] {
-        cb->setCheckState(this->params.system.flipOnEven
-                              ? Qt::CheckState::Checked
-                              : Qt::CheckState::Unchecked);
-      });
-    }
+    makeLabeledCheckbox(layout, row++, "Flip on even",
+                        "Flip the image on even or odd indices.",
+                        params.system.flipOnEven);
 
     makeLabeledSpinbox(layout, row++, "Alines Per Bscan", "", "",
                        ioparams.alinesPerBscan, {500, 2000});
@@ -248,7 +259,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     makeLabeledSpinbox(layout, row++, "Rotation offset", "", " lines",
                        params.system.rotateOffset, {-500, 500});
 
-    makeLabeledSpinbox(layout, row++, "Samples Per Ascan (PA)",
+    makeLabeledSpinbox(layout, row++, "RF size (PA)",
                        "Samples per Ascan for PA can be changed here. Samples "
                        "per Ascan for US will be double this.",
                        " pts", ioparams.rfSizePA, {2500, 3000});
@@ -262,6 +273,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         layout, row++, "OffsetPA",
         "Change this (in no. of samples) to coregister PA and US.", " pts",
         ioparams.offsetPA, {-2000, 2000});
+
+    makeLabeledDoubleSpinbox(layout, row++, "SAFT delay multiplier", "", "",
+                             params.system.saftTimeDelayMultiplier, {0.1, 10.0},
+                             0.1);
   }
 
   const QString &help_Truncate = "Truncate num points from the beginning to "
@@ -281,7 +296,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     {
       auto *layout = new QGridLayout;
       vlayout->addLayout(layout);
-      int row = 1;
+      int row = 0;
+
+      makeLabeledCheckbox(layout, row++, "Background subtract", "",
+                          p.backgroundSubtract);
 
       // Filter type and order control
       {
@@ -423,8 +441,15 @@ void ReconParamsController::resetParams2024v1() {
   ioparams = uspam::io::IOParams::system2024v1();
   updateGuiFromParams();
 }
+
 void ReconParamsController::resetParams2024v2GUI() {
   params = uspam::recon::ReconParams2::system2024v2GUI();
+  ioparams = uspam::io::IOParams::system2024v2GUI();
+  updateGuiFromParams();
+}
+
+void ReconParamsController::resetParams2024v2GUIprobe2() {
+  params = uspam::recon::ReconParams2::system2024v2GUIprobe2();
   ioparams = uspam::io::IOParams::system2024v2GUI();
   updateGuiFromParams();
 }

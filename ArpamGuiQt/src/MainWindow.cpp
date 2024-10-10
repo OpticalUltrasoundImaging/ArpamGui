@@ -11,16 +11,10 @@
 #include "strConvUtils.hpp"
 #include <QAction>
 #include <QDockWidget>
-#include <QHBoxLayout>
-#include <QIcon>
-#include <QKeySequence>
-#include <QLabel>
-#include <QMimeData>
 #include <QScrollArea>
 #include <QSizePolicy>
 #include <QSlider>
 #include <QTabWidget>
-#include <QVBoxLayout>
 #include <QWidget>
 #include <Qt>
 #include <QtDebug>
@@ -29,7 +23,6 @@
 #include <opencv2/opencv.hpp>
 #include <qnamespace.h>
 #include <uspam/defer.h>
-#include <utility>
 
 namespace {
 void setGlobalStyle(QLayout *layout) {
@@ -334,7 +327,7 @@ MainWindow::MainWindow(QWidget *parent)
   }
 
   auto *fullscreenAction = new QAction("Full Screen");
-  fullscreenAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_F));
+  fullscreenAction->setShortcut(Qt::CTRL | Qt::Key_F);
   fullscreenAction->setCheckable(true);
   connect(fullscreenAction, &QAction::triggered, [this](bool checked) {
     this->setWindowState(checked ? Qt::WindowFullScreen : Qt::WindowMaximized);

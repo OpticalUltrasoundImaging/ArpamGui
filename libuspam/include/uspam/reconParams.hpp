@@ -15,27 +15,30 @@ using beamformer::BeamformerType;
 enum class FilterType { FIR, IIR };
 
 struct ReconParams {
+  bool backgroundSubtract{false};
+
   /*
   Beamforming
   */
-  BeamformerType beamformerType;
+  BeamformerType beamformerType{BeamformerType::NONE};
 
   /*
   Filter
   */
-  FilterType filterType;
-  int firTaps;      // for FIR filter
-  int iirOrder;     // for IIR filter
-  float bpLowFreq;  // Bandpass low freq
-  float bpHighFreq; // Bandpass high freq
+  FilterType filterType{FilterType::FIR};
+  int firTaps{65};       // for FIR filter
+  int iirOrder{3};       // for IIR filter
+  float bpLowFreq{0.1};  // Bandpass low freq
+  float bpHighFreq{0.3}; // Bandpass high freq
 
   /*
   Log compression
   */
-  float noiseFloor_mV;
-  float desiredDynamicRange; // [dB]
+  float noiseFloor_mV{3.0F};
+  float desiredDynamicRange{40.0}; // [dB]
 
-  int truncate; // num samples at the beginning to zero (pulser/laser artifacts)
+  int truncate{200}; // num samples at the beginning to zero (pulser/laser
+                     // artifacts)
 
   /*
   Serialization
@@ -63,6 +66,7 @@ struct ReconParams2 {
     constexpr int order = 3;
 
     ReconParams PA{
+        .backgroundSubtract = true,
         .beamformerType = BeamformerType::SAFT_CF,
         .filterType = FilterType::FIR,
         .firTaps = taps,
@@ -71,10 +75,11 @@ struct ReconParams2 {
         .bpHighFreq = 0.22,
         .noiseFloor_mV = 9.0F,
         .desiredDynamicRange = 30.0F,
-        .truncate = 750,
+        .truncate = 200,
     };
 
     ReconParams US{
+        .backgroundSubtract = false,
         .beamformerType = BeamformerType::NONE,
         .filterType = FilterType::IIR,
         .firTaps = taps,
@@ -83,7 +88,7 @@ struct ReconParams2 {
         .bpHighFreq = 0.3,
         .noiseFloor_mV = 6.0F,
         .desiredDynamicRange = 40.0F,
-        .truncate = 1000,
+        .truncate = 400,
     };
 
     return ReconParams2{system, PA, US};
@@ -92,7 +97,15 @@ struct ReconParams2 {
   // System parameters from mid 2024 (ArpamGui acquisition)
   static inline ReconParams2 system2024v2GUI() {
     auto params = system2024v1();
-    params.system.rotateOffset = 0;
+    params.system.rotateOffset = 5;
+    params.PA.truncate = 500;
+    params.US.truncate = 1000;
+    return params;
+  }
+
+  static inline ReconParams2 system2024v2GUIprobe2() {
+    auto params = system2024v2GUI();
+    params.system.flipOnEven = false;
     return params;
   }
 
