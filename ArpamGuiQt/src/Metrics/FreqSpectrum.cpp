@@ -1,6 +1,5 @@
 #include "Metrics/FreqSpectrum.hpp"
 #include "uspam/fft.hpp"
-#include <QPen>
 #include <QVBoxLayout>
 #include <QVector>
 #include <Qt>

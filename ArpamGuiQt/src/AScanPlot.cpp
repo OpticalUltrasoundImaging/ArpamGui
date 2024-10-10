@@ -1,15 +1,10 @@
 #include "AScanPlot.hpp"
 #include "CustomPlot.hpp"
 #include "Metrics/FreqSpectrum.hpp"
-#include <QBrush>
 #include <QButtonGroup>
-#include <QColor>
-#include <QCursor>
 #include <QFrame>
 #include <QGridLayout>
-#include <QHBoxLayout>
 #include <QMouseEvent>
-#include <QPen>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSizePolicy>
