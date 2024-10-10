@@ -75,7 +75,7 @@ struct ReconParams2 {
         .bpHighFreq = 0.22,
         .noiseFloor_mV = 9.0F,
         .desiredDynamicRange = 30.0F,
-        .truncate = 500,
+        .truncate = 200,
     };
 
     ReconParams US{
@@ -88,7 +88,7 @@ struct ReconParams2 {
         .bpHighFreq = 0.3,
         .noiseFloor_mV = 6.0F,
         .desiredDynamicRange = 40.0F,
-        .truncate = 1000,
+        .truncate = 400,
     };
 
     return ReconParams2{system, PA, US};
