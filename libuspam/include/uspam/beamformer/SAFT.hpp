@@ -80,10 +80,12 @@ template <Floating Float> struct TimeDelay {
           std::acos((f * f + dr3 * dr3 - dr2 * dr2) / (2 * f * dr3));
 
       if (dr3 <= f && ang3 <= p.focalAngle()) {
-        timeDelay.at(i, j) = (abs(f - dr1) - dr3);
+        const auto delayVal = (abs(f - dr1) - dr3);
+        timeDelay.at(i, j) = delayVal * p.saftTimeDelayMultiplier;
         nLines.at(i) += 1;
       } else if ((pi - ang3) <= p.focalAngle()) {
-        timeDelay.at(i, j) = (dr3 - abs(f - dr1));
+        const auto delayVal = (dr3 - abs(f - dr1));
+        timeDelay.at(i, j) = delayVal * p.saftTimeDelayMultiplier;
         nLines.at(i) += 1;
       }
     }

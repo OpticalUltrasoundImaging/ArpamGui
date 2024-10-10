@@ -184,9 +184,9 @@ CoregDisplay::CoregDisplay(QWidget *parent)
 }
 
 void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,
-                          double pix2m) {
-  m_canvasPAUS->imshow(imgPAUS, pix2m);
-  m_canvasUS->imshow(imgUS, pix2m);
+                          double pix2mm) {
+  m_canvasPAUS->imshow(imgPAUS, pix2mm);
+  m_canvasUS->imshow(imgUS, pix2mm);
 
   m_canvasPAUS->setEnabled(true);
   m_canvasUS->setEnabled(true);

@@ -169,7 +169,7 @@ private:
   QPixmap m_Pixmap; // Image pixmap
   QGraphicsPixmapItem *m_PixmapItem{nullptr};
 
-  double m_pix2m{}; // [m] Factor converting pixel (in m_pixmap) to meters
+  double m_pix2mm{}; // [m] Factor converting pixel (in m_pixmap) to meters
 
   // State of the cursor for drawing annotations
   CanvasCursorState m_cursor;

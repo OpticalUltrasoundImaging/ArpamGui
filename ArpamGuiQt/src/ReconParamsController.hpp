@@ -17,6 +17,7 @@ public:
 public slots:
   void resetParams2024v1();
   void resetParams2024v2GUI();
+  void resetParams2024v2GUIprobe2();
 
 signals:
   void paramsUpdated(uspam::recon::ReconParams2 params,
