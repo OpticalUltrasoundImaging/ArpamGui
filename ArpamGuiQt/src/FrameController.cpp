@@ -105,8 +105,9 @@ FrameController::FrameController(
     }
 
     {
-      auto *vlayout = new QVBoxLayout;
-      hlayout->addLayout(vlayout);
+      auto *layout = new QHBoxLayout;
+      hlayout->addLayout(layout);
+
       // Play/pause action and button
       {
         m_actPlayPause->setCheckable(true);
@@ -115,12 +116,13 @@ FrameController::FrameController(
                 [this](bool checked) { updatePlayingState(!m_isPlaying); });
         m_menu->addAction(m_actPlayPause);
 
-        vlayout->addWidget(m_btnPlayPause);
+        layout->addWidget(m_btnPlayPause);
         connect(m_btnPlayPause, &QPushButton::clicked, m_actPlayPause,
                 &QAction::trigger);
       }
 
       // Button to export current frame
+
       {
         m_actExportFrame->setShortcut(Qt::CTRL | Qt::Key_E);
         connect(m_actExportFrame, &QAction::triggered,
@@ -128,7 +130,7 @@ FrameController::FrameController(
         m_menu->addAction(m_actExportFrame);
 
         m_btnExportFrame->setEnabled(false);
-        vlayout->addWidget(m_btnExportFrame);
+        layout->addWidget(m_btnExportFrame);
         connect(m_btnExportFrame, &QPushButton::clicked, m_actExportFrame,
                 &QAction::trigger);
       }
@@ -141,7 +143,7 @@ FrameController::FrameController(
         m_menu->addAction(m_actExportAllFrames);
 
         m_btnExportAllFrames->setEnabled(false);
-        vlayout->addWidget(m_btnExportAllFrames);
+        layout->addWidget(m_btnExportAllFrames);
         connect(m_btnExportAllFrames, &QPushButton::clicked,
                 m_actExportAllFrames, &QAction::trigger);
       }

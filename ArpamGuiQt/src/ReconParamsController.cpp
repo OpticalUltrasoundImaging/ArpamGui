@@ -197,7 +197,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
     {
       auto *btn = new QPushButton("Legacy Labview");
-      layout->addWidget(btn, 0, 0);
+      layout->addWidget(btn, 0, 0, 1, 2);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v1);
     }
@@ -211,7 +211,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
 
     {
       auto *btn = new QPushButton("Probe 2");
-      layout->addWidget(btn, 2, 0);
+      layout->addWidget(btn, 1, 1);
       connect(btn, &QPushButton::pressed, this,
               &ReconParamsController::resetParams2024v2GUIprobe2);
     }
