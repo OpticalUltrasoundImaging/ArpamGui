@@ -98,6 +98,8 @@ struct ReconParams2 {
   static inline ReconParams2 system2024v2GUI() {
     auto params = system2024v1();
     params.system.rotateOffset = 5;
+    params.PA.truncate = 500;
+    params.US.truncate = 1000;
     return params;
   }
 
