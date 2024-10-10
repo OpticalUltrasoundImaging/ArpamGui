@@ -84,9 +84,20 @@
       "name": "clang-asan",
       "inherits": "clang",
       "displayName": "Clang with ASAN",
+      "description": "Ninja Multi-Config + Clang with AddressSanitizer",
       "cacheVariables": {
         "CMAKE_C_FLAGS": "-fsanitize=address -fno-omit-frame-pointer",
         "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "clang-tsan",
+      "inherits": "clang",
+      "displayName": "Clang with TSan",
+      "description": "Ninja Multi-Config + Clang with ThreadSanitizer",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer"
       }
     },
     {
@@ -152,6 +163,24 @@
       "name": "clang-asan-release",
       "displayName": "Clang ASan Release",
       "configurePreset": "clang-asan",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-tsan-debug",
+      "displayName": "Clang TSan Debug",
+      "configurePreset": "clang-tsan",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-tsan-relwithdebinfo",
+      "displayName": "Clang TSan RelWithDebInfo",
+      "configurePreset": "clang-tsan",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "clang-tsan-release",
+      "displayName": "Clang TSan Release",
+      "configurePreset": "clang-tsan",
       "configuration": "Release"
     },
     {
