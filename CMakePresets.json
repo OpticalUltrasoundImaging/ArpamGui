@@ -74,10 +74,30 @@
     {
       "name": "clang-vecreport",
       "inherits": "clang",
-      "displayName": "Clang (vec report)",
+      "displayName": "Clang with vec report",
       "description": "Ninja Multi-Config + Clang with autovec report",
       "cacheVariables": {
         "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
+      }
+    },
+    {
+      "name": "clang-asan",
+      "inherits": "clang",
+      "displayName": "Clang with ASAN",
+      "description": "Ninja Multi-Config + Clang with AddressSanitizer",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=address -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "clang-tsan",
+      "inherits": "clang",
+      "displayName": "Clang with TSan",
+      "description": "Ninja Multi-Config + Clang with ThreadSanitizer",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer"
       }
     },
     {
@@ -128,6 +148,42 @@
       "configuration": "Release"
     },
     {
+      "name": "clang-asan-debug",
+      "displayName": "Clang ASan Debug",
+      "configurePreset": "clang-asan",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-asan-relwithdebinfo",
+      "displayName": "Clang ASan RelWithDebInfo",
+      "configurePreset": "clang-asan",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "clang-asan-release",
+      "displayName": "Clang ASan Release",
+      "configurePreset": "clang-asan",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-tsan-debug",
+      "displayName": "Clang TSan Debug",
+      "configurePreset": "clang-tsan",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-tsan-relwithdebinfo",
+      "displayName": "Clang TSan RelWithDebInfo",
+      "configurePreset": "clang-tsan",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "clang-tsan-release",
+      "displayName": "Clang TSan Release",
+      "configurePreset": "clang-tsan",
+      "configuration": "Release"
+    },
+    {
       "name": "clang-x64-release",
       "displayName": "Clang Release",
       "configurePreset": "clang-x64",
@@ -156,44 +212,6 @@
       "displayName": "CL Release",
       "configurePreset": "cl",
       "configuration": "Release"
-    }
-  ],
-  "testPresets": [
-    {
-      "name": "test-win64-debug",
-      "displayName": "Test (Debug)",
-      "configuration": "Debug",
-      "configurePreset": "win64"
-    },
-    {
-      "name": "test-win64-release",
-      "displayName": "Test (Release)",
-      "configuration": "Release",
-      "configurePreset": "win64"
-    },
-    {
-      "name": "test-clang-debug",
-      "displayName": "Test (Debug)",
-      "configuration": "Debug",
-      "configurePreset": "clang"
-    },
-    {
-      "name": "test-clang-release",
-      "displayName": "Test (Release)",
-      "configuration": "Release",
-      "configurePreset": "clang"
-    },
-    {
-      "name": "test-cl-debug",
-      "displayName": "Test (Debug)",
-      "configuration": "Debug",
-      "configurePreset": "cl"
-    },
-    {
-      "name": "test-cl-release",
-      "displayName": "Test (Release)",
-      "configuration": "Release",
-      "configurePreset": "cl"
     }
   ]
 }
