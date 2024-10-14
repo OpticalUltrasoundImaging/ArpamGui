@@ -262,17 +262,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     makeLabeledSpinbox(layout, row++, "RF size (PA)",
                        "Samples per Ascan for PA can be changed here. Samples "
                        "per Ascan for US will be double this.",
-                       " pts", ioparams.rfSizePA, {2500, 3000});
-
-    makeLabeledSpinbox(layout, row++, "OffsetUS",
-                       "Change this (in no. of samples) to move how close the "
-                       "US signals are in relation to the axis of rotation.",
-                       " pts", ioparams.offsetUS, {-2000, 2000});
+                       " pts", ioparams.rfSizePA, {2000, 4000}, 10);
 
     makeLabeledSpinbox(
         layout, row++, "OffsetPA",
         "Change this (in no. of samples) to coregister PA and US.", " pts",
         ioparams.offsetPA, {-2000, 2000});
+
+    makeLabeledSpinbox(layout, row++, "OffsetUS",
+                       "Change this (in no. of samples) to move how close the "
+                       "US signals are in relation to the axis of rotation.",
+                       " pts", ioparams.offsetUS, {-2000, 2000});
 
     makeLabeledDoubleSpinbox(layout, row++, "SAFT delay multiplier", "", "",
                              params.system.saftTimeDelayMultiplier, {0.1, 10.0},
