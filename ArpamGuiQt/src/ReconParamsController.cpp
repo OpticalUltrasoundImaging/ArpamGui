@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QValidator>
 #include <QVariant>
@@ -102,8 +103,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         sp->setSuffix(suffix);
         layout->addWidget(sp, row, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, sp, &value] { sp->setValue(value); });
+        updateGuiFromParamsCallbacks.emplace_back([this, sp, &value] {
+          QSignalBlocker blocker(sp);
+          sp->setValue(value);
+        });
 
         return std::tuple{label, sp};
       };
@@ -121,8 +124,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         sp->setSuffix(suffix);
         layout->addWidget(sp, row, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, sp, &value] { sp->setValue(value); });
+        updateGuiFromParamsCallbacks.emplace_back([this, sp, &value] {
+          QSignalBlocker blocker(sp);
+          sp->setValue(value);
+        });
 
         return std::tuple{label, sp};
       };
@@ -141,8 +146,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         sp->setSuffix(suffix);
         layout->addWidget(sp, row, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, sp, &value, scalar] { sp->setValue(value / scalar); });
+        updateGuiFromParamsCallbacks.emplace_back([this, sp, &value, scalar] {
+          QSignalBlocker blocker(sp);
+          sp->setValue(value / scalar);
+        });
 
         return std::tuple{label, sp};
       };
@@ -161,8 +168,10 @@ ReconParamsController::ReconParamsController(QWidget *parent)
         sp->setSuffix(suffix);
         layout->addWidget(sp, row, 1);
 
-        updateGuiFromParamsCallbacks.emplace_back(
-            [this, sp, &value1, scalar] { sp->setValue(value1 / scalar); });
+        updateGuiFromParamsCallbacks.emplace_back([this, sp, &value1, scalar] {
+          QSignalBlocker blocker(sp);
+          sp->setValue(value1 / scalar);
+        });
 
         return std::tuple{label, sp};
       };
@@ -183,6 +192,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
             });
 
     updateGuiFromParamsCallbacks.emplace_back([this, cb, &value] {
+      QSignalBlocker blocker(cb);
       cb->setCheckState(value ? Qt::CheckState::Checked
                               : Qt::CheckState::Unchecked);
     });
@@ -262,17 +272,17 @@ ReconParamsController::ReconParamsController(QWidget *parent)
     makeLabeledSpinbox(layout, row++, "RF size (PA)",
                        "Samples per Ascan for PA can be changed here. Samples "
                        "per Ascan for US will be double this.",
-                       " pts", ioparams.rfSizePA, {2500, 3000});
-
-    makeLabeledSpinbox(layout, row++, "OffsetUS",
-                       "Change this (in no. of samples) to move how close the "
-                       "US signals are in relation to the axis of rotation.",
-                       " pts", ioparams.offsetUS, {-2000, 2000});
+                       " pts", ioparams.rfSizePA, {2000, 4000}, 10);
 
     makeLabeledSpinbox(
         layout, row++, "OffsetPA",
         "Change this (in no. of samples) to coregister PA and US.", " pts",
         ioparams.offsetPA, {-2000, 2000});
+
+    makeLabeledSpinbox(layout, row++, "OffsetUS",
+                       "Change this (in no. of samples) to move how close the "
+                       "US signals are in relation to the axis of rotation.",
+                       " pts", ioparams.offsetUS, {-2000, 2000});
 
     makeLabeledDoubleSpinbox(layout, row++, "SAFT delay multiplier", "", "",
                              params.system.saftTimeDelayMultiplier, {0.1, 10.0},
@@ -351,10 +361,13 @@ ReconParamsController::ReconParamsController(QWidget *parent)
           updateGuiFromParamsCallbacks.emplace_back(
               [filterTypeCBox, firTapsLabel, firTapsSpinBox, iirOrderLabel,
                iirOrderSpinBox, this, &p] {
-                for (int i = 0; i < filterTypeCBox->count(); ++i) {
-                  if (qvariant_cast<FilterType>(filterTypeCBox->itemData(i)) ==
-                      p.filterType) {
-                    filterTypeCBox->setCurrentIndex(i);
+                {
+                  QSignalBlocker blocker(filterTypeCBox);
+                  for (int i = 0; i < filterTypeCBox->count(); ++i) {
+                    if (qvariant_cast<FilterType>(
+                            filterTypeCBox->itemData(i)) == p.filterType) {
+                      filterTypeCBox->setCurrentIndex(i);
+                    }
                   }
                 }
 
@@ -415,6 +428,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                 });
 
         updateGuiFromParamsCallbacks.emplace_back([this, cbox, &p] {
+          QSignalBlocker blocker(cbox);
           for (int i = 0; i < cbox->count(); ++i) {
             if (qvariant_cast<BeamformerType>(cbox->itemData(i)) ==
                 p.beamformerType) {
@@ -458,6 +472,7 @@ void ReconParamsController::updateGuiFromParams() {
   for (const auto &func : updateGuiFromParamsCallbacks) {
     func();
   }
+  _paramsUpdatedInternal();
 }
 
 // NOLINTEND(*-magic-numbers)

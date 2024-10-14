@@ -150,7 +150,6 @@ arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
       }
     }
   }
-  //   });
 
   // CF = PA_saft ** 2 / (CF_denom * n_saft)
   // rf_saft_cf = rf_saft * CF / n_saft

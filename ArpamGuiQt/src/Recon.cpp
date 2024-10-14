@@ -64,9 +64,9 @@ void reconBScan(BScanData<ArpamFloat> &data,
   // Split RF into PA and US scan lines
   {
     const uspam::TimeIt timeit;
-    ioparams.splitRfPAUS_sub(data.rf, background_aline, data.PA.rf, data.US.rf,
-                             params.PA.backgroundSubtract,
-                             params.US.backgroundSubtract);
+    ioparams.splitRfPAUS(data.rf, data.PA.rf, data.US.rf, background_aline,
+                         params.PA.backgroundSubtract,
+                         params.US.backgroundSubtract);
     perfMetrics.split_ms = timeit.get_ms();
   }
 
@@ -354,7 +354,8 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
 
   {
     uspam::TimeIt timeit;
-    int offset = system.transducerOffset / system.dr();
+    int offset =
+        static_cast<int>(std::round(system.transducerOffset / system.dr()));
     if (!isPA) { // US
       offset *= 2;
     }
