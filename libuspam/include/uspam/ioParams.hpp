@@ -39,9 +39,9 @@ public:
   // System parameters from early 2024 (Sitai Labview acquisition)
   static inline IOParams system2024v1() {
     return IOParams{.alinesPerBscan = 1000,
-                    .rfSizePA = 2650,
+                    .rfSizePA = 2730,
                     .offsetPA = -200,
-                    .offsetUS = -100,
+                    .offsetUS = 0,
                     .byteOffset = 1};
   }
 
