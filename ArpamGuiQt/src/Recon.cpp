@@ -64,9 +64,9 @@ void reconBScan(BScanData<ArpamFloat> &data,
   // Split RF into PA and US scan lines
   {
     const uspam::TimeIt timeit;
-    ioparams.splitRfPAUS_sub(data.rf, background_aline, data.PA.rf, data.US.rf,
-                             params.PA.backgroundSubtract,
-                             params.US.backgroundSubtract);
+    ioparams.splitRfPAUS(data.rf, data.PA.rf, data.US.rf, background_aline,
+                         params.PA.backgroundSubtract,
+                         params.US.backgroundSubtract);
     perfMetrics.split_ms = timeit.get_ms();
   }
 

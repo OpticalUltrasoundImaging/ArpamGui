@@ -3,6 +3,7 @@
 #include <armadillo>
 #include <filesystem>
 #include <opencv2/core.hpp>
+#include <optional>
 #include <rapidjson/document.h>
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -51,60 +52,21 @@ public:
   bool deserialize(const rapidjson::Document &doc);
   bool deserializeFromFile(const fs::path &path);
 
-  template <typename T1, typename T2>
-  void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<T2> &PA,
-                   arma::Mat<T2> &US) const {
-    const auto USstart = this->rfSizePA;
-
-    PA.resize(rfSizePA, rf.n_cols);
-    US.resize(rfSizeUS(), rf.n_cols);
-
-    cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-      for (int j = range.start; j < range.end; ++j) {
-        const auto *rfcol = rf.colptr(j);
-        auto *PAcol = PA.colptr(j);
-        auto *UScol = US.colptr(j);
-
-        // NOLINTBEGIN(*-pointer-arithmetic)
-        for (int i = 0; i < rfSizePA; ++i) {
-          PAcol[i] = static_cast<T2>(rfcol[i]);
-        }
-
-        for (int i = 0; i < rfSizeUS(); ++i) {
-          UScol[i] = static_cast<T2>(rfcol[i + USstart]);
-        }
-        // NOLINTEND(*-pointer-arithmetic)
-
-        {
-          int middle = offsetPA;
-          if (middle < 0) {
-            middle = PA.n_rows + middle;
-          }
-          std::rotate(PAcol, PAcol + middle, PAcol + PA.n_rows);
-        }
-
-        {
-          int middle = offsetUS;
-          if (middle < 0) {
-            middle = US.n_rows + middle;
-          }
-          std::rotate(UScol, UScol + middle, UScol + US.n_rows);
-        }
-      }
-    });
-  }
-
   template <typename T1, typename Tb, typename Tout>
-  auto splitRfPAUS_sub(const arma::Mat<T1> &rf, const arma::Col<Tb> &background,
-                       arma::Mat<Tout> &rfPA, arma::Mat<Tout> &rfUS,
-                       const bool subtractPA = true,
-                       const bool subtractUS = true) const {
+  auto splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<Tout> &rfPA,
+                   arma::Mat<Tout> &rfUS, const arma::Col<Tb> &background = {},
+                   const bool subtractPA = true,
+                   const bool subtractUS = true) const {
+    // If subtractPA or subtractUS is true, background must not be empty
+    assert(!subtractPA || !background.empty());
+    assert(!subtractUS || !background.empty());
 
     const auto USstart = this->rfSizePA;
     auto offsetUS = this->offsetUS;
     while (offsetUS < 0) {
       offsetUS = this->rfSizeUS() + offsetUS;
     }
+
     auto offsetPA = this->offsetPA;
     while (offsetPA < 0) {
       offsetPA = this->rfSizePA + offsetPA;
