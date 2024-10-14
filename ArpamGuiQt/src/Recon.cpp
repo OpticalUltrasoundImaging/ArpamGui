@@ -354,7 +354,8 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
 
   {
     uspam::TimeIt timeit;
-    int offset = system.transducerOffset / system.dr();
+    int offset =
+        static_cast<int>(std::round(system.transducerOffset / system.dr()));
     if (!isPA) { // US
       offset *= 2;
     }
