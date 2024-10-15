@@ -7,9 +7,12 @@
 #include <QColorDialog>
 #include <QLineF>
 #include <QList>
+#include <QMimeData>
+#include <QModelIndexList>
 #include <QPolygonF>
 #include <QRectF>
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 #include <Qt>
 #include <array>
@@ -85,6 +88,22 @@ public:
   [[nodiscard]] rapidjson::Value
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
   void deserializeFromJson(const rapidjson::Value &value);
+
+  // Enable copy and paste
+  [[nodiscard]] Qt::DropActions supportedDropActions() const override {
+    return Qt::CopyAction | Qt::MoveAction;
+  }
+
+  // Copy
+  [[nodiscard]] QStringList mimeType() const;
+  [[nodiscard]] QMimeData *
+  mimeData(const QModelIndexList &indexes) const override;
+
+  // Paste
+  bool canDropMimeData(const QMimeData *data, Qt::DropAction action, int row,
+                       int column, const QModelIndex &parent) const override;
+  bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row,
+                    int column, const QModelIndex &parent) override;
 
 private:
   QList<Annotation> m_annotations;

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Annotation/AnnotationModel.hpp"
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QIODevice>
 #include <QTableView>
 #include <QWidget>
 
@@ -14,6 +17,8 @@ public:
   void keyPressEvent(QKeyEvent *event) override;
 
   void deleteSelectedRows();
+  void copySelectedItems() const;
+  void pasteItems();
 };
 
 } // namespace details
