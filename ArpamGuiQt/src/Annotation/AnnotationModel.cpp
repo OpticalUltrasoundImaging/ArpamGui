@@ -1,9 +1,16 @@
 #include "Annotation/AnnotationModel.hpp"
 #include <QAbstractItemModel>
+#include <QByteArray>
+#include <QMimeData>
 #include <Qt>
+#include <QtLogging>
 #include <cassert>
 #include <rapidjson/document.h>
+#include <rapidjson/error/error.h>
 #include <rapidjson/rapidjson.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+#include <set>
 #include <utility>
 
 namespace annotation {
@@ -144,6 +151,74 @@ void AnnotationModel::setAnnotations(QList<Annotation> annotations) {
     m_annotations = std::move(annotations);
     endInsertRows();
   }
+}
+
+// NOLINTNEXTLINE(*-static)
+QStringList AnnotationModel::mimeType() const {
+  QStringList types;
+  types << "application/json";
+  return types;
+}
+
+QMimeData *AnnotationModel::mimeData(const QModelIndexList &indexes) const {
+  // JSON impl
+
+  // Find unique rows in selected annotations
+  std::set<int> uniqueRows;
+  for (const auto &index : indexes) {
+    if (index.isValid()) {
+      uniqueRows.insert(index.row());
+    }
+  }
+
+  // Serialize annotations to JSON doc
+  rapidjson::Document doc;
+  doc.SetArray();
+  auto &alloc = doc.GetAllocator();
+  for (const auto row : uniqueRows) {
+    doc.PushBack(m_annotations[row].serializeToJson(alloc), alloc);
+  }
+
+  // Serialize JSON to string buffer and QByteArray
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  doc.Accept(writer);
+
+  auto *mimeData = new QMimeData;
+  // Implicitly construct QByteArray from const char *
+  mimeData->setData("application/json", buffer.GetString());
+  return mimeData;
+}
+
+bool AnnotationModel::canDropMimeData(const QMimeData *data,
+                                      Qt::DropAction action, int row,
+                                      int column,
+                                      const QModelIndex &parent) const {
+  return data->hasFormat("application/json");
+}
+
+bool AnnotationModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
+                                   int row, int column,
+                                   const QModelIndex &parent) {
+  // JSON impl
+  if (!data->hasFormat("application/json")) {
+    return false;
+  }
+
+  const QByteArray encodedData = data->data("application/json");
+
+  rapidjson::Document doc;
+  rapidjson::ParseResult parseResult = doc.Parse(encodedData.constData());
+  if ((parseResult != nullptr) && doc.IsArray()) {
+    // parse array
+    for (const auto &item : doc.GetArray()) {
+      const auto anno = Annotation::deserializeFromJson(item);
+      addAnnotation(anno);
+    }
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace annotation

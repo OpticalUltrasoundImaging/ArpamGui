@@ -12,7 +12,6 @@
 #include <cmath>
 #include <rapidjson/document.h>
 
-
 namespace annotation {
 
 /**
@@ -177,6 +176,7 @@ struct Annotation {
     return static_cast<Type>(0);
   }
 
+  // Json serialization
   [[nodiscard]] rapidjson::Value
   serializeToJson(rapidjson::Document::AllocatorType &allocator) const;
   [[nodiscard]] static Annotation

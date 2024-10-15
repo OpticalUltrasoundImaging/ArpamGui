@@ -1,4 +1,5 @@
 #include "Annotation/AnnotationView.hpp"
+#include <QAction>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QMenu>
@@ -8,6 +9,7 @@
 #include <QVBoxLayout>
 #include <Qt>
 #include <ranges>
+#include <set>
 
 namespace annotation {
 
@@ -17,17 +19,39 @@ AnnotationTableView::AnnotationTableView(QWidget *parent) : QTableView(parent) {
   // Select rows
   setSelectionBehavior(QAbstractItemView::SelectRows);
 
+  setAcceptDrops(true);
+  setDragEnabled(true);
+  setDropIndicatorShown(true);
+  setDragDropMode(
+      QAbstractItemView::DragDrop); // Allows drag and drop within the view
+
+  auto *deleteAction = new QAction("Delete", this);
+  deleteAction->setShortcut(QKeySequence::Delete);
+  connect(deleteAction, &QAction::triggered, this,
+          &AnnotationTableView::deleteSelectedRows);
+
+  auto *copyAction = new QAction("Copy", this);
+  copyAction->setShortcut(QKeySequence::Copy);
+  connect(copyAction, &QAction::triggered, this,
+          &AnnotationTableView::copySelectedItems);
+  addAction(copyAction);
+
+  auto *pasteAction = new QAction("Paste", this);
+  pasteAction->setShortcut(QKeySequence::Paste);
+  connect(pasteAction, &QAction::triggered, this,
+          &AnnotationTableView::pasteItems);
+  addAction(pasteAction);
+
   // Context menu for deletion
   setContextMenuPolicy(Qt::CustomContextMenu);
   connect(this, &QTableView::customContextMenuRequested,
-          [this](const QPoint &pos) {
+          [this, deleteAction, copyAction, pasteAction](const QPoint &pos) {
             if (const auto index = indexAt(pos); index.isValid()) {
               QMenu contextMenu;
-              QAction deleteAction("Delete Row", &contextMenu);
-              contextMenu.addAction(&deleteAction);
+              contextMenu.addAction(deleteAction);
+              contextMenu.addAction(copyAction);
+              contextMenu.addAction(pasteAction);
 
-              connect(&deleteAction, &QAction::triggered,
-                      [this, index]() { model()->removeRow(index.row()); });
               contextMenu.exec(viewport()->mapToGlobal(pos));
             }
           });
@@ -51,10 +75,35 @@ void AnnotationTableView::deleteSelectedRows() {
   }
 };
 
+void AnnotationTableView::copySelectedItems() const {
+  QItemSelectionModel *selectionModel = this->selectionModel();
+  QModelIndexList indexes = selectionModel->selectedIndexes();
+
+  if (indexes.isEmpty()) {
+    return;
+  }
+
+  // Use the model's mimeData() to package the selected indexes
+  if (QMimeData *mimeData = model()->mimeData(indexes); mimeData) {
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setMimeData(mimeData);
+  }
+}
+
+void AnnotationTableView::pasteItems() {
+  QClipboard *clipboard = QGuiApplication::clipboard();
+  const QMimeData *mimeData = clipboard->mimeData();
+
+  // JSON impl
+  model()->dropMimeData(mimeData, Qt::DropAction::MoveAction,
+                        model()->rowCount(), {}, {});
+}
 } // namespace details
 
 AnnotationView::AnnotationView(QWidget *parent)
     : QWidget(parent), m_tableView(new details::AnnotationTableView) {
+
+  setAcceptDrops(true);
 
   // UI
   auto *vlayout = new QVBoxLayout;
