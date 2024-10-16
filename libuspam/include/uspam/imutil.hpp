@@ -3,17 +3,14 @@
 #include <armadillo>
 #include <opencv2/core.hpp>
 #include <opencv2/core/base.hpp>
+#include <opencv2/core/traits.hpp>
 #include <opencv2/opencv.hpp>
 
 namespace uspam::imutil {
 
-template <typename T> int getCvType();
-template <> inline consteval int getCvType<double>() { return CV_64F; }
-template <> inline consteval int getCvType<float>() { return CV_32F; }
-template <> inline consteval int getCvType<uint8_t>() { return CV_8U; }
-
 template <typename T> cv::Mat armaMatToCvMat(const arma::Mat<T> &mat) {
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
+                 (void *)mat.memptr());
   return cv_mat;
 }
 
