@@ -9,7 +9,7 @@ template <uspam::Floating T>
 void BScanData_<T>::saveBScanData(const fs::path &directory,
                                   const std::string &prefix) {
   // Save radial
-  const auto radialPath = (directory / (prefix + "radial.bmp")).string();
+  const auto radialPath = (directory / (prefix + "radial.tiff")).string();
   cv::imwrite(radialPath, radial);
 
   // Save env
@@ -56,9 +56,10 @@ void BScanData<T>::exportToFile(
   /*
   Exported crops from annotation
   Names should have the format
-  "{modality}-{type_and_coord}-{label}.bmp"
+  "{modality}-{type_and_coord}-{label}.tiff"
   */
   if (!annotations.empty()) {
+    std::cout << "annotations: " << annotations.size() << '\n';
     // Load annotations
     std::vector<std::pair<QImage, std::string>> croppedImages;
     for (const auto &anno : annotations) {
@@ -67,7 +68,7 @@ void BScanData<T>::exportToFile(
         const auto rect = anno.rect().toRect();
         const auto cropped = cropImage(this->PAUSradial_img, rect);
 
-        const auto name = fmt::format("PAUSradial_img-rect_{},{}_{},{}-{}.bmp",
+        const auto name = fmt::format("PAUSradial_img-rect_{},{}_{},{}-{}.tiff",
                                       rect.top(), rect.left(), rect.bottom(),
                                       rect.right(), anno.name.toStdString());
 
@@ -104,7 +105,7 @@ void BScanData<T>::exportToFile(
 
   // Save combined image
 
-  auto pausPath = (directory / "PAUSradial.bmp").string();
+  auto pausPath = (directory / "PAUSradial.tiff").string();
   cv::imwrite(pausPath, PAUSradial);
 
   aUS.get();
