@@ -4,19 +4,14 @@
 #include <QList>
 #include <fstream>
 #include <future>
+#include <uspam/imutil.hpp>
 
 template <uspam::Floating T>
 void BScanData_<T>::saveBScanData(const fs::path &directory,
                                   const std::string &prefix,
-                                  const ExportSetting &exportSetting) {
+                                  const ExportSetting &exportSetting) const {
 
-  if (exportSetting.radialImages) {
-    // Save radial
-    const auto radialPath = (directory / (prefix + "radial.tiff")).string();
-    cv::imwrite(radialPath, radial);
-  }
-
-  if (exportSetting.rf) {
+  if (exportSetting.saveRF) {
     // Save env
     const auto envPath = (directory / (prefix + "env.bin")).string();
     rfEnv.save(envPath, arma::raw_binary);
@@ -25,12 +20,25 @@ void BScanData_<T>::saveBScanData(const fs::path &directory,
     const auto rfPath = (directory / (prefix + "rf.bin")).string();
     rf.save(rfPath, arma::raw_binary);
   }
+
+  if (exportSetting.saveRadialImages) {
+    // Save radial
+    const auto radialPath = (directory / (prefix + "radial.tiff")).string();
+    cv::imwrite(radialPath, radial);
+  }
+
+  if (exportSetting.saveRectImages) {
+    const auto rectPath = (directory / (prefix + "rect.tiff")).string();
+
+    const auto rectImage = uspam::imutil::armaMatToCvMat(rfLog);
+    cv::imwrite(rectPath, rectImage);
+  }
 }
 
 template void
 BScanData_<ArpamFloat>::saveBScanData(const fs::path &directory,
                                       const std::string &prefix,
-                                      const ExportSetting &exportSetting);
+                                      const ExportSetting &exportSetting) const;
 
 QImage cropImage(const QImage &image, const QRect &rect) {
   // Ensure the QRect is valid within the bounds of the image
@@ -88,10 +96,14 @@ void exportImageList(
 template <uspam::Floating T>
 void BScanData<T>::exportToFile(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
-    const ExportSetting &exportSetting) {
+    const ExportSetting &exportSetting) const {
   if (!fs::exists(directory)) {
     fs::create_directory(directory);
   }
+
+  // Save frame index
+  // Touch file to create an empty txt file with the frame idx as title
+  { std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx)); }
 
   /*
   Exported crops from annotation
@@ -102,34 +114,35 @@ void BScanData<T>::exportToFile(
     // Load annotations
 
     std::vector<std::pair<QImage, std::string>> croppedQImages;
-    // std::vector<std::pair<cv::Mat, std::string>> croppedImages;
+    std::vector<std::pair<cv::Mat, std::string>> croppedImages;
 
     for (const auto &anno : annotations) {
       switch (anno.type) {
       case annotation::Annotation::Type::Rect: {
-        const auto rect = anno.rect().toRect();
+        const auto qrect = anno.rect().toRect();
+        const auto rect = cvRect(qrect);
 
         const auto annoSuffix =
-            fmt::format("rect_{},{}_{},{}-{}.png", rect.top(), rect.left(),
-                        rect.bottom(), rect.right(), anno.name.toStdString());
+            fmt::format("rect_{},{}_{},{}-{}.png", qrect.top(), qrect.left(),
+                        qrect.bottom(), qrect.right(), anno.name.toStdString());
 
         // Crop PAUSradial_img
         {
-          const auto cropped = cropImage(this->PAUSradial_img, rect);
+          const auto cropped = cropImage(this->PAUSradial_img, qrect);
           const auto name = fmt::format("PAUSradial-{}", annoSuffix);
           croppedQImages.emplace_back(cropped, name);
         }
 
-        // Crop PA
+        // Crop PA radial
         {
-          const auto cropped = cropImage(this->PA.radial_img, rect);
+          const auto cropped = cropImage(this->PA.radial_img, qrect);
           const auto name = fmt::format("PAradial-{}", annoSuffix);
           croppedQImages.emplace_back(cropped, name);
         }
 
-        // Crop US
+        // Crop US radial
         {
-          const auto cropped = cropImage(this->US.radial_img, rect);
+          const auto cropped = cropImage(this->US.radial_img, qrect);
           const auto name = fmt::format("USradial-{}", annoSuffix);
           croppedQImages.emplace_back(cropped, name);
         }
@@ -145,27 +158,26 @@ void BScanData<T>::exportToFile(
     }
 
     exportImageList(croppedQImages, directory / "roi");
+    exportImageList(croppedImages, directory / "roi");
   }
 
   // Save PA and US buffers/images
   auto aPA = std::async(std::launch::async, &BScanData_<T>::saveBScanData, &PA,
-                        std::ref(directory), "PA", exportSetting);
+                        std::ref(directory), "PA", std::ref(exportSetting));
   auto aUS = std::async(std::launch::async, &BScanData_<T>::saveBScanData, &US,
-                        std::ref(directory), "US", exportSetting);
+                        std::ref(directory), "US", std::ref(exportSetting));
   // PA.saveBScanData(directory, "PA", exportSetting);
   // US.saveBScanData(directory, "US", exportSetting);
 
-  if (exportSetting.rf) {
+  // Save RF to bin
+  if (exportSetting.saveRF) {
     // Save raw RF
     const auto rfPath = (directory / "rf.bin").string();
     rf.save(rfPath, arma::raw_binary);
   }
 
-  // Save frame index
-  // Touch file to create an empty txt file with the frame idx as title
-  { std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx)); }
-
-  if (exportSetting.radialImages) {
+  // Save radial images
+  if (exportSetting.saveRadialImages) {
     // Save combined image
     auto pausPath = (directory / "PAUSradial.tiff").string();
     cv::imwrite(pausPath, PAUSradial);
@@ -177,4 +189,4 @@ void BScanData<T>::exportToFile(
 
 template void BScanData<ArpamFloat>::exportToFile(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
-    const ExportSetting &exportSetting);
+    const ExportSetting &exportSetting) const;

@@ -36,8 +36,9 @@ struct PerformanceMetrics {
 };
 
 struct ExportSetting {
-  bool rf{false};
-  bool radialImages{true};
+  bool saveRF{false};
+  bool saveRadialImages{true};
+  bool saveRectImages{true};
 };
 
 template <uspam::Floating T> struct BScanData_ {
@@ -53,7 +54,7 @@ template <uspam::Floating T> struct BScanData_ {
   QImage radial_img;
 
   void saveBScanData(const fs::path &directory, const std::string &prefix = "",
-                     const ExportSetting &exportSetting = {});
+                     const ExportSetting &exportSetting = {}) const;
 };
 
 /*
@@ -84,7 +85,7 @@ template <uspam::Floating T> struct BScanData {
   // directory should be created new for each frame
   void exportToFile(const fs::path &directory,
                     const QList<annotation::Annotation> &annotations = {},
-                    const ExportSetting &exportSetting = {});
+                    const ExportSetting &exportSetting = {}) const;
 };
 
 /*
