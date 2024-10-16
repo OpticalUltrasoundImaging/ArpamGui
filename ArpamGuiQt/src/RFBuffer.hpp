@@ -35,6 +35,11 @@ struct PerformanceMetrics {
   }
 };
 
+struct ExportSetting {
+  bool rf{false};
+  bool radialImages{true};
+};
+
 template <uspam::Floating T> struct BScanData_ {
   // Buffers
   arma::Mat<T> rf;
@@ -47,7 +52,8 @@ template <uspam::Floating T> struct BScanData_ {
   cv::Mat radial;
   QImage radial_img;
 
-  void saveBScanData(const fs::path &directory, const std::string &prefix = "");
+  void saveBScanData(const fs::path &directory, const std::string &prefix = "",
+                     const ExportSetting &exportSetting = {});
 };
 
 /*
@@ -77,7 +83,8 @@ template <uspam::Floating T> struct BScanData {
   // Export Bscan data to the directory.
   // directory should be created new for each frame
   void exportToFile(const fs::path &directory,
-                    const QList<annotation::Annotation> &annotations = {});
+                    const QList<annotation::Annotation> &annotations = {},
+                    const ExportSetting &exportSetting = {});
 };
 
 /*
