@@ -105,6 +105,8 @@ qt_add_executable(${EXE_NAME}
 target_sources(${EXE_NAME} PRIVATE
     src/Recon.hpp
     src/Recon.cpp
+    src/RFBuffer.hpp
+    src/RFBuffer.cpp
     src/geometryUtils.cpp
     src/geometryUtils.hpp
     src/jsonUtils.cpp

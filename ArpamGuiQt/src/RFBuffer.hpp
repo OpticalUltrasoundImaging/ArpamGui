@@ -1,15 +1,14 @@
 #pragma once
 
-#include "Common.hpp"
+#include "Annotation/Annotation.hpp"
 #include <QImage>
+#include <QList>
 #include <QString>
 #include <armadillo>
 #include <array>
 #include <condition_variable>
 #include <filesystem>
 #include <fmt/core.h>
-#include <fstream>
-#include <future>
 #include <mutex>
 #include <uspam/uspam.hpp>
 
@@ -48,20 +47,7 @@ template <uspam::Floating T> struct BScanData_ {
   cv::Mat radial;
   QImage radial_img;
 
-  void saveBScanData(const fs::path &directory,
-                     const std::string &prefix = "") {
-    // Save radial
-    const auto radialPath = (directory / (prefix + "radial.bmp")).string();
-    cv::imwrite(radialPath, radial);
-
-    // Save env
-    const auto envPath = (directory / (prefix + "env.bin")).string();
-    rfEnv.save(envPath, arma::raw_binary);
-
-    // Save rf
-    const auto rfPath = (directory / (prefix + "rf.bin")).string();
-    rf.save(rfPath, arma::raw_binary);
-  }
+  void saveBScanData(const fs::path &directory, const std::string &prefix = "");
 };
 
 /*
@@ -90,35 +76,8 @@ template <uspam::Floating T> struct BScanData {
 
   // Export Bscan data to the directory.
   // directory should be created new for each frame
-  void exportToFile(const fs::path &directory) {
-    if (!fs::exists(directory)) {
-      fs::create_directory(directory);
-    }
-
-    // Save PA and US buffers/images
-    auto aPA = std::async(std::launch::async, &BScanData_<T>::saveBScanData,
-                          &PA, std::ref(directory), "PA");
-    auto aUS = std::async(std::launch::async, &BScanData_<T>::saveBScanData,
-                          &US, std::ref(directory), "US");
-    // PA.saveBScanData(directory, "PA");
-    // US.saveBScanData(directory, "US");
-
-    // Save raw RF
-    const auto rfPath = (directory / "rf.bin").string();
-    rf.save(rfPath, arma::raw_binary);
-
-    // Save frame index
-    // Touch file to create an empty txt file with the frame idx as title
-    { std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx)); }
-
-    // Save combined image
-
-    auto pausPath = (directory / "PAUSradial.bmp").string();
-    cv::imwrite(pausPath, PAUSradial);
-
-    aUS.get();
-    aPA.get();
-  }
+  void exportToFile(const fs::path &directory,
+                    const QList<annotation::Annotation> &annotations = {});
 };
 
 /*

@@ -391,27 +391,6 @@ void FrameController::plotCurrentBScan() {
                          m_data->spacingRadialUS);
 }
 
-QImage cropImage(const QImage &image, const QRect &rect) {
-  // Ensure the QRect is valid within the bounds of the image
-  QRect validRect = rect.intersected(image.rect());
-
-  // Crop the image
-  return image.copy(validRect);
-}
-
-void exportImageList(
-    const std::vector<std::pair<QImage, std::string>> &imageList,
-    const fs::path &savedir) {
-
-  fs::create_directories(savedir);
-
-  for (const auto &[image, name] : imageList) {
-    const auto path = savedir / name;
-
-    image.save(path2QString(path));
-  }
-}
-
 void FrameController::exportCurrentFrame(const fs::path &exportDir) {
   uspam::TimeIt<false> timeit;
   const auto session = m_binPath.parent_path().stem().string();
@@ -421,43 +400,7 @@ void FrameController::exportCurrentFrame(const fs::path &exportDir) {
 
   const auto savedirpath = exportDir / dirname;
 
-  /*
-  Exported crops from annotation
-  Names should have the format
-  "{modality}-{type_and_coord}-{label}.bmp"
-  */
-  {
-    // Load annotations
-    std::vector<std::pair<QImage, std::string>> croppedImages;
-    for (const auto &anno : m_coregDisplay->model()->annotations()) {
-      switch (anno.type) {
-      case annotation::Annotation::Line:
-        break;
-      case annotation::Annotation::Type::Rect: {
-        const auto rect = anno.rect().toRect();
-        const auto cropped = cropImage(m_data->PAUSradial_img, rect);
-
-        const auto name = fmt::format("PAUSradial_img-rect_{},{}_{},{}-{}.bmp",
-                                      rect.top(), rect.left(), rect.bottom(),
-                                      rect.right(), anno.name.toStdString());
-
-        croppedImages.emplace_back(cropped, name);
-      }
-
-      break;
-      case annotation::Annotation::Fan:
-        break;
-      case annotation::Annotation::Polygon:
-        break;
-      case annotation::Annotation::Size:
-        break;
-      }
-    }
-
-    exportImageList(croppedImages, savedirpath / "roi");
-  }
-
-  m_data->exportToFile(savedirpath);
+  m_data->exportToFile(savedirpath, m_coregDisplay->model()->annotations());
 
   auto elapsed = timeit.get_ms();
 
