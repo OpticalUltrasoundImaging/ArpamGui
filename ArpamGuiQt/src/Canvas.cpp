@@ -437,7 +437,6 @@ void Canvas::openDialogToUpdateAnnotationName(int rowIdx) {
                                          QLineEdit::Normal, anno.name, &ok);
   if (ok) {
     anno.name = inp;
-    using annotation::AnnotationModel;
     const auto index = m_model->index(rowIdx);
     m_model->setData(index, inp, AnnotationModel::NameRole);
   }

@@ -73,7 +73,9 @@ public:
 private:
   // Annotations
   void saveCurrAnnotationAndLoadNewFrame(int newFrame);
+  // Write the current annotation to the given frame number in the JSON doc
   bool saveFrameAnnotationsFromModelToDoc(int frame);
+  // Load annotations from the given frame number from the JSON doc
   void loadFrameAnnotationsFromDocToModel(int frame);
 
   // RF producers
