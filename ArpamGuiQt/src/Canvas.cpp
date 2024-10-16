@@ -16,7 +16,6 @@
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
-#include <qabstractitemmodel.h>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)

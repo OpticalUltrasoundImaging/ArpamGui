@@ -30,14 +30,12 @@
 #include <string>
 #include <uspam/json.hpp>
 #include <uspam/timeit.hpp>
-#include <vector>
 
-FrameController::FrameController(
-
-    RFProducerFile *rfProducerFile, ReconWorker *reconWorker,
-
-    ReconParamsController *paramsController, AScanPlot *ascanPlot,
-    CoregDisplay *coregDisplay, QWidget *parent)
+FrameController::FrameController(RFProducerFile *rfProducerFile,
+                                 ReconWorker *reconWorker,
+                                 ReconParamsController *paramsController,
+                                 AScanPlot *ascanPlot,
+                                 CoregDisplay *coregDisplay, QWidget *parent)
     : QWidget(parent),
 
       m_producerFile(rfProducerFile), m_reconWorker(reconWorker),
@@ -438,7 +436,7 @@ void FrameController::handleExportAllFramesBtnClick() {
     m_actExportFrame->setEnabled(false);
 
     // Not currently exporting. Start
-    m_reconWorker->shouldExportFrames(m_exportDir);
+    m_reconWorker->shouldExportFrames(m_exportDir, &m_doc);
     m_exportingAllFrames = true;
     fs::create_directories(m_exportDir);
 

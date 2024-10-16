@@ -59,20 +59,23 @@ void BScanData<T>::exportToFile(
   "{modality}-{type_and_coord}-{label}.tiff"
   */
   if (!annotations.empty()) {
-    std::cout << "annotations: " << annotations.size() << '\n';
     // Load annotations
     std::vector<std::pair<QImage, std::string>> croppedImages;
     for (const auto &anno : annotations) {
       switch (anno.type) {
       case annotation::Annotation::Type::Rect: {
         const auto rect = anno.rect().toRect();
-        const auto cropped = cropImage(this->PAUSradial_img, rect);
 
-        const auto name = fmt::format("PAUSradial_img-rect_{},{}_{},{}-{}.tiff",
-                                      rect.top(), rect.left(), rect.bottom(),
-                                      rect.right(), anno.name.toStdString());
+        // Crop PAUSradial_img
+        {
+          const auto cropped = cropImage(this->PAUSradial_img, rect);
+          const auto name =
+              fmt::format("PAUSradial_img-rect_{},{}_{},{}-{}.tiff", rect.top(),
+                          rect.left(), rect.bottom(), rect.right(),
+                          anno.name.toStdString());
 
-        croppedImages.emplace_back(cropped, name);
+          croppedImages.emplace_back(cropped, name);
+        }
       }
 
       break;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Annotation/AnnotationJsonFile.hpp"
 #include "Common.hpp"
 #include "RFBuffer.hpp"
 #include "Recon.hpp"
@@ -23,31 +24,17 @@ public:
   /*
   Start main loop
   */
-  inline auto start() {
-    bool m_shouldStop = false;
-    while (!m_shouldStop) {
-      m_buffer->consume([&](std::shared_ptr<BScanData<ArpamFloat>> &data) {
-        if (data == nullptr) {
-          m_shouldStop = true;
-        } else {
-          m_recontsructor.recon(*data);
-          emit imagesReady(data);
+  void start();
 
-          if (m_exportAll) {
-            const auto exportDir =
-                m_exportDir / fmt::format("{:03}", data->frameIdx);
-            data->exportToFile(exportDir);
-          }
-        }
-      });
-    }
-  }
-
-  void shouldExportFrames(const fs::path &exportDir) {
-    m_exportAll = true;
+  // Signal the worker to export frames, and give relevate states
+  void shouldExportFrames(const fs::path &exportDir,
+                          annotation::AnnotationJsonFile *annotations) {
     m_exportDir = exportDir;
+    m_annotations = annotations;
+    m_exportAll = true;
   }
 
+  // Signal the worker to stop exporting frames
   void stopExportingFrames() { m_exportAll = false; }
 
 signals:
@@ -58,6 +45,13 @@ private:
 
   Recon::Reconstructor m_recontsructor;
 
+  /*
+  States related to the export all feature
+  */
+  // Should export when processing
   std::atomic<bool> m_exportAll{false};
+  // Export root directory
   fs::path m_exportDir;
+  // Annotations
+  annotation::AnnotationJsonFile *m_annotations;
 };

@@ -92,6 +92,7 @@ qt_add_executable(${EXE_NAME}
     src/RFProducerFile.hpp
     src/RFProducerFile.cpp
     src/ReconWorker.hpp
+    src/ReconWorker.cpp
     src/DAQ/DAQ.hpp
     src/DAQ/DAQ.cpp
     src/AcquisitionController.hpp
