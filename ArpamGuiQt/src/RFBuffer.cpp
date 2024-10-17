@@ -5,11 +5,13 @@
 #include <fstream>
 #include <future>
 #include <uspam/imutil.hpp>
+#include <uspam/timeit.hpp>
 
 template <uspam::Floating T>
 void BScanData_<T>::saveBScanData(const fs::path &directory,
                                   const std::string &prefix,
                                   const ExportSetting &exportSetting) const {
+  // uspam::TimeIt<true> timeit("saveBScanData");
 
   if (exportSetting.saveRF) {
     // Save env
@@ -24,14 +26,15 @@ void BScanData_<T>::saveBScanData(const fs::path &directory,
   if (exportSetting.saveRadialImages) {
     // Save radial
     const auto radialPath = (directory / (prefix + "radial.tiff")).string();
-    cv::imwrite(radialPath, radial);
+    radial_img.save(path2QString(radialPath));
   }
 
   if (exportSetting.saveRectImages) {
     const auto rectPath = (directory / (prefix + "rect.tiff")).string();
-
     const auto rectImage = uspam::imutil::armaMatToCvMat(rfLog);
-    cv::imwrite(rectPath, rectImage);
+    cv::Mat img;
+    cv::resize(rectImage, img, {(int)rfLog.n_cols, (int)rfLog.n_cols});
+    cv::imwrite(rectPath, img);
   }
 }
 
@@ -119,103 +122,9 @@ void BScanData<T>::exportToFile(
   Names should have the format
   "{modality}-{type_and_coord}-{label}.tiff"
   */
-  if (!annotations.empty()) {
-    // Load annotations
-
-    std::vector<std::pair<QImage, std::string>> croppedQImages;
-    std::vector<std::pair<cv::Mat, std::string>> croppedImages;
-
-    for (const auto &anno : annotations) {
-      switch (anno.type) {
-      case annotation::Annotation::Type::Rect: {
-        const auto qrect = anno.rect().toRect();
-        const auto rect = cvRect(qrect);
-
-        const auto annoSuffix =
-            fmt::format("rect_{},{}_{},{}-{}.png", qrect.top(), qrect.left(),
-                        qrect.bottom(), qrect.right(), anno.name.toStdString());
-
-        // Crop PAUSradial_img
-        {
-          const auto cropped = cropImage(this->PAUSradial_img, qrect);
-          const auto name = fmt::format("PAUSradial-{}", annoSuffix);
-          croppedQImages.emplace_back(cropped, name);
-        }
-
-        // Crop PA radial
-        {
-          const auto cropped = cropImage(this->PA.radial_img, qrect);
-          const auto name = fmt::format("PAradial-{}", annoSuffix);
-          croppedQImages.emplace_back(cropped, name);
-        }
-
-        // Crop US radial
-        {
-          const auto cropped = cropImage(this->US.radial_img, qrect);
-          const auto name = fmt::format("USradial-{}", annoSuffix);
-          croppedQImages.emplace_back(cropped, name);
-        }
-      }
-
-      break;
-      case annotation::Annotation::Fan: {
-        const auto arc = anno.arc();
-
-        // startAngle starts at 90 degrees
-        const auto startAngle = -arc.startAngle + 90;
-        const auto spanAngle = -arc.spanAngle;
-        const auto n_cols = this->US.rfLog.n_cols;
-        const auto angle2rect = [n_cols](const double angle) {
-          return static_cast<int>(std::round(angle / 360.0 * n_cols));
-        };
-        auto startCol = angle2rect(startAngle);
-        auto spanCol = angle2rect(spanAngle);
-
-        if (startCol < 0) {
-          startCol = startCol + n_cols;
-        }
-
-        auto endCol = startCol + spanCol;
-
-        if (startCol >= endCol) {
-          std::swap(startCol, endCol);
-        }
-
-        const auto annoSuffix = fmt::format(
-            "fan_{:.2f},{:.2f}_{},{}-{}.png", arc.startAngle, arc.spanAngle,
-            startCol, endCol, anno.name.toStdString());
-
-        const auto exportCropped = [&](const arma::Mat<uint8_t> &mat,
-                                       std::string name) {
-          arma::Mat<uint8_t> cropped;
-          if (endCol < n_cols) {
-            cropped = mat.cols(startCol, endCol);
-          } else {
-            cropped = boundaryCrop(mat, startCol, endCol);
-          }
-          const auto croppedImg_ = uspam::imutil::armaMatToCvMat(cropped);
-
-          cv::Mat croppedImg;
-          cv::resize(croppedImg_, croppedImg, {(int)n_cols, croppedImg_.rows});
-
-          croppedImages.emplace_back(croppedImg, std::move(name));
-        };
-
-        // Export cropped rect
-        exportCropped(US.rfLog, fmt::format("US-{}", annoSuffix));
-        exportCropped(PA.rfLog, fmt::format("PA-{}", annoSuffix));
-
-      } break;
-      case annotation::Annotation::Polygon:
-      case annotation::Annotation::Line:
-      case annotation::Annotation::Size:
-        break;
-      }
-    }
-
-    exportImageList(croppedQImages, directory / "roi");
-    exportImageList(croppedImages, directory / "roi");
-  }
+  auto aCrops = std::async(
+      std::launch::async, &BScanData<T>::exportAnnotatedCrops, this,
+      directory / "roi", std::ref(annotations), std::ref(exportSetting));
 
   // Save PA and US buffers/images
   auto aPA = std::async(std::launch::async, &BScanData_<T>::saveBScanData, &PA,
@@ -239,10 +148,121 @@ void BScanData<T>::exportToFile(
     cv::imwrite(pausPath, PAUSradial);
   }
 
+  aCrops.get();
   aUS.get();
   aPA.get();
 }
 
 template void BScanData<ArpamFloat>::exportToFile(
+    const fs::path &directory, const QList<annotation::Annotation> &annotations,
+    const ExportSetting &exportSetting) const;
+
+template <uspam::Floating T>
+void BScanData<T>::exportAnnotatedCrops(
+    const fs::path &directory, const QList<annotation::Annotation> &annotations,
+    const ExportSetting &exportSetting) const {
+  // uspam::TimeIt<true> timeit("exportAnnotatedCrops");
+
+  if (annotations.empty()) {
+    return;
+  }
+
+  // Load annotations
+  std::vector<std::pair<QImage, std::string>> croppedQImages;
+  std::vector<std::pair<cv::Mat, std::string>> croppedImages;
+
+  for (const auto &anno : annotations) {
+    switch (anno.type) {
+    case annotation::Annotation::Type::Rect: {
+      const auto qrect = anno.rect().toRect();
+      const auto rect = cvRect(qrect);
+
+      const auto annoSuffix =
+          fmt::format("rect_{},{}_{},{}-{}.png", qrect.top(), qrect.left(),
+                      qrect.bottom(), qrect.right(), anno.name.toStdString());
+
+      // Crop PAUSradial_img
+      {
+        const auto cropped = cropImage(this->PAUSradial_img, qrect);
+        const auto name = fmt::format("PAUSradial-{}", annoSuffix);
+        croppedQImages.emplace_back(cropped, name);
+      }
+
+      // Crop PA radial
+      {
+        const auto cropped = cropImage(this->PA.radial_img, qrect);
+        const auto name = fmt::format("PAradial-{}", annoSuffix);
+        croppedQImages.emplace_back(cropped, name);
+      }
+
+      // Crop US radial
+      {
+        const auto cropped = cropImage(this->US.radial_img, qrect);
+        const auto name = fmt::format("USradial-{}", annoSuffix);
+        croppedQImages.emplace_back(cropped, name);
+      }
+    }
+
+    break;
+    case annotation::Annotation::Fan: {
+      const auto arc = anno.arc();
+
+      // startAngle starts at 90 degrees
+      const auto startAngle = -arc.startAngle + 90;
+      const auto spanAngle = -arc.spanAngle;
+      const auto n_cols = this->US.rfLog.n_cols;
+      const auto angle2rect = [n_cols](const double angle) {
+        return static_cast<int>(std::round(angle / 360.0 * n_cols));
+      };
+      auto startCol = angle2rect(startAngle);
+      auto spanCol = angle2rect(spanAngle);
+
+      if (startCol < 0) {
+        startCol = startCol + n_cols;
+      }
+
+      auto endCol = startCol + spanCol;
+
+      if (startCol >= endCol) {
+        std::swap(startCol, endCol);
+      }
+
+      const auto annoSuffix =
+          fmt::format("fan_{:.2f},{:.2f}_{},{}-{}.png", arc.startAngle,
+                      arc.spanAngle, startCol, endCol, anno.name.toStdString());
+
+      const auto exportCropped = [&](const arma::Mat<uint8_t> &mat,
+                                     std::string name) {
+        arma::Mat<uint8_t> cropped;
+        if (endCol < n_cols) {
+          cropped = mat.cols(startCol, endCol);
+        } else {
+          cropped = boundaryCrop(mat, startCol, endCol);
+        }
+        const auto croppedImg_ = uspam::imutil::armaMatToCvMat(cropped);
+
+        cv::Mat croppedImg;
+        cv::resize(croppedImg_, croppedImg, {(int)n_cols, croppedImg_.rows});
+
+        croppedImages.emplace_back(croppedImg, std::move(name));
+      };
+
+      // Export cropped rect
+      exportCropped(US.rfLog, fmt::format("US-{}", annoSuffix));
+      exportCropped(PA.rfLog, fmt::format("PA-{}", annoSuffix));
+
+    } break;
+    case annotation::Annotation::Polygon:
+    case annotation::Annotation::Line:
+    case annotation::Annotation::Size:
+      break;
+    }
+  }
+
+  exportImageList(croppedQImages, directory);
+  exportImageList(croppedImages, directory);
+};
+
+template void BScanData<ArpamFloat>::exportAnnotatedCrops(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
     const ExportSetting &exportSetting) const;

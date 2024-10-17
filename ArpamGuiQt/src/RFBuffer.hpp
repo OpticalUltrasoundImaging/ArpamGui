@@ -86,6 +86,12 @@ template <uspam::Floating T> struct BScanData {
   void exportToFile(const fs::path &directory,
                     const QList<annotation::Annotation> &annotations = {},
                     const ExportSetting &exportSetting = {}) const;
+
+private:
+  // Helper to export annotated crops
+  void exportAnnotatedCrops(const fs::path &directory,
+                            const QList<annotation::Annotation> &annotations,
+                            const ExportSetting &exportSetting) const;
 };
 
 /*
