@@ -51,12 +51,11 @@ void RectItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 QPainterPath FanItem::getFanPainterPath() const {
   const auto rect = m_annotation.rect();
   const auto arc = m_annotation.arc();
-  const auto startPoint = geometry::calcPosFromAngle(rect, arc.startAngle);
+  const auto center = rect.center();
 
   QPainterPath path;
-  path.moveTo(startPoint);
+  path.moveTo(center);
   path.arcTo(rect, arc.startAngle, arc.spanAngle);
-  path.lineTo(rect.center());
   path.closeSubpath();
 
   return path;

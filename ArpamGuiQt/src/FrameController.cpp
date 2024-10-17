@@ -23,6 +23,7 @@
 #include <QtLogging>
 #include <cassert>
 #include <filesystem>
+#include <fmt/format.h>
 #include <memory>
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
@@ -30,12 +31,11 @@
 #include <uspam/json.hpp>
 #include <uspam/timeit.hpp>
 
-FrameController::FrameController(
-
-    RFProducerFile *rfProducerFile, ReconWorker *reconWorker,
-
-    ReconParamsController *paramsController, AScanPlot *ascanPlot,
-    CoregDisplay *coregDisplay, QWidget *parent)
+FrameController::FrameController(RFProducerFile *rfProducerFile,
+                                 ReconWorker *reconWorker,
+                                 ReconParamsController *paramsController,
+                                 AScanPlot *ascanPlot,
+                                 CoregDisplay *coregDisplay, QWidget *parent)
     : QWidget(parent),
 
       m_producerFile(rfProducerFile), m_reconWorker(reconWorker),
@@ -48,15 +48,20 @@ FrameController::FrameController(
       m_btnExportFrame(new QPushButton("Export frame")),
       m_btnExportAllFrames(new QPushButton("Export all frames")),
 
-      m_menu(new QMenu("Frames", this)),
+      m_menuFrame(new QMenu("Frames", this)),
       m_actOpenFileSelectDialog(new QAction("Open binfile")),
       m_actCloseBinfile(new QAction("Close binfile")),
 
       m_actPlayPause(new QAction("Play/Pause")),
       m_actNextFrame(new QAction("Next Frame")),
       m_actPrevFrame(new QAction("Prev Frame")),
+
       m_actExportFrame(new QAction("Export Frame")),
       m_actExportAllFrames(new QAction("Export All Frames")),
+
+      m_actSaveRF(new QAction("Save RF")),
+      m_actSaveRadialImages(new QAction("Save radial images")),
+      m_actSaveRectImages(new QAction("Save rect images")),
 
       m_exportDirDefault(qString2Path(
           QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)))
@@ -114,20 +119,33 @@ FrameController::FrameController(
         m_actPlayPause->setShortcut({Qt::Key_Space});
         connect(m_actPlayPause, &QAction::triggered,
                 [this](bool checked) { updatePlayingState(!m_isPlaying); });
-        m_menu->addAction(m_actPlayPause);
+        m_menuFrame->addAction(m_actPlayPause);
 
         layout->addWidget(m_btnPlayPause);
         connect(m_btnPlayPause, &QPushButton::clicked, m_actPlayPause,
                 &QAction::trigger);
       }
 
-      // Button to export current frame
+      // Frame navigation actions
+      {
+        m_actPrevFrame->setShortcut({Qt::Key_Comma});
+        connect(m_actPrevFrame, &QAction::triggered, this,
+                &FrameController::prevFrame);
+        m_menuFrame->addAction(m_actPrevFrame);
 
+        m_actNextFrame->setShortcut({Qt::Key_Period});
+        connect(m_actNextFrame, &QAction::triggered, this,
+                &FrameController::nextFrame);
+        m_menuFrame->addAction(m_actNextFrame);
+      }
+
+      // Button and action to export current frame
+      m_menuFrame->addSection("Export");
       {
         m_actExportFrame->setShortcut(Qt::CTRL | Qt::Key_E);
         connect(m_actExportFrame, &QAction::triggered,
                 [this]() { exportCurrentFrame(m_exportDirDefault); });
-        m_menu->addAction(m_actExportFrame);
+        m_menuFrame->addAction(m_actExportFrame);
 
         m_btnExportFrame->setEnabled(false);
         layout->addWidget(m_btnExportFrame);
@@ -135,37 +153,45 @@ FrameController::FrameController(
                 &QAction::trigger);
       }
 
-      // Button to export all frames
+      // Button and action to export all frames
       {
         m_actExportAllFrames->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_E);
         connect(m_actExportAllFrames, &QAction::triggered, this,
                 &FrameController::handleExportAllFramesBtnClick);
-        m_menu->addAction(m_actExportAllFrames);
+        m_menuFrame->addAction(m_actExportAllFrames);
 
         m_btnExportAllFrames->setEnabled(false);
         layout->addWidget(m_btnExportAllFrames);
         connect(m_btnExportAllFrames, &QPushButton::clicked,
                 m_actExportAllFrames, &QAction::trigger);
       }
-    }
 
-    // Frame navigation actions
-    {
-      m_actPrevFrame->setShortcut({Qt::Key_Comma});
-      connect(m_actPrevFrame, &QAction::triggered, this,
-              &FrameController::prevFrame);
-      m_menu->addAction(m_actPrevFrame);
+      // Actions for ExportSetting
+      m_menuFrame->addSection("Export setting");
+      {
+        const auto connectCheckableActionAndBool = [this](QAction *act,
+                                                          bool &val) {
+          act->setCheckable(true);
+          act->setChecked(val);
+          connect(act, &QAction::triggered, [this, &val](const bool checked) {
+            val = checked;
+            std::cout << checked << "\n";
+          });
+          m_menuFrame->addAction(act);
+        };
 
-      m_actNextFrame->setShortcut({Qt::Key_Period});
-      connect(m_actNextFrame, &QAction::triggered, this,
-              &FrameController::nextFrame);
-      m_menu->addAction(m_actNextFrame);
+        connectCheckableActionAndBool(m_actSaveRF, m_exportSetting.saveRF);
+        connectCheckableActionAndBool(m_actSaveRadialImages,
+                                      m_exportSetting.saveRadialImages);
+        connectCheckableActionAndBool(m_actSaveRectImages,
+                                      m_exportSetting.saveRectImages);
+      }
     }
 
     // Before a binfile is loaded, disable frame control
     m_frameSlider->setDisabled(true);
     m_btnPlayPause->setDisabled(true);
-    m_menu->setDisabled(true);
+    m_menuFrame->setDisabled(true);
   }
 
   // Connections
@@ -250,7 +276,7 @@ void FrameController::acceptBinfile(const QString &filename) {
   m_btnExportFrame->setEnabled(true);
   m_btnExportAllFrames->setEnabled(true);
   m_frameSlider->setEnabled(true);
-  m_menu->setEnabled(true);
+  m_menuFrame->setEnabled(true);
 
   m_actCloseBinfile->setEnabled(true);
 }
@@ -264,7 +290,7 @@ void FrameController::closeBinfile() {
 
   m_btnPlayPause->setEnabled(false);
   m_frameSlider->setEnabled(false);
-  m_menu->setEnabled(false);
+  m_menuFrame->setEnabled(false);
 
   m_actCloseBinfile->setEnabled(false);
 }
@@ -398,7 +424,8 @@ void FrameController::exportCurrentFrame(const fs::path &exportDir) {
 
   const auto savedirpath = exportDir / dirname;
 
-  m_data->exportToFile(savedirpath);
+  m_data->exportToFile(savedirpath, m_coregDisplay->model()->annotations(),
+                       m_exportSetting);
 
   auto elapsed = timeit.get_ms();
 
@@ -406,8 +433,6 @@ void FrameController::exportCurrentFrame(const fs::path &exportDir) {
                    .arg(m_data->frameIdx)
                    .arg(elapsed));
 }
-
-void FrameController::exportAllFrames() {}
 
 void FrameController::handleExportAllFramesBtnClick() {
   if (m_exportingAllFrames) {
@@ -436,7 +461,7 @@ void FrameController::handleExportAllFramesBtnClick() {
     m_actExportFrame->setEnabled(false);
 
     // Not currently exporting. Start
-    m_reconWorker->shouldExportFrames(m_exportDir);
+    m_reconWorker->shouldExportFrames(m_exportDir, &m_doc, m_exportSetting);
     m_exportingAllFrames = true;
     fs::create_directories(m_exportDir);
 

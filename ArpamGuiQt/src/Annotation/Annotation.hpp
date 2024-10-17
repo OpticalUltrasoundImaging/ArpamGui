@@ -15,7 +15,7 @@
 namespace annotation {
 
 /**
-Pair of angles (each 0-360) that denote a fan shape center at the center of
+Pair of angles (each 0-360) that denote a fan shape centered at the center of
 the square image.
 
 Draws the arc defined by the given rectangle, startAngle and spanAngle.
@@ -23,6 +23,8 @@ The startAngle and spanAngle are in degrees
 Positive values for the angles mean counter-clockwise
 while negative values mean the clockwise direction.
 Zero degrees is at the 3 o'clock position.
+
+https://doc.qt.io/qt-6/qpainterpath.html#arcTo
 */
 struct Arc {
   double startAngle;

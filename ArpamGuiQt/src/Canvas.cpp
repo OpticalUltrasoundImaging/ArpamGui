@@ -16,7 +16,6 @@
 #include <QtCore>
 #include <QtDebug>
 #include <QtLogging>
-#include <qabstractitemmodel.h>
 #include <uspam/timeit.hpp>
 
 Canvas::Canvas(QWidget *parent)
@@ -437,7 +436,6 @@ void Canvas::openDialogToUpdateAnnotationName(int rowIdx) {
                                          QLineEdit::Normal, anno.name, &ok);
   if (ok) {
     anno.name = inp;
-    using annotation::AnnotationModel;
     const auto index = m_model->index(rowIdx);
     m_model->setData(index, inp, AnnotationModel::NameRole);
   }

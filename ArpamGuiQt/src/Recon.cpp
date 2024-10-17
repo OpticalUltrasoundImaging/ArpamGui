@@ -8,6 +8,7 @@
 
 namespace Recon {
 
+// Convert a cv mat to a QImage
 QImage cvMatToQImage(const cv::Mat &mat) {
   switch (mat.type()) {
   // 8-bit, 4 channel

@@ -3,14 +3,16 @@
 #include <armadillo>
 #include <opencv2/core.hpp>
 #include <opencv2/core/base.hpp>
+#include <opencv2/core/traits.hpp>
 #include <opencv2/opencv.hpp>
 
 namespace uspam::imutil {
 
-template <typename T> int getCvType();
-template <> inline consteval int getCvType<double>() { return CV_64F; }
-template <> inline consteval int getCvType<float>() { return CV_32F; }
-template <> inline consteval int getCvType<uint8_t>() { return CV_8U; }
+template <typename T> cv::Mat armaMatToCvMat(const arma::Mat<T> &mat) {
+  cv::Mat cv_mat(mat.n_cols, mat.n_rows, cv::traits::Type<T>::value,
+                 (void *)mat.memptr());
+  return cv_mat;
+}
 
 // NOLINTBEGIN(*-magic-numbers)
 template <typename T>
@@ -18,7 +20,7 @@ auto makeRectangular(const arma::Mat<T> &mat, int width = 640,
                      int height = 1000) {
   // Create a cv::mat that uses the same data
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat = armaMatToCvMat(mat);
   cv::resize(cv_mat, cv_mat, {width, height});
   cv_mat.convertTo(cv_mat, CV_8U, 255.0);
   return cv_mat;
@@ -28,7 +30,7 @@ auto makeRectangular(const arma::Mat<T> &mat, int width = 640,
 template <typename T>
 auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat = armaMatToCvMat(mat);
 
   const int r = std::min(cv_mat.rows, cv_mat.cols);
   const cv::Size dsize{r, r};
@@ -48,7 +50,7 @@ auto makeRadial(const arma::Mat<T> &mat, int final_size = 0) {
 
 template <typename T> auto makeRadial_v2(const arma::Mat<T> &mat) {
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat = armaMatToCvMat(mat);
 
   cv::resize(cv_mat, cv_mat, {cv_mat.cols * 2, cv_mat.rows * 2});
 
@@ -69,7 +71,7 @@ template <typename T> auto makeRadial_v2(const arma::Mat<T> &mat) {
 
 template <typename T> auto makeRadial_v3(const arma::Mat<T> &mat, int offset) {
   // NOLINTNEXTLINE(*-casting)
-  cv::Mat cv_mat(mat.n_cols, mat.n_rows, getCvType<T>(), (void *)mat.memptr());
+  cv::Mat cv_mat = armaMatToCvMat(mat);
 
   cv::copyMakeBorder(cv_mat, cv_mat, 0, 0, offset, 0, cv::BORDER_CONSTANT,
                      cv::Scalar(0));
