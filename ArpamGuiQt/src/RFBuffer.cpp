@@ -16,17 +16,24 @@ void BScanData_<T>::saveBScanData(const fs::path &directory,
   if (exportSetting.saveRF) {
     // Save env
     const auto envPath = (directory / (prefix + "env.bin")).string();
-    rfEnv.save(envPath, arma::raw_binary);
+    if (!rfEnv.save(envPath, arma::raw_binary)) {
+      std::cerr << "Failed to save " << envPath << "\n";
+    }
 
     // Save rf
     const auto rfPath = (directory / (prefix + "rf.bin")).string();
-    rf.save(rfPath, arma::raw_binary);
+    if (!rf.save(rfPath, arma::raw_binary)) {
+      std::cerr << "Failed to save " << rfPath << "\n";
+    }
   }
 
   if (exportSetting.saveRadialImages) {
     // Save radial
-    const auto radialPath = (directory / (prefix + "radial.tiff")).string();
-    radial_img.save(path2QString(radialPath));
+    const auto radialPath = (directory / (prefix + "radial.tiff"));
+    // if (!radial_img.save(path2QString(radialPath))) {
+    if (!cv::imwrite(radialPath.string(), radial)) {
+      std::cerr << "Failed to save " << radialPath << "\n";
+    }
   }
 
   if (exportSetting.saveRectImages) {
@@ -34,7 +41,9 @@ void BScanData_<T>::saveBScanData(const fs::path &directory,
     const auto rectImage = uspam::imutil::armaMatToCvMat(rfLog);
     cv::Mat img;
     cv::resize(rectImage, img, {(int)rfLog.n_cols, (int)rfLog.n_cols});
-    cv::imwrite(rectPath, img);
+    if (!cv::imwrite(rectPath, img)) {
+      std::cerr << "Failed to save " << rectPath << "\n";
+    }
   }
 }
 
@@ -138,14 +147,18 @@ void BScanData<T>::exportToFile(
   if (exportSetting.saveRF) {
     // Save raw RF
     const auto rfPath = (directory / "rf.bin").string();
-    rf.save(rfPath, arma::raw_binary);
+    if (!rf.save(rfPath, arma::raw_binary)) {
+      std::cerr << "Failed to save " << rfPath << "\n";
+    }
   }
 
   // Save radial images
   if (exportSetting.saveRadialImages) {
     // Save combined image
     auto pausPath = (directory / "PAUSradial.tiff").string();
-    cv::imwrite(pausPath, PAUSradial);
+    if (!cv::imwrite(pausPath, PAUSradial)) {
+      std::cerr << "Failed to save " << pausPath << "\n";
+    }
   }
 
   aCrops.get();
