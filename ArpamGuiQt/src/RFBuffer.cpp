@@ -90,7 +90,7 @@ void exportImageList(
   for (const auto &[image, name] : imageList) {
     const auto path = savedir / name;
 
-    if (!cv::imwrite(path.c_str(), image)) {
+    if (!cv::imwrite(path.string(), image)) {
       std::cerr << "Failed to save image to path: " << path << "\n";
     }
   }
