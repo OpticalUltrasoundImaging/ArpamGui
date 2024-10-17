@@ -236,6 +236,18 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
     beamform_ms = timeit.get_ms();
   }
 
+  // Denoise
+  if (params.medFiltSize > 1) {
+    int ksize = params.medFiltSize;
+    ksize = ksize % 2 == 0 ? ksize + 1 : ksize; // Ensure odd
+
+    cv::Mat cv_mat(rfBeamformed.n_cols, rfBeamformed.n_rows,
+                   cv::traits::Type<T>::value, (void *)rfBeamformed.memptr());
+
+    cv::medianBlur(cv_mat, cv_mat, ksize);
+    rfBeamformed = arma::Mat<T>(cv_mat.ptr<T>(), rf.n_rows, rf.n_cols, true);
+  }
+
   switch (params.filterType) {
   case uspam::recon::FilterType::FIR: {
     // Recon (with FIR filter)

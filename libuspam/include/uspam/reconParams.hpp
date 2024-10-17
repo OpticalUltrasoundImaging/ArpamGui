@@ -23,7 +23,12 @@ struct ReconParams {
   BeamformerType beamformerType{BeamformerType::NONE};
 
   /*
-  Filter
+  Denoising filter
+  */
+  int medFiltSize{1};
+
+  /*
+  Bandpass Filter
   */
   FilterType filterType{FilterType::FIR};
   int firTaps{65};       // for FIR filter
@@ -68,6 +73,7 @@ struct ReconParams2 {
     ReconParams PA{
         .backgroundSubtract = true,
         .beamformerType = BeamformerType::SAFT_CF,
+        .medFiltSize = 3,
         .filterType = FilterType::FIR,
         .firTaps = taps,
         .iirOrder = order,
@@ -81,6 +87,7 @@ struct ReconParams2 {
     ReconParams US{
         .backgroundSubtract = false,
         .beamformerType = BeamformerType::NONE,
+        .medFiltSize = 1,
         .filterType = FilterType::IIR,
         .firTaps = taps,
         .iirOrder = order,

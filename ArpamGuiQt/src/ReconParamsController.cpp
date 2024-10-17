@@ -308,6 +308,9 @@ ReconParamsController::ReconParamsController(QWidget *parent)
       vlayout->addLayout(layout);
       int row = 0;
 
+      makeLabeledSpinbox(layout, row++, "Medfilt kernel", "", "", p.medFiltSize,
+                         {1, 7});
+
       makeLabeledCheckbox(layout, row++, "Background subtract", "",
                           p.backgroundSubtract);
 
