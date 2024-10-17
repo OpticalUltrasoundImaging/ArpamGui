@@ -93,6 +93,15 @@ void exportImageList(
   }
 }
 
+// Used when endCol > n_cols. Handles wrap around
+arma::Mat<uint8_t> boundaryCrop(const arma::Mat<uint8_t> &mat, int startCol,
+                                int endCol) {
+  // return mat.cols(startCol, mat.n_cols - 1);
+  // return mat.head_cols(endCol - mat.n_cols);
+  return arma::join_horiz(mat.cols(startCol, mat.n_cols - 1),
+                          mat.head_cols(endCol - mat.n_cols));
+}
+
 template <uspam::Floating T>
 void BScanData<T>::exportToFile(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
@@ -149,7 +158,54 @@ void BScanData<T>::exportToFile(
       }
 
       break;
-      case annotation::Annotation::Fan:
+      case annotation::Annotation::Fan: {
+        const auto arc = anno.arc();
+
+        // startAngle starts at 90 degrees
+        const auto startAngle = -arc.startAngle + 90;
+        const auto spanAngle = -arc.spanAngle;
+        const auto n_cols = this->US.rfLog.n_cols;
+        const auto angle2rect = [n_cols](const double angle) {
+          return static_cast<int>(std::round(angle / 360.0 * n_cols));
+        };
+        auto startCol = angle2rect(startAngle);
+        auto spanCol = angle2rect(spanAngle);
+
+        if (startCol < 0) {
+          startCol = startCol + n_cols;
+        }
+
+        auto endCol = startCol + spanCol;
+
+        if (startCol >= endCol) {
+          std::swap(startCol, endCol);
+        }
+
+        const auto annoSuffix = fmt::format(
+            "fan_{:.2f},{:.2f}_{},{}-{}.png", arc.startAngle, arc.spanAngle,
+            startCol, endCol, anno.name.toStdString());
+
+        const auto exportCropped = [&](const arma::Mat<uint8_t> &mat,
+                                       std::string name) {
+          arma::Mat<uint8_t> cropped;
+          if (endCol < n_cols) {
+            cropped = mat.cols(startCol, endCol);
+          } else {
+            cropped = boundaryCrop(mat, startCol, endCol);
+          }
+          const auto croppedImg_ = uspam::imutil::armaMatToCvMat(cropped);
+
+          cv::Mat croppedImg;
+          cv::resize(croppedImg_, croppedImg, {(int)n_cols, croppedImg_.rows});
+
+          croppedImages.emplace_back(croppedImg, std::move(name));
+        };
+
+        // Export cropped rect
+        exportCropped(US.rfLog, fmt::format("US-{}", annoSuffix));
+        exportCropped(PA.rfLog, fmt::format("PA-{}", annoSuffix));
+
+      } break;
       case annotation::Annotation::Polygon:
       case annotation::Annotation::Line:
       case annotation::Annotation::Size:
