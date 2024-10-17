@@ -3,6 +3,7 @@
 #include "AScanPlot.hpp"
 #include "Common.hpp"
 #include "CoregDisplay.hpp"
+#include "RFBuffer.hpp"
 #include "RFProducerFile.hpp"
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
@@ -27,7 +28,7 @@ public:
                            AScanPlot *ascanPlot, CoregDisplay *coregDisplay,
                            QWidget *parent = nullptr);
 
-  [[nodiscard]] auto frameMenu() const { return m_menu; }
+  [[nodiscard]] auto frameMenu() const { return m_menuFrame; }
 
 public slots:
   // Open file select dialog
@@ -55,8 +56,6 @@ public slots:
 
   // Export frame buffer to a new folder
   void exportCurrentFrame(const fs::path &exportDir);
-
-  void exportAllFrames();
 
   void handleExportAllFramesBtnClick();
 
@@ -100,15 +99,21 @@ private:
   QPushButton *m_btnExportAllFrames;
 
   // Actions
-  QMenu *m_menu;
+  QMenu *m_menuFrame;
   QAction *m_actOpenFileSelectDialog;
   QAction *m_actCloseBinfile;
 
   QAction *m_actPlayPause;
   QAction *m_actNextFrame;
   QAction *m_actPrevFrame;
+
   QAction *m_actExportFrame;
   QAction *m_actExportAllFrames;
+
+  // Implement ExportSetting in RfBuffer.hpp
+  QAction *m_actSaveRF;
+  QAction *m_actSaveRadialImages;
+  QAction *m_actSaveRectImages;
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here
@@ -124,6 +129,7 @@ private:
   // States
   bool m_isPlaying{false};
   bool m_exportingAllFrames{false};
+  ExportSetting m_exportSetting;
   fs::path m_exportDir;        // Only used when exporting all
   fs::path m_exportDirDefault; // Desktop
   QString m_sequenceName;

@@ -28,9 +28,11 @@ public:
 
   // Signal the worker to export frames, and give relevate states
   void shouldExportFrames(const fs::path &exportDir,
-                          annotation::AnnotationJsonFile *annotations) {
+                          annotation::AnnotationJsonFile *annotations,
+                          const ExportSetting &exportSetting) {
     m_exportDir = exportDir;
     m_annotations = annotations;
+    m_exportSetting = exportSetting;
     m_exportAll = true;
   }
 
@@ -52,6 +54,8 @@ private:
   std::atomic<bool> m_exportAll{false};
   // Export root directory
   fs::path m_exportDir;
+  ExportSetting m_exportSetting;
+
   // Annotations
   annotation::AnnotationJsonFile *m_annotations;
 };

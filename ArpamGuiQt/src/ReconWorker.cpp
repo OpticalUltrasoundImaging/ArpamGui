@@ -15,10 +15,11 @@ void ReconWorker::start() {
               m_exportDir / fmt::format("{:03}", data->frameIdx);
 
           if (m_annotations == nullptr) {
-            data->exportToFile(exportDir);
+            data->exportToFile(exportDir, {}, m_exportSetting);
           } else {
-            data->exportToFile(exportDir, m_annotations->getAnnotationForFrame(
-                                              data->frameIdx));
+            data->exportToFile(
+                exportDir, m_annotations->getAnnotationForFrame(data->frameIdx),
+                m_exportSetting);
           }
         }
       }
