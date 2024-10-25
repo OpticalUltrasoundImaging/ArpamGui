@@ -113,8 +113,8 @@ struct ReconParams2 {
   static inline ReconParams2 system2024v2GUIprobe2() {
     auto params = system2024v2GUI();
     params.system.flipOnEven = false;
-    params.PA.noiseFloor_mV = 11.0;
-    params.US.noiseFloor_mV = 4.0;
+    params.PA.noiseFloor_mV = 4.0;
+    params.US.noiseFloor_mV = 3.0;
     return params;
   }
 
