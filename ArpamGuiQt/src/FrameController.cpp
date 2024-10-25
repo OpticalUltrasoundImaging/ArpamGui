@@ -359,6 +359,11 @@ void FrameController::updatePlayingState(bool playing) {
     m_btnPlayPause->setText("Play");
 
     m_producerFile->stopProducing();
+
+    if (m_exportingAllFrames) {
+      // Update exporting all state
+      handleExportAllFramesBtnClick();
+    }
   }
 }
 
