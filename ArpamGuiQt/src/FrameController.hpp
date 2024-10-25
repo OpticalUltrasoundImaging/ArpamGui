@@ -114,6 +114,7 @@ private:
   QAction *m_actSaveRF;
   QAction *m_actSaveRadialImages;
   QAction *m_actSaveRectImages;
+  QAction *m_actSaveRoiOnly;
 
   // Bscan Data. Processing is done in the worker, and a pointer of the current
   // result is stored here

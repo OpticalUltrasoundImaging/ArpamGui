@@ -62,6 +62,7 @@ FrameController::FrameController(RFProducerFile *rfProducerFile,
       m_actSaveRF(new QAction("Save RF")),
       m_actSaveRadialImages(new QAction("Save radial images")),
       m_actSaveRectImages(new QAction("Save rect images")),
+      m_actSaveRoiOnly(new QAction("Only save frames with annotations")),
 
       m_exportDirDefault(qString2Path(
           QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)))
@@ -173,10 +174,8 @@ FrameController::FrameController(RFProducerFile *rfProducerFile,
                                                           bool &val) {
           act->setCheckable(true);
           act->setChecked(val);
-          connect(act, &QAction::triggered, [this, &val](const bool checked) {
-            val = checked;
-            std::cout << checked << "\n";
-          });
+          connect(act, &QAction::triggered,
+                  [this, &val](const bool checked) { val = checked; });
           m_menuFrame->addAction(act);
         };
 
@@ -185,6 +184,8 @@ FrameController::FrameController(RFProducerFile *rfProducerFile,
                                       m_exportSetting.saveRadialImages);
         connectCheckableActionAndBool(m_actSaveRectImages,
                                       m_exportSetting.saveRectImages);
+        connectCheckableActionAndBool(m_actSaveRoiOnly,
+                                      m_exportSetting.saveRoiOnly);
       }
     }
 
@@ -439,7 +440,6 @@ void FrameController::handleExportAllFramesBtnClick() {
     // Currently exporting. Abort and restore
     updatePlayingState(false);
     m_exportingAllFrames = false;
-    m_exportDir.clear();
 
     m_reconWorker->stopExportingFrames();
 
@@ -467,7 +467,7 @@ void FrameController::handleExportAllFramesBtnClick() {
 
     updatePlayingState(true);
 
-    m_btnExportAllFrames->setText("Abort export all");
+    m_btnExportAllFrames->setText("Abort Export All");
     m_actExportAllFrames->setText("Abort Export All");
   }
 }
