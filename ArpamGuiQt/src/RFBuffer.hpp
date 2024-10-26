@@ -39,6 +39,7 @@ struct ExportSetting {
   bool saveRF{false};
   bool saveRadialImages{true};
   bool saveRectImages{true};
+  bool saveRoiOnly{false};
 };
 
 template <uspam::Floating T> struct BScanData_ {

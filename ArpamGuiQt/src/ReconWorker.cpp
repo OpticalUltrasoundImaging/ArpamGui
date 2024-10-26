@@ -17,9 +17,12 @@ void ReconWorker::start() {
           if (m_annotations == nullptr) {
             data->exportToFile(exportDir, {}, m_exportSetting);
           } else {
-            data->exportToFile(
-                exportDir, m_annotations->getAnnotationForFrame(data->frameIdx),
-                m_exportSetting);
+            const auto annotations =
+                m_annotations->getAnnotationForFrame(data->frameIdx);
+
+            if (!(annotations.empty() && m_exportSetting.saveRoiOnly)) {
+              data->exportToFile(exportDir, annotations, m_exportSetting);
+            }
           }
         }
       }
