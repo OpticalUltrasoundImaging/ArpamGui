@@ -52,7 +52,7 @@ private:
   motor::MotorNI m_motor;
   daq::DAQ m_daq;
 
-  int m_maxFrames{200};
+  int m_maxFrames{400};
 
   std::atomic<bool> acquiring{false};
 };

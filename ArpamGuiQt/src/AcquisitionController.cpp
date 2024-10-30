@@ -221,7 +221,7 @@ AcquisitionController::AcquisitionController(
     acqGrid->addWidget(m_spMaxFrames, 1, 1);
 
     m_spMaxFrames->setMinimum(2);
-    m_spMaxFrames->setMaximum(200);
+    m_spMaxFrames->setMaximum(1000);
     m_spMaxFrames->setSingleStep(1);
 
     m_spMaxFrames->setValue(controller.maxFrames());
