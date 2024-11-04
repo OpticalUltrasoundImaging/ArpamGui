@@ -79,7 +79,7 @@ struct ReconParams2 {
         .iirOrder = order,
         .bpLowFreq = 0.03,
         .bpHighFreq = 0.22,
-        .noiseFloor_mV = 9.0F,
+        .noiseFloor_mV = 5.0F,
         .desiredDynamicRange = 30.0F,
         .truncate = 200,
     };
@@ -93,8 +93,8 @@ struct ReconParams2 {
         .iirOrder = order,
         .bpLowFreq = 0.1,
         .bpHighFreq = 0.3,
-        .noiseFloor_mV = 6.0F,
-        .desiredDynamicRange = 40.0F,
+        .noiseFloor_mV = 5.0F,
+        .desiredDynamicRange = 30.0F,
         .truncate = 400,
     };
 
