@@ -153,10 +153,10 @@ namespace uspam::fft {
 
 // In memory cache with key type K and value type V
 // additionally accepts a mutex to guard the V constructor
-template <class Key, class Val> auto get_cached(Key key) {
-  static thread_local std::unordered_map<Key, std::unique_ptr<Val>> _cache;
+template <class Key, class Val> auto get_cached(Key key) -> Val * {
+  thread_local std::unordered_map<Key, std::unique_ptr<Val>> cache;
 
-  auto &val = _cache[key];
+  auto &val = cache[key];
   if (val == nullptr) {
     val = std::make_unique<Val>(key);
   }
@@ -169,8 +169,7 @@ template <Floating T> struct engine_r2c_1d {
   fftw::Plan<T> plan;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached<size_t, engine_r2c_1d>;
-    return *cache(n);
+    return *get_cached<size_t, engine_r2c_1d>(n);
   }
 
   explicit engine_r2c_1d(size_t n)
@@ -197,8 +196,7 @@ template <Floating T> struct engine_c2r_1d {
   fftw::Plan<T> plan;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached<size_t, engine_c2r_1d>;
-    return *cache(n);
+    return *get_cached<size_t, engine_c2r_1d>(n);
   }
 
   explicit engine_c2r_1d(size_t n)
@@ -226,8 +224,7 @@ template <typename T> struct engine_half_cx_1d {
   fftw::Plan<T> plan_b;
 
   static auto get(size_t n) -> auto & {
-    const auto cache = get_cached<size_t, engine_half_cx_1d>;
-    return *cache(n);
+    return *get_cached<size_t, engine_half_cx_1d>(n);
   }
 
   explicit engine_half_cx_1d(size_t n)
@@ -259,8 +256,7 @@ template <typename T> struct engine_1d {
   fftw::Plan<T> plan_b;
 
   static auto get(size_t n) -> auto & {
-    thread_local static auto cache = get_cached<size_t, engine_1d>;
-    return *cache(n);
+    return *get_cached<size_t, engine_1d>(n);
   }
 
   explicit engine_1d(size_t n)
