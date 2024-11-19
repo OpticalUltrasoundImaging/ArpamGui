@@ -64,9 +64,9 @@ public:
   bool deserialize(const rapidjson::Document &doc);
   bool deserializeFromFile(const fs::path &path);
 
-  template <typename T1, typename Tb, typename Tout>
+  template <typename T1, typename Tout>
   void splitRfPAUS(const arma::Mat<T1> &rf, arma::Mat<Tout> &rfPA,
-                   arma::Mat<Tout> &rfUS, const arma::Col<Tb> &background = {},
+                   arma::Mat<Tout> &rfUS, const arma::Col<T1> &background = {},
                    const bool subtractPA = true,
                    const bool subtractUS = true) const {
     // If subtractPA or subtractUS is true, background must not be empty
@@ -90,36 +90,36 @@ public:
     const auto rfPAstart = std::max(0, -this->offsetPA);
     const auto rfUSstart = std::max(0, -this->offsetUS);
 
-    // Ensure rfPA and rfUS have enough space
-    rfPA.set_size(rfSizePA, rf.n_cols);
-    rfUS.set_size(rfSizeUS(), rf.n_cols);
+    // Ensure rfPA and rfUS have enough space. Zero
+    rfPA.zeros(rfSizePA, rf.n_cols);
+    rfUS.zeros(rfSizeUS(), rf.n_cols);
 
     // Split
     const auto range = cv::Range(0, rf.n_cols);
-    // cv::parallel_for_(range, [&](const cv::Range &range) {
-    for (int j = range.start; j < range.end; ++j) {
+    cv::parallel_for_(range, [&](const cv::Range &range) {
+      for (int j = range.start; j < range.end; ++j) {
 
-      // PA
-      int rfPAidx = rfPAstart;
-      for (int i = PAstart; i < PAend; ++i) {
-        if (subtractPA) {
-          rfPA(rfPAidx++, j) = (Tout)(rf(i, j) - background(i));
-        } else {
-          rfPA(rfPAidx++, j) = (Tout)rf(i, j);
+        // PA
+        int rfPAidx = rfPAstart;
+        for (int i = PAstart; i < PAend; ++i) {
+          if (subtractPA) {
+            rfPA(rfPAidx++, j) = (Tout)(rf(i, j) - background(i));
+          } else {
+            rfPA(rfPAidx++, j) = (Tout)rf(i, j);
+          }
+        }
+
+        // US
+        int rfUSidx = rfUSstart;
+        for (int i = USstart; i < USend; ++i) {
+          if (subtractUS) {
+            rfUS(rfUSidx++, j) = (Tout)(rf(i, j) - background(i));
+          } else {
+            rfUS(rfUSidx++, j) = (Tout)rf(i, j);
+          }
         }
       }
-
-      // US
-      int rfUSidx = rfUSstart;
-      for (int i = USstart; i < USend; ++i) {
-        if (subtractUS) {
-          rfUS(rfUSidx++, j) = (Tout)(rf(i, j) - background(i));
-        } else {
-          rfUS(rfUSidx++, j) = (Tout)rf(i, j);
-        }
-      }
-    }
-    // });
+    });
   };
 
   // Split a single Aline
