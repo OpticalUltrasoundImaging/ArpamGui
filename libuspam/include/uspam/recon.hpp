@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fftconv.hpp"
+#include "uspam/filter.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
 #include "uspam/reconParams.hpp"
@@ -9,28 +10,16 @@
 #include <armadillo>
 #include <cassert>
 #include <cmath>
+#include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 #include <rapidjson/document.h>
+#include <stdexcept>
 #include <type_traits>
+#include <variant>
 
 namespace fs = std::filesystem;
 
 namespace uspam::recon {
-
-template <Floating T>
-void recon(const arma::Mat<T> &rf, const arma::Col<T> &kernel,
-           arma::Mat<T> &env) {
-  const cv::Range range(0, static_cast<int>(rf.n_cols));
-  // cv::parallel_for_(cv::Range(0, rf.n_cols), [&](const cv::Range &range) {
-  arma::Col<T> rf_filt(rf.n_rows);
-  for (int i = range.start; i < range.end; ++i) {
-    const auto src = rf.unsafe_col(i);
-    auto dst = env.unsafe_col(i);
-    fftconv::oaconvolve_fftw_same<T>(src, kernel, rf_filt);
-    signal::hilbert_abs_r2c<T>(rf_filt, dst);
-  }
-  // });
-}
 
 template <typename T>
 concept Arithmetic = std::is_arithmetic_v<T>;
@@ -108,92 +97,68 @@ auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
   return dynamicRangeDB;
 }
 
-// Beamform + FIR filter + Envelope detection + log compression for one
-// template <Floating T>
-// void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
-//                   arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
-//                   arma::Mat<uint8_t> &rfLog, bool flip) {
-//   if (flip) {
-//     // Do flip
-//     imutil::fliplr_inplace(rf);
+template <typename T>
+using FilterT = std::variant<FIRFilter<T>, ButterworthFilter<T>>;
 
-//     // Do rotate
-//     rf = arma::shift(rf, params.rotateOffset, 1);
-//   }
+template <Floating T>
+auto createFilter(const ReconParams &params) -> FilterT<T> {
+  switch (params.filterType) {
+  case FilterType::FIR:
+    return FIRFilter<T>(params.firTaps, params.bpLowFreq, params.bpHighFreq);
+  case FilterType::IIR:
+    return ButterworthFilter<T>(params.iirOrder, params.bpLowFreq,
+                                params.bpHighFreq);
+  default:
+    throw std::invalid_argument("Unknown filter type");
+  }
+}
 
-//   // Truncate the pulser/laser artifact
-//   rf.head_rows(params.truncate - 1).zeros();
+template <Floating T, typename Tlog = uint8_t>
+void filterAndEnvelope(const arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
+                       arma::Mat<Tlog> &rfLog, size_t N, size_t truncate,
+                       const ReconParams &params) {
 
-//   // Beamform
-//   beamform(rf, rfBeamformed, params.beamformerType);
+  const auto filter = createFilter<T>(params);
 
-//   // compute filter kernels
-//   const auto kernel = [&] {
-//     constexpr int numtaps = 95;
-//     if constexpr (std::is_same_v<T, double>) {
-//       return signal::firwin2<double>(numtaps, params.filterFreq,
-//                                      params.filterGain);
-//     } else {
-//       const auto _kernel = signal::firwin2<double>(numtaps,
-//       params.filterFreq,
-//                                                    params.filterGain);
-//       const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
-//       return kernel;
-//     }
-//   }();
+  const cv::Range range(0, static_cast<int>(rfBeamformed.n_cols));
+  cv::parallel_for_(range, [&](const cv::Range &range) {
+    std::vector<T> filterBuffer(N);
+    constexpr T mV_to_V = 1.0 / 1000;
+    const T noiseFloor_V = params.noiseFloor_mV * mV_to_V;
 
-//   if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
-//     rfEnv.set_size(rf.n_rows, rf.n_cols);
-//   }
+    for (int i = range.start; i < range.end; ++i) {
+      const std::span rfCol{rfBeamformed.colptr(i), N};
+      const std::span envCol{rfEnv.colptr(i), N};
+      const std::span logCol{rfLog.colptr(i) + truncate, N};
 
-//   recon<T>(rfBeamformed, kernel, rfEnv);
+      std::visit(
+          [&](const auto &filter) { filter.forward(rfCol, filterBuffer); },
+          filter);
+      uspam::signal::hilbert_abs_r2c<T>(filterBuffer, envCol);
+      uspam::recon::logCompress<T, Tlog>(envCol, logCol, noiseFloor_V,
+                                         params.desiredDynamicRange);
+    }
+  });
+}
 
-//   constexpr float fct_mV2V = 1.0F / 1000;
-//   rfLog.set_size(rf.n_rows, rf.n_cols);
-//   logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
-//                  params.desiredDynamicRange);
-// }
+template <typename T>
+arma::Mat<T> preprocessRF(const arma::Mat<T> &rf, size_t truncate, bool flip,
+                          const uspam::SystemParams &system) {
+  arma::Mat<T> truncatedRF =
+      rf.submat(truncate, 0, rf.n_rows - 1, rf.n_cols - 1);
 
-// FIR filter + Envelope detection + log compression for one
-// template <Floating T>
-// void reconOneScan(const ReconParams &params, arma::Mat<T> &rf,
-//                   arma::Mat<T> &rfEnv, arma::Mat<uint8_t> &rfLog, bool flip)
-//                   {
-//   if (flip) {
-//     // Do flip
-//     imutil::fliplr_inplace(rf);
+  // Preprocessing (flip, rotate)
+  if (flip) {
+    // Flip
+    uspam::imutil::fliplr_inplace(truncatedRF);
 
-//     // Do rotate
-//     rf = arma::shift(rf, params.rotateOffset, 1);
-//   }
+    // Rotate
+    if (system.rotateOffset != 0) {
+      truncatedRF = arma::shift(truncatedRF, system.rotateOffset, 1);
+    }
+  }
 
-//   // Truncate the pulser/laser artifact
-//   rf.head_rows(params.truncate - 1).zeros();
+  return truncatedRF;
+}
 
-//   // compute filter kernels
-//   const auto kernel = [&] {
-//     constexpr int numtaps = 95;
-//     if constexpr (std::is_same_v<T, double>) {
-//       return signal::firwin2<double>(numtaps, params.filterFreq,
-//                                      params.filterGain);
-//     } else {
-//       const auto _kernel = signal::firwin2<double>(numtaps,
-//       params.filterFreq,
-//                                                    params.filterGain);
-//       const auto kernel = arma::conv_to<arma::Col<T>>::from(_kernel);
-//       return kernel;
-//     }
-//   }();
-
-//   if (rf.n_rows != rfEnv.n_rows || rf.n_cols != rfEnv.n_cols) {
-//     rfEnv.set_size(rf.n_rows, rf.n_cols);
-//   }
-
-//   recon<T>(rf, kernel, rfEnv);
-
-//   constexpr float fct_mV2V = 1.0F / 1000;
-//   rfLog.set_size(rf.n_rows, rf.n_cols);
-//   logCompress<T>(rfEnv, rfLog, params.noiseFloor_mV * fct_mV2V,
-//                  params.desiredDynamicRange);
-// }
 } // namespace uspam::recon

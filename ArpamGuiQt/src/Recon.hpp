@@ -37,21 +37,9 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
                                         BScanData_<T> &data, bool flip,
                                         bool isPA = false);
 
-class ImageWriteTask : public QRunnable {
-  QImage img;
-  QString fname;
-
-public:
-  ImageWriteTask(QImage img, QString fname)
-      : img(std::move(img)), fname(std::move(fname)) {}
-  void run() override { img.save(fname); }
-};
-
 void reconBScan(BScanData<ArpamFloat> &data,
                 const uspam::recon::ReconParams2 &params,
                 const uspam::io::IOParams &ioparams);
-
-void saveImages(BScanData<ArpamFloat> &data, const fs::path &saveDir);
 
 class Reconstructor {
 public:

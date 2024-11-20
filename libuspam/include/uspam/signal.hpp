@@ -99,8 +99,8 @@ of length numtaps
 */
 template <Floating T>
 auto firwin2(int numtaps, const std::span<const T> freq,
-             const std::span<const T> gain, int nfreqs = 0, T fs = 2)
-    -> arma::Col<T> {
+             const std::span<const T> gain, int nfreqs = 0,
+             T fs = 2) -> arma::Col<T> {
   if (numtaps < 3 || numtaps % 2 == 0) {
     throw std::invalid_argument(
         "numtaps must be odd and greater or equal to 3.");
@@ -267,4 +267,5 @@ void hilbert_abs_r2c(const std::span<const T> x, const std::span<T> env) {
     // NOLINTEND(*-pointer-arithmetic)
   }
 }
+
 } // namespace uspam::signal
