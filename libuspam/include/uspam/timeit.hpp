@@ -44,6 +44,12 @@ template <bool PrintStdOut = false> struct TimeIt {
   clock::time_point start;
 };
 
+template <typename Func> [[nodiscard]] auto measureTime(Func &&func) -> float {
+  TimeIt timeit;
+  func();
+  return timeit.get_ms();
+}
+
 /**
 Simple benchmark function
 Example:
