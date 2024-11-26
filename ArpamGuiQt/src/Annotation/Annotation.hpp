@@ -77,6 +77,11 @@ struct Annotation {
   Annotation(const Arc &arc, const QRectF &rect, const QColor &color,
              QString name = {});
 
+  /*
+   *  For polygon
+   */
+  Annotation(QPolygonF polygon, const QColor &color, QString name = {});
+
   ~Annotation() = default;
 
   // For Line, the 2 points are {p1, p2}

@@ -1,5 +1,4 @@
 #include "Canvas.hpp"
-#include "Annotation/AnnotationModel.hpp"
 #include "Annotation/GraphicsItemBase.hpp"
 #include "Annotation/GraphicsItems.hpp"
 #include "geometryUtils.hpp"
@@ -515,7 +514,7 @@ void Canvas::panEndEvent(QMouseEvent *event) { setCursor(m_panLastCursor); }
 
 void Canvas::updateTransform() {
   // Update transform for the QGraphicsView
-  m_transform = QTransform();
+  m_transform.reset();
   m_transform.scale(m_scaleFactor, m_scaleFactor);
 
   const auto anchor = transformationAnchor();
@@ -603,4 +602,11 @@ void Canvas::onRowsRemoved(const QModelIndex &parent, int first, int last) {
   for (int row = last; row >= first; --row) {
     removeGraphicsItem(row);
   }
+}
+
+void Canvas::addAnnotation(const Annotation &anno) {
+  auto *item = annotation::makeGraphicsItem(anno);
+  item->updateScaleFactor(m_scaleFactor);
+  m_scene->addItem(item);
+  m_graphicsItems.append(item);
 }

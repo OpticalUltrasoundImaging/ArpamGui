@@ -3,7 +3,7 @@
 #include <QString>
 #include <QtLogging>
 
-void RFProducerFile::setBinfile(const fs::path &binfile) {
+void RFProducerFile::openBinfile(const fs::path &binfile) {
   try {
     // Init loader
     m_loader.open(binfile);

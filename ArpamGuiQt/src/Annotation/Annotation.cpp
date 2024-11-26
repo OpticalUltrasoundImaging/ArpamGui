@@ -2,6 +2,7 @@
 #include "jsonUtils.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
+#include <utility>
 
 namespace {
 
@@ -31,6 +32,10 @@ Annotation::Annotation(const Arc &arc, const QRectF &rect, const QColor &color,
     : type(Fan), color(color), name(std::move(name)) {
   setArc(arc, rect);
 }
+
+Annotation::Annotation(QPolygonF polygon, const QColor &color, QString name)
+    : type(Polygon), polygon(std::move(polygon)), color(color),
+      name(std::move(name)) {}
 
 rapidjson::Value Annotation::serializeToJson(
     rapidjson::Document::AllocatorType &allocator) const {

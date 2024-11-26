@@ -35,7 +35,7 @@ public slots:
   void openFileSelectDialog();
 
   // Accept a binfile
-  void acceptBinfile(const QString &filename);
+  void openBinfile(const QString &filename);
   void closeBinfile();
 
   void receiveNewFrame(std::shared_ptr<BScanData<ArpamFloat>> data);
@@ -62,7 +62,6 @@ public slots:
 signals:
   void message(QString);
   void statusMessage(QString message, int timeout = 0);
-  void sigBinfileSelected(QString);
   void sigFrameNumUpdated(int);
 
 public:

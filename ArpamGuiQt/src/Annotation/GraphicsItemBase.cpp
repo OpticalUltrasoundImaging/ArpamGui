@@ -7,12 +7,10 @@
 namespace annotation {
 
 GraphicsItemBase::GraphicsItemBase(Annotation annotation)
-    :
+    : m_annotation(std::move(annotation)),
+      m_textItem(new QGraphicsSimpleTextItem(this)) {
+  assert(!m_annotation.polygon.empty());
 
-      m_annotation(std::move(annotation)),
-      m_textItem(new QGraphicsSimpleTextItem(this))
-
-{
   setSelected(true);
   setFlags(QGraphicsItem::ItemIsFocusable | QGraphicsItem::ItemIsSelectable |
            QGraphicsItem::ItemIsMovable);

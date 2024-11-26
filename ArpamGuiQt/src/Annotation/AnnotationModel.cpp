@@ -4,6 +4,7 @@
 #include <QMimeData>
 #include <Qt>
 #include <QtLogging>
+#include <algorithm>
 #include <cassert>
 #include <rapidjson/document.h>
 #include <rapidjson/error/error.h>
@@ -107,6 +108,18 @@ bool AnnotationModel::removeRows(int row, int count,
 }
 
 void AnnotationModel::addAnnotation(const Annotation &annotation) {
+  // Annotations named "surface" are special - there should be only one in the
+  // model
+  if (annotation.name == "surface") {
+    if (const auto it = std::find_if(
+            m_annotations.cbegin(), m_annotations.cend(),
+            [](const Annotation &anno) { return anno.name == "surface"; });
+        it != m_annotations.cend()) {
+      const auto existingSurfaceAnnoIdx = it - m_annotations.cbegin();
+      this->removeRows(existingSurfaceAnnoIdx, 1, {});
+    }
+  }
+
   setDirty();
   beginInsertRows(QModelIndex(), static_cast<int>(m_annotations.size()),
                   static_cast<int>(m_annotations.size()));

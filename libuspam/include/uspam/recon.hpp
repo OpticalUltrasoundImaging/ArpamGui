@@ -1,9 +1,7 @@
 #pragma once
 
-#include "fftconv.hpp"
 #include "uspam/filter.hpp"
 #include "uspam/imutil.hpp"
-#include "uspam/ioParams.hpp"
 #include "uspam/reconParams.hpp"
 #include "uspam/signal.hpp"
 #include <algorithm>

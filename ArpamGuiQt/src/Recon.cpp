@@ -6,6 +6,7 @@
 #include "uspam/ioParams.hpp"
 #include "uspam/recon.hpp"
 #include "uspam/reconParams.hpp"
+#include "uspam/surface.hpp"
 #include "uspam/timeit.hpp"
 #include <future>
 #include <opencv2/imgproc.hpp>
@@ -135,7 +136,8 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
   auto &rfLog = data.rfLog;
 
   rfEnv.set_size(N, rf.n_cols);
-  rfLog.zeros(data.rf.n_rows, rf.n_cols);
+  rfLog.set_size(data.rf.n_rows, rf.n_cols);
+  data.surface.set_size(rf.n_cols);
 
   // Beamform
   const float beamform_ms = uspam::measureTime([&] {
@@ -152,6 +154,10 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
   const auto recon_ms = uspam::measureTime([&] {
     uspam::recon::filterAndEnvelope<T>(rfBeamformed, rfEnv, rfLog, N, truncate,
                                        params);
+    const auto rfEnvSubset = rfEnv.rows(200, rfEnv.n_rows - 1);
+
+    uspam::surface::findSurface<T>(rfEnvSubset, data.surface,
+                                   params.cusum_threshold, params.cusum_drift);
   });
 
   /*
@@ -164,6 +170,10 @@ std::tuple<float, float, float> procOne(const uspam::SystemParams &system,
       offset *= 2;
     }
     data.radial = uspam::imutil::makeRadial_v3(data.rfLog, offset);
+
+    data.surface += static_cast<float>(offset);
+    // data.surface += static_cast<float>(truncate) +
+    // static_cast<float>(offset);
 
     // cv::medianBlur(data.radial, data.radial, 3);
 

@@ -126,40 +126,23 @@ void PolygonItem::paint(QPainter *painter,
   textItem()->setBrush(color());
 }
 
-namespace details {
-
-template <Annotation::Type type> struct AnnotationTypeTraits;
-template <> struct AnnotationTypeTraits<Annotation::Type::Line> {
-  using type = LineItem;
-};
-template <> struct AnnotationTypeTraits<Annotation::Type::Rect> {
-  using type = RectItem;
-};
-template <> struct AnnotationTypeTraits<Annotation::Type::Fan> {
-  using type = FanItem;
-};
-template <> struct AnnotationTypeTraits<Annotation::Type::Polygon> {
-  using type = PolygonItem;
-};
-
-template <Annotation::Type T>
-GraphicsItemBase *makeItem(const Annotation &anno) {
-  return new typename AnnotationTypeTraits<T>::type(anno);
-}
-
-// Must keep order consistent with Annotation::Type
-const static std::array makeFuncs = {
-    makeItem<Annotation::Type::Line>, makeItem<Annotation::Type::Rect>,
-    makeItem<Annotation::Type::Fan>, makeItem<Annotation::Type::Polygon>};
-static_assert(makeFuncs.size() == Annotation::Type::Size);
-
-} // namespace details
-
 GraphicsItemBase *makeGraphicsItem(const Annotation &anno) {
   const auto type = anno.type;
   assert(type >= 0);
   assert(type < Annotation::Type::Size);
-  return details::makeFuncs.at(type)(anno);
+
+  switch (anno.type) {
+  case Annotation::Type::Line:
+    return new LineItem(anno);
+  case Annotation::Type::Rect:
+    return new RectItem(anno);
+  case Annotation::Type::Fan:
+    return new FanItem(anno);
+  case Annotation::Type::Polygon:
+    return new PolygonItem(anno);
+  case Annotation::Type::Size:
+    return nullptr;
+  }
 }
 
 } // namespace annotation

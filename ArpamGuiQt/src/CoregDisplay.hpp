@@ -3,11 +3,14 @@
 #include "Annotation/AnnotationModel.hpp"
 #include "Annotation/AnnotationView.hpp"
 #include "Canvas.hpp"
+#include "Common.hpp"
+#include "RFBuffer.hpp"
 #include <QLabel>
 #include <QMenu>
 #include <QTableView>
 #include <QToolBar>
 #include <QWidget>
+
 
 class CoregDisplay : public QWidget {
   Q_OBJECT
@@ -33,6 +36,8 @@ public:
     m_canvasUS->setAlinesPerBscan(alinesPerBscan);
   }
 
+  void addAnnotation(const Annotation &anno) { m_model->addAnnotation(anno); }
+
 signals:
   void message(const QString &msg);
   void mouseMoved(QPoint pos, double depth_mm);
@@ -50,6 +55,7 @@ public slots:
   }
 
   void imshow(const QImage &imgPAUS, const QImage &imgUS, double pix2m);
+  void imshow(const BScanData<ArpamFloat> &data);
 
   void resetZoom() { actResetZoom->trigger(); }
   void resetZoomOnNextImshow() {
