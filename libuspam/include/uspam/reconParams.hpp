@@ -46,6 +46,14 @@ struct ReconParams {
                      // artifacts)
 
   /*
+  Surface detection
+  // TODO serialize
+  // TODO add to ReconParamsController
+  */
+  float cusum_threshold{0.5};
+  float cusum_drift{0.005};
+
+  /*
   Serialization
   */
   [[nodiscard]] rapidjson::Value
