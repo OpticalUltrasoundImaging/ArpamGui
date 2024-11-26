@@ -25,7 +25,7 @@ public:
 
   bool ready() { return m_loader.isOpen(); }
 
-  void setBinfile(const fs::path &binfile);
+  void openBinfile(const fs::path &binfile);
   void closeBinfile();
 
   void beginProducing();
