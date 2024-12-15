@@ -2,8 +2,7 @@ project(ArpamGuiQt VERSION 1.0.0 LANGUAGES CXX)
 
 set(EXE_NAME ArpamGuiQt)
 
-#find_package(Vulkan REQUIRED)
-find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui PrintSupport)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui)
 qt_standard_project_setup()
 set(CMAKE_AUTOMOC ON)
 
@@ -12,7 +11,6 @@ find_path(QCUSTOMPLOT_INCLUDE_DIR qcustomplot.h PATH_SUFFIXES qcustomplot)
 if (WIN32)
     find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot2)
     find_library(QCUSTOMPLOT_LIBRARY_DEBUG NAMES qcustomplotd2)
-
     set(QCUSTOMPLOT_LIBRARY "$<IF:$<CONFIG:Debug>,${QCUSTOMPLOT_LIBRARY_DEBUG},${QCUSTOMPLOT_LIBRARY}>")
 else ()
     find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot)
@@ -139,13 +137,11 @@ target_link_libraries(${EXE_NAME} PRIVATE
     fmt::fmt
     Qt::Widgets
     Qt::Gui
-    Qt::PrintSupport
     ${QCUSTOMPLOT_LIBRARY}
     FFTW3::fftw3
     FFTW3::fftw3f
     kfr
     kfr_dsp
-    #Vulkan::Vulkan
 )
 
 if(APPLE)  
@@ -158,13 +154,11 @@ endif()
 set_target_properties(${EXE_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
-    # INTERPROCEDURAL_OPTIMIZATION TRUE
 )
 
 
 ### Configure AlazarTech ATS-SDK on supported platforms
 if (WIN32)
-
     # Check if ATS-SDK is installed
     set(ATS_C_SDK_ROOT "C:/AlazarTech/ATS-SDK/7.7.0/Samples_C")
     set(ATS_SDK_INCLUDE_DIR "${ATS_C_SDK_ROOT}/Include")
@@ -179,7 +173,6 @@ if (WIN32)
     else()
         message(WARNING "ATS-SDK not found at ${ATS_C_SDK_ROOT}. Please check your ATS-SDK installation.")
     endif()
-
 endif()
 
 
@@ -209,7 +202,6 @@ if (WIN32)
     else()
         message(WARNING "NI-DAQmx 64-bit C SDK not found at ${NI_DAQMX_C_SDK_ROOT}.")
     endif()
-
 endif()
 
 
@@ -237,7 +229,6 @@ if (WIN32)
 
 elseif (APPLE)
 
-
     # Post-build steps for macOS
     # https://doc.qt.io/qt-6/macos-deployment.html
 
@@ -261,5 +252,4 @@ elseif (APPLE)
         "$<IF:$<CONFIG:Release>,-dmg,-use-debug-libs>"
         COMMENT "Bundling Qt libraries"
     )
-
 endif()

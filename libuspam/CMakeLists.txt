@@ -25,6 +25,7 @@ add_library(${LIB_NAME} STATIC
 target_include_directories(${LIB_NAME} PUBLIC 
     include
     ${FFTCONV_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
 )
 target_link_libraries(${LIB_NAME} PRIVATE
     armadillo
