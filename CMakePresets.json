@@ -33,11 +33,56 @@
       }
     },
     {
+      "name": "win64-clang-cl-base",
+      "hidden": true,
+      "inherits": "win64-cl-base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl.exe",
+        "CMAKE_CXX_COMPILER": "clang-cl.exe"
+      }
+    },
+    {
       "name": "win64",
       "displayName": "Visual Studio 2022",
       "description": "Visual Studio 2022 + x64 CL",
       "inherits": "win64-cl-base",
       "generator": "Visual Studio 17 2022"
+    },
+    {
+      "name": "clang",
+      "inherits": "base",
+      "displayName": "Clang",
+      "description": "Ninja Multi-Config + Clang",
+      "generator": "Ninja Multi-Config",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math"
+      }
+    },
+    {
+      "name": "clang-vec-report",
+      "inherits": "clang",
+      "displayName": "Clang with vec report",
+      "description": "Ninja Multi-Config + Clang with autovectorizer report",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
+      }
+    },
+    {
+      "name": "clang-asan",
+      "inherits": "clang",
+      "displayName": "Clang with ASAN",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=address -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-omit-frame-pointer"
+      }
     },
     {
       "name": "cl",
@@ -47,67 +92,20 @@
       "generator": "Ninja Multi-Config"
     },
     {
-      "name": "cl-vecreport",
-      "inherits": "win64-cl-base",
-      "displayName": "CL (vec report)",
-      "description": "Ninja Multi-Config + x64 MSVC with autovec report",
-      "generator": "Ninja Multi-Config",
+      "name": "cl-vec-report",
+      "inherits": "cl",
+      "displayName": "CL (with vec report)",
+      "description": "Ninja Multi-Config + x64 MSVC (with autovectorizer report)",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "cl.exe",
-        "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_C_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX",
-        "CMAKE_CXX_FLAGS": "/EHsc /arch:AVX2 /Qvec-report:2 /DNOMINMAX"
+        "CMAKE_CXX_FLAGS": "/Qvec-report:2"
       }
     },
     {
-      "name": "clang",
-      "inherits": "base",
-      "displayName": "Clang",
-      "description": "Ninja Multi-Config + Clang",
-      "generator": "Ninja Multi-Config",
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math"
-      }
-    },
-    {
-      "name": "clang-vecreport",
-      "inherits": "clang",
-      "displayName": "Clang with vec report",
-      "description": "Ninja Multi-Config + Clang with autovec report",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
-      }
-    },
-    {
-      "name": "clang-asan",
-      "inherits": "clang",
-      "displayName": "Clang with ASAN",
-      "description": "Ninja Multi-Config + Clang with AddressSanitizer",
-      "cacheVariables": {
-        "CMAKE_C_FLAGS": "-fsanitize=address -fno-omit-frame-pointer",
-        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-omit-frame-pointer"
-      }
-    },
-    {
-      "name": "clang-tsan",
-      "inherits": "clang",
-      "displayName": "Clang with TSan",
-      "description": "Ninja Multi-Config + Clang with ThreadSanitizer",
-      "cacheVariables": {
-        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
-        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer"
-      }
-    },
-    {
-      "name": "clang-x64",
-      "inherits": "clang",
-      "displayName": "Clang (x64)",
-      "description": "Ninja Multi-Config + Clang (with Haswell instructions)",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-march=haswell -fno-math-errno -ffast-math -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"
-      }
+      "name": "clang-cl",
+      "inherits": "win64-clang-cl-base",
+      "displayName": "ClangCL",
+      "description": "Ninja Multi-Config + x64 Clang CL",
+      "generator": "Ninja Multi-Config"
     }
   ],
   "buildPresets": [
@@ -148,6 +146,12 @@
       "configuration": "Release"
     },
     {
+      "name": "clang-vec-report-release",
+      "displayName": "Clang Release",
+      "configurePreset": "clang-vec-report",
+      "configuration": "Release"
+    },
+    {
       "name": "clang-asan-debug",
       "displayName": "Clang ASan Debug",
       "configurePreset": "clang-asan",
@@ -166,36 +170,6 @@
       "configuration": "Release"
     },
     {
-      "name": "clang-tsan-debug",
-      "displayName": "Clang TSan Debug",
-      "configurePreset": "clang-tsan",
-      "configuration": "Debug"
-    },
-    {
-      "name": "clang-tsan-relwithdebinfo",
-      "displayName": "Clang TSan RelWithDebInfo",
-      "configurePreset": "clang-tsan",
-      "configuration": "RelWithDebInfo"
-    },
-    {
-      "name": "clang-tsan-release",
-      "displayName": "Clang TSan Release",
-      "configurePreset": "clang-tsan",
-      "configuration": "Release"
-    },
-    {
-      "name": "clang-x64-release",
-      "displayName": "Clang Release",
-      "configurePreset": "clang-x64",
-      "configuration": "Release"
-    },
-    {
-      "name": "clang-x64-relwithdebinfo",
-      "displayName": "Clang RelWithDebInfo",
-      "configurePreset": "clang-x64",
-      "configuration": "RelWithDebInfo"
-    },
-    {
       "name": "cl-debug",
       "displayName": "CL Debug",
       "configurePreset": "cl",
@@ -211,6 +185,24 @@
       "name": "cl-release",
       "displayName": "CL Release",
       "configurePreset": "cl",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-cl-debug",
+      "displayName": "ClangCL Debug",
+      "configurePreset": "clang-cl",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-cl-relwithdebinfo",
+      "displayName": "ClangCL RelWithDebInfo",
+      "configurePreset": "clang-cl",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "clang-cl-release",
+      "displayName": "ClangCL Release",
+      "configurePreset": "clang-cl",
       "configuration": "Release"
     }
   ]
