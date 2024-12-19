@@ -58,20 +58,17 @@ def transform(rf):
 
 
 @nb.njit()
-def cusum_fast(signal_data, threshold_pos=0.4, drift=0.1, threshold_neg=0.2):
+def cusum_fast(signal_data, threshold_pos=0.4, drift=0.1):
     """
     threshold = 0.4  # Adjust based on noise level and desired sensitivity
     drift = 0.1      # Small drift to ignore minor deviations, adjust as needed
     """
     pos_cusum = 0.0
-    first_strong_peak = 0
-
     for i in range(1, len(signal_data)):
         pos_cusum = max(0, pos_cusum + signal_data[i] - drift)
-        if first_strong_peak == 0 and pos_cusum > threshold_pos:
-            first_strong_peak = i
-
-    return first_strong_peak
+        if pos_cusum > threshold_pos:
+            return i
+    return 0
 
 
 def cusum(signal_data, threshold=0.4, drift=0.1):
@@ -141,7 +138,8 @@ cusum_fast(rfs[0][0])
 
 
 # %%
-# %timeit cusum_fast(rfs[0][0])
+%timeit cusum_fast(rfs[0][0])
+
 # %%
 def fix_surface_idx_missing(idx):
     """
@@ -277,7 +275,6 @@ def make_radial_v2(img, padding: int = 0):
 def find_surface(rf):
     surface_idx = np.zeros(len(rf))
     for i in range(len(rf)):
-        rf[i, :200] = 0
         surface_idx[i] = cusum_fast(rf[i], 0.5, 0.005)
     surface_idx = fix_surface_idx_missing(surface_idx)
     return surface_idx
