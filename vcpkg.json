@@ -14,7 +14,13 @@
     "tbb",
     {
       "name": "opencv4",
+      "platform": "x64",
       "features": ["tbb", "tiff", "world"]
+    },
+    {
+      "name": "opencv4",
+      "platform": "!x64",
+      "features": ["tiff", "world"]
     },
     {
       "name": "fftw3",
