@@ -505,7 +505,7 @@ void Canvas::panStartEvent(QMouseEvent *event) {
 
 void Canvas::panMoveEvent(QMouseEvent *event) {
   event->accept();
-  QPointF delta = event->pos() - m_lastPanPoint;
+  const auto delta = event->pos() - m_lastPanPoint;
   horizontalScrollBar()->setValue(horizontalScrollBar()->value() - delta.x());
   verticalScrollBar()->setValue(verticalScrollBar()->value() - delta.y());
   m_lastPanPoint = event->pos();
