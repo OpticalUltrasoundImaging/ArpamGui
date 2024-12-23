@@ -88,6 +88,10 @@ public slots: // NOLINT
     m_alinesPerBscan = alinesPerBscan;
   }
 
+  // Add an annotation and create a graphics item for this annotation in the
+  // scene
+  void addAnnotation(const Annotation &anno);
+
 signals:
   void error(QString err);
 

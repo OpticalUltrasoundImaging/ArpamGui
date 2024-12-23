@@ -1,6 +1,7 @@
 #include "CoregDisplay.hpp"
 
-#include "AScanPlot.hpp"
+#include "Annotation/Annotation.hpp"
+#include "uspam/surface.hpp"
 #include <QAction>
 #include <QBoxLayout>
 #include <QHBoxLayout>
@@ -11,8 +12,6 @@
 #include <QTableView>
 #include <Qt>
 #include <array>
-#include <qkeysequence.h>
-#include <qnamespace.h>
 #include <uspam/defer.h>
 #include <utility>
 
@@ -190,4 +189,42 @@ void CoregDisplay::imshow(const QImage &imgPAUS, const QImage &imgUS,
 
   m_canvasPAUS->setEnabled(true);
   m_canvasUS->setEnabled(true);
+}
+
+void CoregDisplay::imshow(const BScanData<ArpamFloat> &data) {
+  imshow(data.PAUSradial_img, data.US.radial_img, data.spacingRadialUS);
+
+  // Show surface
+  // Downsample 2x
+  const auto &surface_line = data.US.surface;
+  if (!surface_line.empty()) {
+    const int step = 4;
+    QPolygonF polygon(static_cast<qsizetype>(surface_line.size() / step));
+
+    // Convert surface points from rect to radial coordinates
+    const auto radialSize = static_cast<float>(data.US.radial_img.height());
+    const float maxRadius = radialSize / 2;
+    const cv::Point2f center{radialSize / 2, radialSize / 2};
+    const cv::Size2f dsize{radialSize, radialSize};
+
+    int qlist_i = 0;
+    const float surface1000_fct =
+        1.0F / data.US.rfLog.n_rows * data.US.radial_img.height();
+    for (int i = 0; i < surface_line.size(); i += step) {
+      const auto surface1000 =
+          static_cast<float>(surface_line[i]) * surface1000_fct;
+
+      const auto pt = uspam::surface::warp_inverse(
+          surface1000, static_cast<float>(i), center, dsize, maxRadius);
+
+      polygon[qlist_i].setX(pt.y);
+      polygon[qlist_i].setY(radialSize - pt.x);
+      qlist_i++;
+    }
+
+    // TODO move instead of copy polygon
+    const QColor tabBlue("#1f77b4");
+    annotation::Annotation surfaceAnno(polygon, tabBlue, "surface");
+    this->addAnnotation(surfaceAnno);
+  }
 }

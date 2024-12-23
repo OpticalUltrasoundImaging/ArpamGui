@@ -5,6 +5,7 @@
 #include "ReconParamsController.hpp"
 #include "ReconWorker.hpp"
 #include "strConvUtils.hpp"
+#include <QColor>
 #include <QDebug>
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -198,25 +199,6 @@ FrameController::FrameController(RFProducerFile *rfProducerFile,
   // Connections
   // Frame controller signals
   {
-    // Action for when a new binfile is selected
-    connect(this, &FrameController::sigBinfileSelected,
-            [this](const QString &filepath) {
-              const auto pathUtf8 = filepath.toUtf8();
-              std::filesystem::path path(pathUtf8.constData());
-
-              // Worker: load file
-              QMetaObject::invokeMethod(m_producerFile,
-                                        &RFProducerFile::setBinfile, path);
-
-              // Update sequence name and canvas dipslay
-              const auto seqName = path.parent_path().stem() / path.stem();
-              m_sequenceName = path2QString(seqName);
-              m_coregDisplay->setSequenceName(m_sequenceName);
-
-              //  Update export path for exportAllFrames
-              m_exportDir = m_exportDirDefault / seqName;
-            });
-
     // When frameController's changes it's frame number (through the drag bar
     // or play), tell the worker to process the right image
     connect(this, &FrameController::sigFrameNumUpdated, rfProducerFile,
@@ -247,25 +229,37 @@ void FrameController::openFileSelectDialog() {
   const QString filename = QFileDialog::getOpenFileName(
       this, tr("Open Bin File"), QString(), tr("Binfiles (*.bin)"));
 
-  acceptBinfile(filename);
+  if (!filename.isEmpty()) {
+    openBinfile(filename);
+  }
 }
 
-void FrameController::acceptBinfile(const QString &filename) {
+void FrameController::openBinfile(const QString &filename) {
+  assert(!filename.isEmpty());
+
   // Update GUI
   setEnabled(true);
   updatePlayingState(false);
 
-  // Emit signal
-  if (!filename.isEmpty()) {
-    emit sigBinfileSelected(filename);
-  }
-
-  // Try to load the annotation file
+  // Load the binfile
   m_binPath = qString2Path(filename);
+  assert(fs::exists(m_binPath));
+
+  // Worker: load file in worker thread
+  QMetaObject::invokeMethod(m_producerFile, &RFProducerFile::openBinfile,
+                            m_binPath);
+
+  // Update sequence name and canvas dipslay
+  const auto seqName = m_binPath.parent_path().stem() / m_binPath.stem();
+  m_sequenceName = path2QString(seqName);
+  m_coregDisplay->setSequenceName(m_sequenceName);
+
+  //  Update export path for exportAllFrames
+  m_exportDir = m_exportDirDefault / seqName;
+
+  // Try to load the annotation file (if exists)
   m_annoPath = m_binPath.parent_path() /
                (m_binPath.stem().string() + "_annotations.json");
-
-  // Load if exists
   if (fs::exists(m_annoPath)) {
     m_doc.readFromFile(m_annoPath);
     loadFrameAnnotationsFromDocToModel(frameNum());
@@ -417,8 +411,7 @@ void FrameController::saveCurrAnnotationAndLoadNewFrame(int newFrame) {
 
 void FrameController::plotCurrentBScan() {
   // Display images
-  m_coregDisplay->imshow(m_data->PAUSradial_img, m_data->US.radial_img,
-                         m_data->spacingRadialUS);
+  m_coregDisplay->imshow(*m_data);
 }
 
 void FrameController::exportCurrentFrame(const fs::path &exportDir) {

@@ -6,9 +6,9 @@
 namespace fs = std::filesystem;
 
 // Convert a QString to a fs::path
-inline auto qString2Path(const QString &str) {
+inline auto qString2Path(const QString &str) -> fs::path {
   const auto utf8array = str.toUtf8();
-  return fs::path(utf8array.constData());
+  return {utf8array.constData()};
 }
 
 inline auto path2string(const fs::path &path) {
