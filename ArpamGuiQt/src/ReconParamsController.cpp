@@ -30,8 +30,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
   const auto makeQSpinBox = [this](int &value, const std::pair<int, int> &range,
                                    const int step = 1) {
     auto *spinBox = new QSpinBox;
-    spinBox->setValue(value);
     spinBox->setRange(range.first, range.second);
+    spinBox->setValue(value);
     spinBox->setSingleStep(step);
     connect(spinBox, &QSpinBox::valueChanged, this, [&](int newValue) {
       value = newValue;
@@ -45,8 +45,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                                     const int step = 1) {
     value2 = value;
     auto *spinBox = new QSpinBox;
-    spinBox->setValue(value);
     spinBox->setRange(range.first, range.second);
+    spinBox->setValue(value);
     spinBox->setSingleStep(step);
     connect(spinBox, &QSpinBox::valueChanged, this,
             [this, &value, &value2](const int newValue) {
@@ -61,8 +61,8 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                              const double singleStep, Float &value,
                              const double scalar = 1.0) {
         auto *spinBox = new QDoubleSpinBox;
-        spinBox->setValue(static_cast<double>(value) / scalar);
         spinBox->setRange(range.first, range.second);
+        spinBox->setValue(static_cast<double>(value) / scalar);
         spinBox->setSingleStep(singleStep);
         connect(spinBox, &QDoubleSpinBox::valueChanged, this,
                 [this, &value, scalar](const double newValue) {
