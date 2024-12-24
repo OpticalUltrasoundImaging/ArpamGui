@@ -470,9 +470,6 @@ void Canvas::wheelEvent(QWheelEvent *event) {
     const double scaleFactor = 1.0 - numSteps * sensitivity;
     m_scaleFactor = std::max(m_scaleFactor * scaleFactor, m_scaleFactorMin);
 
-    const auto pos = mapToScene(
-        QPoint{(int)event->position().x(), (int)event->position().x()});
-
     updateTransform();
   } else {
     QGraphicsView::wheelEvent(event);
@@ -515,13 +512,10 @@ void Canvas::panEndEvent(QMouseEvent *event) { setCursor(m_panLastCursor); }
 
 void Canvas::updateTransform() {
   // Update transform for the QGraphicsView
-  m_transform = QTransform();
-  m_transform.scale(m_scaleFactor, m_scaleFactor);
-
-  const auto anchor = transformationAnchor();
   setTransformationAnchor(AnchorUnderMouse);
-  setTransform(m_transform);
-  setTransformationAnchor(anchor);
+  auto transform = QTransform();
+  transform.scale(m_scaleFactor, m_scaleFactor);
+  setTransform(transform);
 
   // Update font factor for the annotation text labels
   for (auto *item : m_graphicsItems) {

@@ -3,6 +3,10 @@
 #include <QVBoxLayout>
 #include <Qt>
 
+// Top left: sequence
+// Top right: nothing
+// Bottom right: zoom
+// Bottom left: modality, idxLabel, size
 CanvasOverlay::CanvasOverlay(QWidget *parent)
     : QWidget(parent), m_sequence(new QLabel), m_modality(new QLabel),
       m_idxLabel(new QLabel), m_size(new QLabel), m_zoom(new QLabel)
