@@ -15,22 +15,35 @@
     {
       "name": "opencv4",
       "platform": "x64",
-      "features": ["tbb", "tiff", "world"]
+      "features": [
+        "tbb",
+        "tiff",
+        "world"
+      ]
     },
     {
       "name": "opencv4",
       "platform": "!x64",
-      "features": ["tiff", "world"]
+      "features": [
+        "tiff",
+        "world"
+      ]
     },
     {
       "name": "fftw3",
       "platform": "x64",
-      "features": ["avx2", "threads"]
+      "features": [
+        "avx2",
+        "threads"
+      ]
     },
     {
       "name": "fftw3",
       "platform": "!x64",
-      "features": ["threads"]
+      "features": [
+        "threads"
+      ]
     }
-  ]
+  ],
+  "builtin-baseline": "4b6c50d962cc20aaa3ef457f8ba683b586263cfb"
 }
