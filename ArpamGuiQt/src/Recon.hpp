@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.hpp"
+#include "RFBuffer.hpp"
 #include "strConvUtils.hpp"
 #include "uspam/ioParams.hpp"
 #include "uspam/reconParams.hpp"
@@ -15,7 +16,6 @@
 #include <mutex>
 #include <opencv2/opencv.hpp>
 #include <tuple>
-#include <uspam/fft.hpp>
 #include <uspam/imutil.hpp>
 #include <uspam/timeit.hpp>
 #include <uspam/uspam.hpp>

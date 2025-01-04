@@ -10,7 +10,9 @@
 #include <filesystem>
 #include <fmt/core.h>
 #include <mutex>
-#include <uspam/uspam.hpp>
+#include <opencv2/opencv.hpp>
+
+namespace fs = std::filesystem;
 
 struct PerformanceMetrics {
   float total_ms{};
@@ -42,7 +44,7 @@ struct ExportSetting {
   bool saveRoiOnly{false};
 };
 
-template <uspam::Floating T> struct BScanData_ {
+template <typename T> struct BScanData_ {
   // Buffers
   arma::Mat<T> rf;
   // arma::Mat<T> rfFilt;
@@ -62,7 +64,7 @@ template <uspam::Floating T> struct BScanData_ {
  * Contains all the data for one BScan
  * From RF to Image
  */
-template <uspam::Floating T> struct BScanData {
+template <typename T> struct BScanData {
   // RF data
   arma::Mat<T> rf;
 
@@ -100,7 +102,7 @@ Thread safe buffer for the producer/consumer pattern
 
 Inspired by https://andrew128.github.io/ProducerConsumer/
 */
-template <uspam::Floating T> class RFBuffer {
+template <typename T> class RFBuffer {
 public:
   RFBuffer() {
     for (int i = 0; i < buffer.size(); ++i) {

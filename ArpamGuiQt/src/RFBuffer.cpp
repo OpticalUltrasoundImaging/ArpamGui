@@ -7,7 +7,7 @@
 #include <uspam/imutil.hpp>
 #include <uspam/timeit.hpp>
 
-template <uspam::Floating T>
+template <typename T>
 void BScanData_<T>::saveBScanData(const fs::path &directory,
                                   const std::string &prefix,
                                   const ExportSetting &exportSetting) const {
@@ -114,7 +114,7 @@ arma::Mat<uint8_t> boundaryCrop(const arma::Mat<uint8_t> &mat, int startCol,
                           mat.head_cols(endCol - mat.n_cols));
 }
 
-template <uspam::Floating T>
+template <typename T>
 void BScanData<T>::exportToFile(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
     const ExportSetting &exportSetting) const {
@@ -170,7 +170,7 @@ template void BScanData<ArpamFloat>::exportToFile(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
     const ExportSetting &exportSetting) const;
 
-template <uspam::Floating T>
+template <typename T>
 void BScanData<T>::exportAnnotatedCrops(
     const fs::path &directory, const QList<annotation::Annotation> &annotations,
     const ExportSetting &exportSetting) const {

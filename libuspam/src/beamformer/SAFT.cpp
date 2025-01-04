@@ -3,7 +3,7 @@
 
 namespace uspam::beamformer {
 
-template <Floating Float, BeamformerType BfType>
+template <fftconv::Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
                             const arma::Mat<Float> &rf) {
   const int nScans = rf.n_cols;
@@ -87,7 +87,7 @@ template arma::Mat<float>
 apply_saft<float, BeamformerType::SAFT_CF>(const TimeDelay<float> &timeDelay,
                                            const arma::Mat<float> &rf);
 
-template <Floating Float, BeamformerType BfType>
+template <fftconv::Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
                                const arma::Mat<Float> &rf,
                                const size_t truncated) {

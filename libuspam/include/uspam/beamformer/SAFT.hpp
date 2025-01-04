@@ -2,17 +2,17 @@
 
 #include <armadillo>
 #include <cmath>
+#include <fftconv/fftconv.hpp>
 #include <numbers>
 #include <opencv2/opencv.hpp>
 #include <uspam/SystemParams.hpp>
 #include <uspam/beamformer/BeamformerType.hpp>
-#include <uspam/fft.hpp>
 #include <uspam/signal.hpp>
 
 namespace uspam::beamformer {
 
-template <Floating Float> struct TimeDelay {
-  arma::Mat<Float> timeDelay;
+template <fftconv::Floating T> struct TimeDelay {
+  arma::Mat<T> timeDelay;
   arma::Col<uint8_t> saftLines;
   int zStart{};
   int zEnd{};
@@ -94,11 +94,11 @@ template <Floating Float> struct TimeDelay {
   return TimeDelay<float>{timeDelay, nLines, zStart, zEnd};
 }
 
-template <Floating Float, BeamformerType BfType>
+template <fftconv::Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft(const TimeDelay<Float> &timeDelay,
                             const arma::Mat<Float> &rf);
 
-template <Floating Float, BeamformerType BfType>
+template <fftconv::Floating Float, BeamformerType BfType>
 arma::Mat<Float> apply_saft_v2(const TimeDelay<Float> &timeDelay,
                                const arma::Mat<Float> &rf,
                                size_t truncated = 0);
