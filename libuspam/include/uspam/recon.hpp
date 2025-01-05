@@ -1,6 +1,5 @@
 #pragma once
 
-#include "fftconv.hpp"
 #include "uspam/filter.hpp"
 #include "uspam/imutil.hpp"
 #include "uspam/ioParams.hpp"
@@ -10,6 +9,8 @@
 #include <armadillo>
 #include <cassert>
 #include <cmath>
+#include <fftconv/fftconv.hpp>
+#include <fftconv/hilbert.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
 #include <rapidjson/document.h>
@@ -34,7 +35,7 @@ auto logCompress(T val, T noiseFloor, T desiredDynamicRangeDB) {
 }
 
 // NOLINTBEGIN(*-magic-numbers)
-template <Floating Tin, typename Tout> Tin logCompressFct();
+template <fftconv::Floating Tin, typename Tout> Tin logCompressFct();
 template <> inline consteval double logCompressFct<double, double>() {
   return 1.0;
 }
@@ -50,7 +51,7 @@ template <> inline consteval float logCompressFct<float, uint8_t>() {
 // NOLINTEND(*-magic-numbers)
 
 // Log compress to range of 0 - 1
-template <Floating T, typename Tout>
+template <fftconv::Floating T, typename Tout>
 void logCompress_par(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
                      const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
   assert(!x.empty());
@@ -72,7 +73,7 @@ void logCompress_par(const arma::Mat<T> &x, arma::Mat<Tout> &xLog,
   });
 }
 
-template <Floating T, typename Tout>
+template <fftconv::Floating T, typename Tout>
 void logCompress(const std::span<const T> x, const std::span<Tout> xLog,
                  const T noiseFloor, const T desiredDynamicRangeDB = 45.0) {
   assert(!x.empty());
@@ -89,7 +90,7 @@ void logCompress(const std::span<const T> x, const std::span<Tout> xLog,
 }
 
 // Determine the dynamic range (dB) for a given signal with a known noiseFloor
-template <Floating T>
+template <fftconv::Floating T>
 auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
   // Determine the peak signal value.
   const T peakLevel = *std::max_element(x.begin(), x.end());
@@ -100,7 +101,7 @@ auto calcDynamicRange(const std::span<const T> x, const T noiseFloor) {
 template <typename T>
 using FilterT = std::variant<FIRFilter<T>, ButterworthFilter<T>>;
 
-template <Floating T>
+template <fftconv::Floating T>
 auto createFilter(const ReconParams &params) -> FilterT<T> {
   switch (params.filterType) {
   case FilterType::FIR:
@@ -113,7 +114,7 @@ auto createFilter(const ReconParams &params) -> FilterT<T> {
   }
 }
 
-template <Floating T, typename Tlog = uint8_t>
+template <fftconv::Floating T, typename Tlog = uint8_t>
 void filterAndEnvelope(const arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
                        arma::Mat<Tlog> &rfLog, size_t N, size_t truncate,
                        const ReconParams &params) {
@@ -134,7 +135,8 @@ void filterAndEnvelope(const arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
       std::visit(
           [&](const auto &filter) { filter.forward(rfCol, filterBuffer); },
           filter);
-      uspam::signal::hilbert_abs_r2c<T>(filterBuffer, envCol);
+
+      fftconv::hilbert<T>(filterBuffer, envCol);
       uspam::recon::logCompress<T, Tlog>(envCol, logCol, noiseFloor_V,
                                          params.desiredDynamicRange);
     }

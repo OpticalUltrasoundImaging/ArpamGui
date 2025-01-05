@@ -3,7 +3,7 @@
 #include <armadillo>
 #include <array>
 #include <concepts>
-#include <fftconv.hpp>
+#include <fftconv/fftconv.hpp>
 #include <kfr/dsp.hpp>
 #include <kfr/dsp/iir_design.hpp>
 #include <kfr/kfr.h>
@@ -47,7 +47,7 @@ public:
   explicit FIRFilter(arma::Col<T> kernel) : kernel(std::move(kernel)) {}
 
   void forward(std::span<const T> input, std::span<T> output) const override {
-    fftconv::oaconvolve_fftw_same<T>(input, kernel, output);
+    fftconv::oaconvolve_fftw<T, fftconv::Same>(input, kernel, output);
   }
 
 private:

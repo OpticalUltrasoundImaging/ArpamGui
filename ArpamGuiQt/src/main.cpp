@@ -6,10 +6,10 @@
 #include <QStyle>
 #include <QStyleHints>
 #include <QtWidgets>
-#include <fftconv.hpp>
+#include <fftconv/fftconv.hpp>
+#include <fftconv/fftw.hpp>
 #include <fftw3.h>
 #include <fstream>
-#include <uspam/fft.hpp>
 
 void addDatetime(std::ostream &os) {
   os << "[" << datetime::datetimeFormat("%Y-%m-%d %H:%M:%S") << "] ";
@@ -59,9 +59,8 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
 }
 
 auto main(int argc, char **argv) -> int {
-  // Make FFTW thread safe
-  fftw_make_planner_thread_safe();
-  fftwf_make_planner_thread_safe();
+  // Setup FFTW wisdom and make planner safe
+  fftw::WisdomSetup wisdom(true);
 
   qInstallMessageHandler(myMessageHandler);
 
