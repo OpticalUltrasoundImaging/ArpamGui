@@ -10,7 +10,7 @@
 class CollapsibleGroupBox : public QGroupBox {
   Q_OBJECT
 public:
-  CollapsibleGroupBox(const QString &title, QWidget *parent = nullptr)
+  explicit CollapsibleGroupBox(const QString &title, QWidget *parent = nullptr)
       : QGroupBox(title, parent), titleText(title), content(new QWidget) {
     // Set the group box checkable, but hide the checkbox itself
     setCheckable(true);
@@ -23,8 +23,8 @@ public:
       auto *layout = new QVBoxLayout;
       layout->setContentsMargins(0, 0, 0, 0); // No margins
       layout->setSpacing(0);                  // No spacing between widgets
-      ((QGroupBox *)this)->setLayout(layout);
       layout->addWidget(content);
+      QGroupBox::setLayout(layout);
     }
 
     // Connect the toggled signal to the visibility and arrow toggle
@@ -33,7 +33,7 @@ public:
   }
 
   void setLayout(QLayout *layout) { content->setLayout(layout); }
-  auto layout() const { return content->layout(); }
+  [[nodiscard]] auto layout() const { return content->layout(); }
 
 private slots:
   void toggleContents(bool checked) {
