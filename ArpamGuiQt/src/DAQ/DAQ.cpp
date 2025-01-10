@@ -599,7 +599,7 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset,
 
       m_buffer->produce(
           [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
-            data->frameIdx = buffersCompleted - 1 + indexOffset;
+            data->frameIdx = indexOffset + buffersCompleted - 1;
 
             // Copy RF from Alazar buffer to our buffer
             {

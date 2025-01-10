@@ -35,6 +35,7 @@ steps:
 
 */
 
+#include "StepperDriver.hpp"
 #include <NIDAQmx.h>
 #include <QtLogging>
 #include <fmt/core.h>
@@ -48,26 +49,49 @@ std::string getNIDAQInfo();
 class MotorNI {
 public:
   enum class Direction { ANTICLOCKWISE = 0, CLOCKWISE };
+  static constexpr double SampleRate = 1e6;
 
-  MotorNI() = default;
+  MotorNI() : m_driver(StepperDriver(SampleRate, 1600, 0.0, 5.0, 0.5)) {}
+  MotorNI(const MotorNI &) = delete;
+  MotorNI(MotorNI &&) = delete;
+  MotorNI &operator=(const MotorNI &) = delete;
+  MotorNI &operator=(MotorNI &&) = delete;
+  ~MotorNI() {
+    if (taskHandle != nullptr) {
+      DAQmxClearTask(taskHandle);
+    }
+    if (directionTaskHandle != nullptr) {
+      DAQmxClearTask(directionTaskHandle);
+    }
+  }
 
   [[nodiscard]] bool setDirection(Direction direction);
 
+  void clearTask() {
+    if (taskHandle != nullptr) {
+      DAQmxClearTask(taskHandle);
+    }
+  }
+
   // Async move
-  [[nodiscard]] bool prepareMove();
+  [[nodiscard]] bool prepareMove(double speed, double rotations);
   [[nodiscard]] bool startMoveAsync();
   [[nodiscard]] bool waitUntilMoveEnds();
   void abortMove();
 
   // Blocking move
-  [[nodiscard]] bool moveBlocking();
+  // Motor speed [rot/sec]
+  // rotations: number of full rotations
+  [[nodiscard]] bool moveBlocking(double speed = 1, double rotations = 1);
 
-  [[nodiscard]] bool moveClockwise() {
-    return setDirection(Direction::CLOCKWISE) && moveBlocking();
+  [[nodiscard]] bool moveClockwise(double speed = 1, double rotations = 1) {
+    return setDirection(Direction::CLOCKWISE) && moveBlocking(speed, rotations);
   }
 
-  [[nodiscard]] bool moveAnticlockwise() noexcept {
-    return setDirection(Direction::ANTICLOCKWISE) && moveBlocking();
+  [[nodiscard]] bool moveAnticlockwise(double speed = 1,
+                                       double rotations = 1) noexcept {
+    return setDirection(Direction::ANTICLOCKWISE) &&
+           moveBlocking(speed, rotations);
   }
 
   [[nodiscard]] bool moveClockwiseThenAnticlockwise() noexcept {
@@ -78,10 +102,13 @@ public:
   [[nodiscard]] const char *errMsg() const noexcept { return &errBuf[0]; }
 
 private:
-  std::vector<double> data; // Motor control signal
-  void *taskHandle{};
   char errBuf[1024] = {'\0'};
   int32_t ret = 0;
+
+  void *taskHandle{};
+  void *directionTaskHandle{};
+
+  StepperDriver m_driver;
 };
 
 } // namespace motor

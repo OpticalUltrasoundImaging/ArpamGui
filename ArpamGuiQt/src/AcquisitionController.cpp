@@ -1,11 +1,8 @@
 #include "AcquisitionController.hpp"
-#include <qgridlayout.h>
-#include <qmessagebox.h>
-#include <qpushbutton.h>
 
 #ifdef ARPAM_HAS_ALAZAR
-
 #include "Motor/NI.hpp"
+#include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -30,24 +27,34 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
   // Init DAQ board
   // Call the method directly to make sure sequential
   daqSuccess = m_daq.initHardware();
-
   if (daqSuccess) {
     daqSuccess = m_daq.prepareAcquisition();
   }
 
+  /*
+  The motor must return back to zero, so after n clockwise rotation(s), it must
+  do n anticlockwise rotation(s). We call this full +n -n a sequence
+  */
+  const int n_scans_each_direction = 1;
+  const double speed = 1.0;
+  const double rotations = n_scans_each_direction;
+  const int scansPerSequence = n_scans_each_direction * 2;
+
   if (daqSuccess) {
     emit acquisitionStarted();
 
-    const auto maxFramePairs = (m_maxFrames + 1) / 2;
+    const auto maxSequences = (m_maxFrames + 1) / scansPerSequence;
 
-    for (int pairsCompleted = 0; pairsCompleted < maxFramePairs && acquiring;
-         ++pairsCompleted) {
-      const int maxIdx = (pairsCompleted + 1) * 2;
+    for (int sequencesComplete = 0;
+         sequencesComplete < maxSequences && acquiring; ++sequencesComplete) {
+      const int maxIdx = (sequencesComplete + 1) * scansPerSequence;
+
+      // TODO: change max index to current frame index. Might have to update the
+      // frame controller slider
       emit maxIndexChanged(maxIdx);
 
-      // Start data acquisition for 2 BScans
-
-      const auto motorMoveAsyncCB = [&]() {
+      // Start data acquisition n_scans_each_direction
+      const auto motorMoveAsyncCB = [this, &motorSuccess]() {
         motorSuccess = m_motor.startMoveAsync();
       };
 
@@ -55,15 +62,16 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
       {
         motorSuccess =
             m_motor.setDirection(motor::MotorNI::Direction::CLOCKWISE) &&
-            m_motor.prepareMove();
+            m_motor.prepareMove(speed, rotations);
 
         // First motor move failed to prepare, safe to break now.
         if (!motorSuccess) {
           break;
         }
 
-        daqSuccess =
-            m_daq.startAcquisition(1, pairsCompleted * 2, motorMoveAsyncCB);
+        daqSuccess = m_daq.startAcquisition(
+            n_scans_each_direction, sequencesComplete * scansPerSequence,
+            motorMoveAsyncCB);
         motorSuccess = m_motor.waitUntilMoveEnds();
       }
 
@@ -72,11 +80,12 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
         motorSuccess =
             motorSuccess &&
             m_motor.setDirection(motor::MotorNI::Direction::ANTICLOCKWISE) &&
-            m_motor.prepareMove();
+            m_motor.prepareMove(speed, rotations);
 
         if (daqSuccess) {
-          daqSuccess = m_daq.startAcquisition(1, pairsCompleted * 2 + 1,
-                                              motorMoveAsyncCB);
+          daqSuccess = m_daq.startAcquisition(
+              n_scans_each_direction, sequencesComplete * scansPerSequence + 1,
+              motorMoveAsyncCB);
         } else {
           // Make sure motor turns back even if DAQ failed.
           motorMoveAsyncCB();
@@ -230,7 +239,9 @@ AcquisitionController::AcquisitionController(
             &AcquisitionControllerObj::setMaxFrames);
   }
 
-  // Motor test panel
+  /**
+    Motor test panel
+   */
   {
     m_actShowMotorTestPanel->setCheckable(true);
     m_actShowMotorTestPanel->setChecked(false);
@@ -241,32 +252,64 @@ AcquisitionController::AcquisitionController(
 
   {
     layout->addWidget(m_motorTestGB);
-    auto *hlayout = new QHBoxLayout;
-    m_motorTestGB->setLayout(hlayout);
+    auto *gridLayout = new QGridLayout;
+    m_motorTestGB->setLayout(gridLayout);
+
+    int row = 0;
+
+    auto *rotationsSpinBox = new QDoubleSpinBox;
+    {
+      gridLayout->addWidget(rotationsSpinBox, row, 1);
+      rotationsSpinBox->setMaximum(20.0);
+      rotationsSpinBox->setMinimum(0.0);
+      rotationsSpinBox->setValue(1.0);
+      rotationsSpinBox->setSingleStep(1.0);
+      auto *label = new QLabel("Rotations");
+      gridLayout->addWidget(label, row++, 0);
+    }
+
+    auto *speedSpinBox = new QDoubleSpinBox;
+    {
+      gridLayout->addWidget(speedSpinBox, row, 1);
+      speedSpinBox->setMaximum(4);
+      speedSpinBox->setMinimum(0);
+      speedSpinBox->setValue(1);
+      speedSpinBox->setSingleStep(0.2);
+      auto *label = new QLabel("Speed");
+      gridLayout->addWidget(label, row++, 0);
+    }
+
     {
       auto *btn = new QPushButton("Clockwise");
-      hlayout->addWidget(btn);
+      gridLayout->addWidget(btn, row, 0);
 
-      connect(btn, &QPushButton::pressed, this, [this] {
-        const auto success = controller.motor().moveClockwise();
-        if (!success) {
-          QMessageBox::information(
-              this, "Motor",
-              QString::fromLocal8Bit(controller.motor().errMsg()));
-        }
-      });
+      connect(btn, &QPushButton::pressed, this,
+              [this, speedSpinBox, rotationsSpinBox] {
+                const auto success = controller.motor().moveClockwise(
+                    speedSpinBox->value(), rotationsSpinBox->value());
+
+                if (!success) {
+                  QMessageBox::information(
+                      this, "Motor",
+                      QString::fromLocal8Bit(controller.motor().errMsg()));
+                }
+              });
     }
+
     {
       auto *btn = new QPushButton("Anticlockwise");
-      hlayout->addWidget(btn);
-      connect(btn, &QPushButton::pressed, this, [this] {
-        const auto success = controller.motor().moveAnticlockwise();
-        if (!success) {
-          QMessageBox::information(
-              this, "Motor",
-              QString::fromLocal8Bit(controller.motor().errMsg()));
-        }
-      });
+      gridLayout->addWidget(btn, row, 1);
+      connect(btn, &QPushButton::pressed, this,
+              [this, speedSpinBox, rotationsSpinBox] {
+                const auto success = controller.motor().moveAnticlockwise(
+                    speedSpinBox->value(), rotationsSpinBox->value());
+
+                if (!success) {
+                  QMessageBox::information(
+                      this, "Motor",
+                      QString::fromLocal8Bit(controller.motor().errMsg()));
+                }
+              });
     }
   }
 };

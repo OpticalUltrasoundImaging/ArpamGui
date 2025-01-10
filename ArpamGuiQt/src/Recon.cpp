@@ -1,7 +1,7 @@
 #include "Recon.hpp"
 #include "Common.hpp"
 #include "uspam/SystemParams.hpp"
-#include "uspam/beamformer/Beamformer.hpp"
+#include "uspam/beamformer/beamformer.hpp"
 #include "uspam/filter.hpp"
 #include "uspam/ioParams.hpp"
 #include "uspam/recon.hpp"

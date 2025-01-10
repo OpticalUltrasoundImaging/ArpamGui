@@ -8,7 +8,6 @@ This module implements a data acquisition interface
 #include "Common.hpp"
 #include "RFBuffer.hpp"
 #include <AlazarApi.h>
-#include <QObject>
 #include <QString>
 #include <array>
 #include <atomic>
@@ -86,7 +85,7 @@ private:
   void *board{};
 
   // Alazar Buffers
-  std::array<std::span<uint16_t>, 4> buffers{};
+  std::array<std::span<uint16_t>, 20> buffers{};
 
   // No pre-trigger samples in NPT mode
   const U32 preTriggerSamples = 0;
