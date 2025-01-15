@@ -167,7 +167,7 @@ AcquisitionController::AcquisitionController(
   // Acquisition start/stop button
   // Save/display button
   {
-    acqGrid->addWidget(m_btnStartStopAcquisition, 0, 0);
+    acqGrid->addWidget(m_btnStartStopAcquisition, 0, 2);
     m_btnStartStopAcquisition->setStyleSheet("background-color: green");
 
     connect(m_btnStartStopAcquisition, &QPushButton::clicked, this, [this]() {
@@ -229,8 +229,7 @@ AcquisitionController::AcquisitionController(
 
   // Button to toggle between saving/display only
   {
-    acqGrid->addWidget(m_btnSaveDisplay, 0, 1);
-
+    acqGrid->addWidget(m_btnSaveDisplay, 1, 2);
     m_btnSaveDisplay->setCheckable(true);
 
     connect(m_btnSaveDisplay, &QPushButton::toggled, this,
@@ -253,8 +252,8 @@ AcquisitionController::AcquisitionController(
   // Spinbox to set maxFrames
   {
     auto *lbl = new QLabel("Max frames");
-    acqGrid->addWidget(lbl, 1, 0);
-    acqGrid->addWidget(m_sbMaxFrames, 1, 1);
+    acqGrid->addWidget(lbl, 0, 0);
+    acqGrid->addWidget(m_sbMaxFrames, 0, 1);
 
     m_sbMaxFrames->setMinimum(2);
     m_sbMaxFrames->setMaximum(1000);
@@ -270,8 +269,8 @@ AcquisitionController::AcquisitionController(
     // scansEachDirection
     {
       auto *lbl = new QLabel("Scans each direction");
-      acqGrid->addWidget(lbl, 2, 0);
-      acqGrid->addWidget(m_sbScansEachDirection, 2, 1);
+      acqGrid->addWidget(lbl, 1, 0);
+      acqGrid->addWidget(m_sbScansEachDirection, 1, 1);
 
       m_sbScansEachDirection->setMinimum(1);
       m_sbScansEachDirection->setMaximum(10);
