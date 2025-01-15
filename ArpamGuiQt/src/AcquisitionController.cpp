@@ -20,6 +20,7 @@ AcquisitionControllerObj::AcquisitionControllerObj(
 
 void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
   acquiring = true;
+  std::string additionalMotorMessage;
 
   bool daqSuccess = true;
   bool motorSuccess = true;
@@ -41,6 +42,9 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
   // Init the motor move signal
   using Direction = motor::MotorNI::Direction;
   motorSuccess = m_motor.prepareMove(params.speed, params.scansEachDirection);
+  if (!motorSuccess) {
+    additionalMotorMessage = "First prepareMove failed.";
+  }
 
   const auto motorMoveAsyncCB = [this, &motorSuccess]() {
     motorSuccess = m_motor.startMoveAsync();
@@ -61,11 +65,17 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
         motorSuccess = m_motor.setDirection(Direction::CLOCKWISE);
         // First motor move failed to prepare, safe to break now.
         if (!motorSuccess) {
+          additionalMotorMessage = "First motor setDirection failed.";
           break;
         }
 
         daqSuccess =
             m_daq.acquire(params.scansEachDirection, currIdx, motorMoveAsyncCB);
+        if (!motorSuccess) {
+          additionalMotorMessage = "first motorMoveAsyncCB failed.";
+          break;
+        }
+
         motorSuccess = m_motor.waitUntilMoveEnds();
 
         if (!motorSuccess) {
@@ -77,6 +87,10 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
       currIdx += params.scansEachDirection;
       {
         motorSuccess = m_motor.setDirection(Direction::ANTICLOCKWISE);
+        if (!motorSuccess) {
+          additionalMotorMessage = "second motor setDirection failed.";
+          break;
+        }
 
         if (daqSuccess) {
           daqSuccess = m_daq.acquire(params.scansEachDirection, currIdx,
@@ -84,6 +98,11 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
         } else {
           // Make sure motor turns back even if DAQ failed.
           motorMoveAsyncCB();
+        }
+
+        if (!motorSuccess) {
+          additionalMotorMessage = "second motorMoveAsyncCB failed.";
+          break;
         }
 
         motorSuccess = m_motor.waitUntilMoveEnds();
@@ -104,8 +123,11 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
   }
 
   if (!motorSuccess) {
-    const auto &motorErr =
-        "Motor error: " + QString::fromLocal8Bit(m_motor.errMsg());
+    auto motorErr = "Motor error: " + QString::fromLocal8Bit(m_motor.errMsg());
+    if (!additionalMotorMessage.empty()) {
+      motorErr += "\n" + QString::fromStdString(additionalMotorMessage);
+    }
+
     if (!motorErr.isEmpty()) {
       emit error(motorErr);
       qCritical() << "Acquisition failed: " << motorErr;

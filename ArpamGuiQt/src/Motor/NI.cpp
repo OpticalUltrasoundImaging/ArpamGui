@@ -51,54 +51,52 @@ bool MotorNI::prepareMove(double speed, double rotations) {
   m_driver.setRotations(rotations);
 
   // Only recreate task and recompute squareWave if needed
-  if (m_driver.needsUpdate() || taskHandle == nullptr) {
-    clearTask();
-    const auto &squareWave = m_driver.squareWave();
+  clearTask();
+  const auto &squareWave = m_driver.squareWave();
 
-    // Create a Task and Virtual Channels
-    DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
+  // Create a Task and Virtual Channels
+  DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
 
-    if (success) {
-      // Create AO voltage channel
-      const char *physicalChannel = "Dev1/ao0";
-      constexpr float64 minVal = 0.0;
-      constexpr float64 maxVal = 5.0;
-      constexpr int32 units = DAQmx_Val_Volts;
-      DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "",
-                                          minVal, maxVal, units, nullptr));
-    }
+  if (success) {
+    // Create AO voltage channel
+    const char *physicalChannel = "Dev1/ao0";
+    constexpr float64 minVal = 0.0;
+    constexpr float64 maxVal = 5.0;
+    constexpr int32 units = DAQmx_Val_Volts;
+    DAQMX_CALL(DAQmxCreateAOVoltageChan(taskHandle, physicalChannel, "", minVal,
+                                        maxVal, units, nullptr));
+  }
 
-    // Sampling options for analogue out
-    // sampling rate in samples/sec per channel
-    // num samples to acquire/generate for each channel
+  // Sampling options for analogue out
+  // sampling rate in samples/sec per channel
+  // num samples to acquire/generate for each channel
 
-    const uInt64 sampsPerChan = squareWave.size();
+  const uInt64 sampsPerChan = squareWave.size();
 
-    if (success) {
-      constexpr auto activeEdge = DAQmx_Val_Rising;
-      constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
+  if (success) {
+    constexpr auto activeEdge = DAQmx_Val_Rising;
+    constexpr auto sampleMode = DAQmx_Val_FiniteSamps;
 
-      DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", SampleRate, activeEdge,
-                                       sampleMode, sampsPerChan));
-    }
+    DAQMX_CALL(DAQmxCfgSampClkTiming(taskHandle, "", SampleRate, activeEdge,
+                                     sampleMode, sampsPerChan));
+  }
 
-    /**
-    Write
-    */
-    // Time (s) to wait for the function to read/write all the samples
-    const float32 timeout = 10;
-    // Whether this function automatically starts the task if you do not start
-    // it
-    const bool32 autoStart = 0;
+  /**
+  Write
+  */
+  // Time (s) to wait for the function to read/write all the samples
+  const float32 timeout = 10;
+  // Whether this function automatically starts the task if you do not start
+  // it
+  const bool32 autoStart = 0;
 
-    // How data is arranged. Interleaved or noninterleaved
-    const bool32 dataLayout = DAQmx_Val_GroupByChannel;
+  // How data is arranged. Interleaved or noninterleaved
+  const bool32 dataLayout = DAQmx_Val_GroupByChannel;
 
-    if (success) {
-      DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart,
-                                     timeout, dataLayout, squareWave.data(),
-                                     nullptr, nullptr));
-    }
+  if (success) {
+    DAQMX_CALL(DAQmxWriteAnalogF64(taskHandle, sampsPerChan, autoStart, timeout,
+                                   dataLayout, squareWave.data(), nullptr,
+                                   nullptr));
   }
   return success;
 }

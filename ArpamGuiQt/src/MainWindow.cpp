@@ -204,13 +204,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef ARPAM_HAS_ALAZAR
     connect(&acquisitionController->controller,
-            &AcquisitionControllerObj::maxIndexChanged, m_frameController,
-            &FrameController::setMaxFrameNum);
-    connect(&acquisitionController->controller,
-            &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
-            &CoregDisplay::setMaxIdx);
-
-    connect(&acquisitionController->controller,
             &AcquisitionControllerObj::acquisitionFinished, this,
             [this, acquisitionController] {
               // Log event

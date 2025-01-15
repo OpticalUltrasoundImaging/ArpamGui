@@ -45,8 +45,6 @@ signals:
   void acquisitionStarted();
   void acquisitionFinished();
 
-  void maxIndexChanged(int);
-
   void error(QString);
 
 private:
