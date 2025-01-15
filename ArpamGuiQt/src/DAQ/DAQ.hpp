@@ -8,7 +8,6 @@ This module implements a data acquisition interface
 #include "Common.hpp"
 #include "RFBuffer.hpp"
 #include <AlazarApi.h>
-#include <QObject>
 #include <QString>
 #include <array>
 #include <atomic>
@@ -40,9 +39,7 @@ public:
 
   // Initialize the DAQ board, including setting the clock, trigger, channel...
   [[nodiscard]] bool initHardware() noexcept;
-
   [[nodiscard]] bool isInitialized() const noexcept { return board != nullptr; }
-  [[nodiscard]] bool isAcquiring() const noexcept { return acquiringData; };
 
   // Must be called before acquisition.
   // Allocates resources and primes the board
@@ -50,20 +47,16 @@ public:
 
   // Acquire `buffersToAcquire` buffers (BScans)
   [[nodiscard]] bool
-  startAcquisition(int buffersToAcquire, int indexOffset = 0,
-                   const std::function<void()> &callback = {}) noexcept;
+  acquire(int buffersToAcquire, int indexOffset = 0,
+          const std::function<void()> &startCallback = {}) noexcept;
 
   // Clean up resources allocated by "prepareAcquisition"
-  auto finishAcquisition() noexcept {
+  void finishAcquisition() noexcept {
     if (m_fs.is_open()) {
       // Close file handle
       m_fs.close();
     }
-    return m_lastBinfile;
   }
-
-  // Signal the acquisition thread to exit.
-  void stopAcquisition() noexcept { shouldStopAcquiring = true; }
 
   // Set whether to save raw data or not.
   void setSaveData(bool save) noexcept { m_saveData = save; }
@@ -86,7 +79,7 @@ private:
   void *board{};
 
   // Alazar Buffers
-  std::array<std::span<uint16_t>, 4> buffers{};
+  std::array<std::span<uint16_t>, 20> buffers{};
 
   // No pre-trigger samples in NPT mode
   const U32 preTriggerSamples = 0;

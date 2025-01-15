@@ -22,6 +22,7 @@
 #include <memory>
 #include <opencv2/opencv.hpp>
 #include <qnamespace.h>
+#include <qobjectdefs.h>
 #include <uspam/defer.h>
 
 namespace {
@@ -103,7 +104,11 @@ MainWindow::MainWindow(QWidget *parent)
         dockAnnotations->hide();
         dockAScanPlot->hide();
 
+#ifdef ARPAM_HAS_ALAZAR
+        dockAcquisitionController->show();
+#else
         dockAcquisitionController->hide();
+#endif
 
         actViewSimple->setChecked(true);
         actViewExpert->setChecked(false);
@@ -128,7 +133,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef ARPAM_HAS_ALAZAR
         dockAcquisitionController->show();
-
 #else
         dockAcquisitionController->hide();
 #endif
@@ -200,13 +204,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef ARPAM_HAS_ALAZAR
     connect(&acquisitionController->controller,
-            &AcquisitionControllerObj::maxIndexChanged, m_frameController,
-            &FrameController::setMaxFrameNum);
-    connect(&acquisitionController->controller,
-            &AcquisitionControllerObj::maxIndexChanged, m_coregDisplay,
-            &CoregDisplay::setMaxIdx);
-
-    connect(&acquisitionController->controller,
             &AcquisitionControllerObj::acquisitionFinished, this,
             [this, acquisitionController] {
               // Log event
@@ -228,8 +225,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&acquisitionController->controller,
             &AcquisitionControllerObj::acquisitionStarted,
             [this, acquisitionController] {
-              // Disable frame controller
-              m_frameController->setEnabled(false);
+              // Disable frame controller during acquisition
+              // Must use `invokeMethod` on GUI methods because because
+              // AcquisitionControllerObj is running in a separate thread.
+              QMetaObject::invokeMethod(m_frameController,
+                                        &FrameController::setEnabled, false);
 
               // Status message about save/display
               const auto &path =
@@ -239,7 +239,8 @@ MainWindow::MainWindow(QWidget *parent)
                   path.empty() ? "Display only"
                                : QString("Acquiring to ") + path2QString(path);
               qInfo() << msg;
-              statusBar()->showMessage(msg);
+              QMetaObject::invokeMethod(statusBar(), &QStatusBar::showMessage,
+                                        msg, 0);
             });
 
     {

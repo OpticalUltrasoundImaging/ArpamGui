@@ -95,12 +95,11 @@ qt_add_executable(${EXE_NAME}
     src/DAQ/DAQ.cpp
     src/AcquisitionController.hpp
     src/AcquisitionController.cpp
-    src/Motor/NI.hpp
-    src/Motor/NI.cpp
     src/CollapsibleGroupBox.hpp
     ${app_icon_macos}
     ${app_icon_resource_windows}
 )
+
 target_sources(${EXE_NAME} PRIVATE
     src/Recon.hpp
     src/Recon.cpp
@@ -110,7 +109,12 @@ target_sources(${EXE_NAME} PRIVATE
     src/geometryUtils.hpp
     src/jsonUtils.cpp
     src/jsonUtils.hpp
+    src/Motor/StepperDriver.hpp
+    src/Motor/StepperDriver.cpp
+    src/Motor/MotorNI.hpp
+    src/Motor/MotorNI.cpp
 )
+
 qt_add_resources(${EXE_NAME} imageresources
     PREFIX "/"
     FILES 

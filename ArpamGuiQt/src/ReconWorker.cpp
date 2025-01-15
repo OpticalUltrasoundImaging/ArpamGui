@@ -1,12 +1,16 @@
 #include "ReconWorker.hpp"
+#include <QDebug>
 
 void ReconWorker::start() {
   bool m_shouldStop = false;
   while (!m_shouldStop) {
     m_buffer->consume([&](std::shared_ptr<BScanData<ArpamFloat>> &data) {
       if (data == nullptr) {
+        qDebug() << "Consumer received stop sentinel";
         m_shouldStop = true;
       } else {
+        qDebug() << "Consumer received frame " << data->frameIdx;
+
         m_recontsructor.recon(*data);
         emit imagesReady(data);
 

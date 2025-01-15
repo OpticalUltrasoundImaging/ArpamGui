@@ -173,7 +173,7 @@ public:
   }
 
 private:
-  std::array<std::shared_ptr<BScanData<T>>, 4> buffer{};
+  std::array<std::shared_ptr<BScanData<T>>, 10> buffer{};
   int buffer_size{0};
   int left{0};  // index where vars are put inside of buffer (produced)
   int right{0}; // idx where vars are removed from buffer (consumed)

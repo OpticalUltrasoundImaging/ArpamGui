@@ -74,6 +74,9 @@ CanvasOverlay::CanvasOverlay(QWidget *parent)
 void CanvasOverlay::setMaxIdx(int maxIdx) { m_maxIdx = maxIdx; }
 
 void CanvasOverlay::setIdx(int idx) {
+  if (idx > m_maxIdx) {
+    m_maxIdx = idx;
+  }
   m_idxLabel->setText(QString("Img: %1/%2").arg(idx).arg(m_maxIdx));
 }
 

@@ -222,11 +222,10 @@ FrameController::FrameController(RFProducerFile *rfProducerFile,
     connect(this, &FrameController::sigFrameNumUpdated, rfProducerFile,
             &RFProducerFile::produceOne);
 
-    connect(m_producerFile, &RFProducerFile::maxFramesChanged, this,
-            &FrameController::setMaxFrameNum);
-
-    connect(m_producerFile, &RFProducerFile::maxFramesChanged, m_coregDisplay,
-            &CoregDisplay::setMaxIdx);
+    connect(m_producerFile, &RFProducerFile::maxFramesChanged, [this](int val) {
+      this->setMaxFrameNum(val);
+      m_coregDisplay->setMaxIdx(val);
+    });
 
     // Result ready
     connect(m_reconWorker, &ReconWorker::imagesReady, this,
@@ -329,6 +328,9 @@ void FrameController::setFrameNum(int frame) {
   saveCurrAnnotationAndLoadNewFrame(frame);
 
   // Update GUI
+  if (frame > m_frameSlider->maximum()) {
+    m_frameSlider->setMaximum(frame);
+  }
   m_frameSlider->setValue(frame);
 }
 
