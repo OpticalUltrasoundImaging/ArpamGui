@@ -3,6 +3,7 @@
 #include "Motor/MotorNI.hpp"
 #include <QMessageBox>
 #include <armadillo>
+#include <fftconv/fftconv.hpp>
 #include <fftw3.h>
 #include <kfr/kfr.h>
 #include <oneapi/tbb/version.h>
@@ -20,7 +21,7 @@ auto aboutString() -> QString {
      << ARPAM_COMPILER_VERSION << " on " << ARPAM_COMPILE_DATE "-"
      << ARPAM_COMPILE_TIME << ")\n\n";
 
-  ss << "-- Bundled Dependencies\n";
+  ss << "-- Bundled Libraries\n";
   ss << "Qt: " << QT_VERSION_STR << " | ";
   ss << "QCustomPlot: " << QCUSTOMPLOT_VERSION_STR << " | ";
 
@@ -41,10 +42,12 @@ auto aboutString() -> QString {
   ss << "FFTW3: " << fftw_version << " | ";
 #endif
 
+  ss << "fftconv: " << FFTCONV_VERSION << " | ";
+
   ss << "RapidJSON: " << RAPIDJSON_VERSION_STRING << " | ";
 
   ss << "oneTBB: " << TBB_VERSION_STRING << "\n";
-  ss << "-- Bundled Dependencies\n\n";
+  ss << "-- Bundled Libraries\n\n";
 
   ss << "-- Data acquisition interface";
 #ifdef ARPAM_HAS_ALAZAR
