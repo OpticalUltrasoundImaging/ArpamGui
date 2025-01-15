@@ -88,11 +88,10 @@ public:
   QPushButton *m_btnStartStopAcquisition;
   QPushButton *m_btnSaveDisplay;
 
-  QSpinBox *m_spMaxFrames;
-
   // Acquisition params
-  QSpinBox *m_spScansEachDirection;
-  QDoubleSpinBox *m_spSpeed;
+  QSpinBox *m_sbMaxFrames;
+  QSpinBox *m_sbScansEachDirection;
+  QDoubleSpinBox *m_sbSpeed;
 
   QGroupBox *m_motorTestGB;
 };

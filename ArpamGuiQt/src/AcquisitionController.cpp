@@ -148,9 +148,9 @@ AcquisitionController::AcquisitionController(
       m_actShowMotorTestPanel(new QAction("Motor Test Panel")),
 
       m_btnStartStopAcquisition(new QPushButton("Start")),
-      m_btnSaveDisplay(new QPushButton("Saving")), m_spMaxFrames(new QSpinBox),
+      m_btnSaveDisplay(new QPushButton("Saving")), m_sbMaxFrames(new QSpinBox),
 
-      m_spScansEachDirection(new QSpinBox), m_spSpeed(new QDoubleSpinBox),
+      m_sbScansEachDirection(new QSpinBox), m_sbSpeed(new QDoubleSpinBox),
 
       m_motorTestGB(new QGroupBox("Motor testing"))
 
@@ -173,7 +173,10 @@ AcquisitionController::AcquisitionController(
     connect(m_btnStartStopAcquisition, &QPushButton::clicked, this, [this]() {
       m_btnStartStopAcquisition->setEnabled(false);
       m_btnSaveDisplay->setEnabled(false);
-      m_spMaxFrames->setEnabled(false);
+
+      m_sbMaxFrames->setEnabled(false);
+      m_sbScansEachDirection->setEnabled(false);
+      m_sbSpeed->setEnabled(false);
 
       m_motorTestGB->setEnabled(false);
 
@@ -204,7 +207,11 @@ AcquisitionController::AcquisitionController(
       m_btnStartStopAcquisition->setStyleSheet("background-color: green");
 
       m_btnSaveDisplay->setEnabled(true);
-      m_spMaxFrames->setEnabled(true);
+
+      m_sbMaxFrames->setEnabled(true);
+      m_sbScansEachDirection->setEnabled(true);
+      m_sbSpeed->setEnabled(true);
+
       m_motorTestGB->setEnabled(true);
     };
 
@@ -247,14 +254,14 @@ AcquisitionController::AcquisitionController(
   {
     auto *lbl = new QLabel("Max frames");
     acqGrid->addWidget(lbl, 1, 0);
-    acqGrid->addWidget(m_spMaxFrames, 1, 1);
+    acqGrid->addWidget(m_sbMaxFrames, 1, 1);
 
-    m_spMaxFrames->setMinimum(2);
-    m_spMaxFrames->setMaximum(1000);
-    m_spMaxFrames->setSingleStep(10);
-    m_spMaxFrames->setValue(m_acqParams.maxFrames);
+    m_sbMaxFrames->setMinimum(2);
+    m_sbMaxFrames->setMaximum(1000);
+    m_sbMaxFrames->setSingleStep(10);
+    m_sbMaxFrames->setValue(m_acqParams.maxFrames);
 
-    connect(m_spMaxFrames, &QSpinBox::valueChanged,
+    connect(m_sbMaxFrames, &QSpinBox::valueChanged,
             [this](int val) { m_acqParams.maxFrames = val; });
   }
 
@@ -264,15 +271,15 @@ AcquisitionController::AcquisitionController(
     {
       auto *lbl = new QLabel("Scans each direction");
       acqGrid->addWidget(lbl, 2, 0);
-      acqGrid->addWidget(m_spScansEachDirection, 2, 1);
+      acqGrid->addWidget(m_sbScansEachDirection, 2, 1);
 
-      m_spScansEachDirection->setMinimum(1);
-      m_spScansEachDirection->setMaximum(10);
-      m_spScansEachDirection->setSingleStep(1);
+      m_sbScansEachDirection->setMinimum(1);
+      m_sbScansEachDirection->setMaximum(10);
+      m_sbScansEachDirection->setSingleStep(1);
 
-      m_spScansEachDirection->setValue(m_acqParams.scansEachDirection);
+      m_sbScansEachDirection->setValue(m_acqParams.scansEachDirection);
 
-      connect(m_spScansEachDirection, &QSpinBox::valueChanged,
+      connect(m_sbScansEachDirection, &QSpinBox::valueChanged,
               [this](int val) { m_acqParams.scansEachDirection = val; });
     }
 
