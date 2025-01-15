@@ -104,7 +104,11 @@ MainWindow::MainWindow(QWidget *parent)
         dockAnnotations->hide();
         dockAScanPlot->hide();
 
+#ifdef ARPAM_HAS_ALAZAR
+        dockAcquisitionController->show();
+#else
         dockAcquisitionController->hide();
+#endif
 
         actViewSimple->setChecked(true);
         actViewExpert->setChecked(false);
@@ -129,7 +133,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifdef ARPAM_HAS_ALAZAR
         dockAcquisitionController->show();
-
 #else
         dockAcquisitionController->hide();
 #endif
