@@ -2,7 +2,7 @@
 
 #include "Common.hpp"
 #include "DAQ/DAQ.hpp"
-#include "Motor/NI.hpp"
+#include "Motor/MotorNI.hpp"
 #include <QAction>
 #include <QDoubleSpinBox>
 #include <QGroupBox>

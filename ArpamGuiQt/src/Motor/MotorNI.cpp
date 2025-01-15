@@ -1,4 +1,4 @@
-#include "Motor/NI.hpp"
+#include "Motor/MotorNI.hpp"
 
 #ifdef ARPAM_HAS_NI
 

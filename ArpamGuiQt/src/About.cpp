@@ -1,6 +1,6 @@
 #include "About.hpp"
 #include "DAQ/DAQ.hpp"
-#include "Motor/NI.hpp"
+#include "Motor/MotorNI.hpp"
 #include <QMessageBox>
 #include <armadillo>
 #include <fftw3.h>

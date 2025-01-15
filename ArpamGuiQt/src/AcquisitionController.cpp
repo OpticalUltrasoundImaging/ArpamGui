@@ -1,7 +1,7 @@
 #include "AcquisitionController.hpp"
 
 #ifdef ARPAM_HAS_ALAZAR
-#include "Motor/NI.hpp"
+#include "Motor/MotorNI.hpp"
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QGroupBox>

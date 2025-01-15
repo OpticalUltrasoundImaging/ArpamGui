@@ -111,8 +111,8 @@ target_sources(${EXE_NAME} PRIVATE
     src/jsonUtils.hpp
     src/Motor/StepperDriver.hpp
     src/Motor/StepperDriver.cpp
-    src/Motor/NI.hpp
-    src/Motor/NI.cpp
+    src/Motor/MotorNI.hpp
+    src/Motor/MotorNI.cpp
 )
 
 qt_add_resources(${EXE_NAME} imageresources
