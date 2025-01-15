@@ -18,7 +18,7 @@ AcquisitionControllerObj::AcquisitionControllerObj(
     const std::shared_ptr<RFBuffer<ArpamFloat>> &buffer)
     : m_daq(buffer) {}
 
-void AcquisitionControllerObj::startAcquisitionLoop() {
+void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
   acquiring = true;
 
   bool daqSuccess = true;
@@ -35,57 +35,52 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
   The motor must return back to zero, so after n clockwise rotation(s), it must
   do n anticlockwise rotation(s). We call this full +n -n a sequence
   */
-  const int n_scans_each_direction = 1;
-  const double speed = 1.0;
-  const double rotations = n_scans_each_direction;
-  const int scansPerSequence = n_scans_each_direction * 2;
+  const int scansPerSequence = params.scansEachDirection * 2;
+  params.maxFrames = std::max(params.maxFrames, scansPerSequence);
 
-  if (daqSuccess) {
+  // Init the motor move signal
+  using Direction = motor::MotorNI::Direction;
+  motorSuccess = m_motor.prepareMove(params.speed, params.scansEachDirection);
+
+  const auto motorMoveAsyncCB = [this, &motorSuccess]() {
+    motorSuccess = m_motor.startMoveAsync();
+  };
+
+  if (daqSuccess && motorSuccess) {
     emit acquisitionStarted();
 
-    const auto maxSequences = (m_maxFrames + 1) / scansPerSequence;
+    const auto maxSequences = params.maxFrames / scansPerSequence;
 
     for (int sequencesComplete = 0;
          sequencesComplete < maxSequences && acquiring; ++sequencesComplete) {
-      const int maxIdx = (sequencesComplete + 1) * scansPerSequence;
+      auto currIdx = sequencesComplete * scansPerSequence;
 
-      // TODO: change max index to current frame index. Might have to update the
-      // frame controller slider
-      emit maxIndexChanged(maxIdx);
-
-      // Start data acquisition n_scans_each_direction
-      const auto motorMoveAsyncCB = [this, &motorSuccess]() {
-        motorSuccess = m_motor.startMoveAsync();
-      };
-
+      //// Start data acquisition scansEachDirection
       // Scan clockwise
       {
-        motorSuccess =
-            m_motor.setDirection(motor::MotorNI::Direction::CLOCKWISE) &&
-            m_motor.prepareMove(speed, rotations);
-
+        motorSuccess = m_motor.setDirection(Direction::CLOCKWISE);
         // First motor move failed to prepare, safe to break now.
         if (!motorSuccess) {
           break;
         }
 
-        daqSuccess = m_daq.startAcquisition(
-            n_scans_each_direction, sequencesComplete * scansPerSequence,
-            motorMoveAsyncCB);
+        daqSuccess =
+            m_daq.acquire(params.scansEachDirection, currIdx, motorMoveAsyncCB);
         motorSuccess = m_motor.waitUntilMoveEnds();
+
+        if (!motorSuccess) {
+          break;
+        }
       }
 
       // Scan anticlockwise
+      currIdx += params.scansEachDirection;
       {
-        motorSuccess =
-            motorSuccess &&
-            m_motor.setDirection(motor::MotorNI::Direction::ANTICLOCKWISE) &&
-            m_motor.prepareMove(speed, rotations);
+        motorSuccess = m_motor.setDirection(Direction::ANTICLOCKWISE);
 
         if (daqSuccess) {
-          daqSuccess = m_daq.startAcquisition(
-              n_scans_each_direction, sequencesComplete * scansPerSequence + 1,
-              motorMoveAsyncCB);
+          daqSuccess = m_daq.acquire(params.scansEachDirection, currIdx,
+                                     motorMoveAsyncCB);
         } else {
           // Make sure motor turns back even if DAQ failed.
           motorMoveAsyncCB();
@@ -101,7 +96,7 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
   }
 
   if (!daqSuccess) {
-    const auto &daqErr = m_daq.errMsg();
+    const auto &daqErr = "DAQ error: " + m_daq.errMsg();
     if (!daqErr.isEmpty()) {
       emit error(daqErr);
       qCritical() << "Acquisition failed: " << daqErr;
@@ -109,7 +104,8 @@ void AcquisitionControllerObj::startAcquisitionLoop() {
   }
 
   if (!motorSuccess) {
-    const auto &motorErr = QString::fromLocal8Bit(m_motor.errMsg());
+    const auto &motorErr =
+        "Motor error: " + QString::fromLocal8Bit(m_motor.errMsg());
     if (!motorErr.isEmpty()) {
       emit error(motorErr);
       qCritical() << "Acquisition failed: " << motorErr;
@@ -131,6 +127,8 @@ AcquisitionController::AcquisitionController(
 
       m_btnStartStopAcquisition(new QPushButton("Start")),
       m_btnSaveDisplay(new QPushButton("Saving")), m_spMaxFrames(new QSpinBox),
+
+      m_spScansEachDirection(new QSpinBox), m_spSpeed(new QDoubleSpinBox),
 
       m_motorTestGB(new QGroupBox("Motor testing"))
 
@@ -167,7 +165,8 @@ AcquisitionController::AcquisitionController(
 
         m_btnStartStopAcquisition->setText("Starting");
         QMetaObject::invokeMethod(
-            &controller, &AcquisitionControllerObj::startAcquisitionLoop);
+            &controller, &AcquisitionControllerObj::startAcquisitionLoop,
+            m_acqParams);
       }
     });
 
@@ -226,17 +225,39 @@ AcquisitionController::AcquisitionController(
   {
     auto *lbl = new QLabel("Max frames");
     acqGrid->addWidget(lbl, 1, 0);
-
     acqGrid->addWidget(m_spMaxFrames, 1, 1);
 
     m_spMaxFrames->setMinimum(2);
     m_spMaxFrames->setMaximum(1000);
-    m_spMaxFrames->setSingleStep(1);
+    m_spMaxFrames->setSingleStep(10);
+    m_spMaxFrames->setValue(m_acqParams.maxFrames);
 
-    m_spMaxFrames->setValue(controller.maxFrames());
+    connect(m_spMaxFrames, &QSpinBox::valueChanged,
+            [this](int val) { m_acqParams.maxFrames = val; });
+  }
 
-    connect(m_spMaxFrames, &QSpinBox::valueChanged, &controller,
-            &AcquisitionControllerObj::setMaxFrames);
+  // Acquisition parameters
+  {
+    // scansEachDirection
+    {
+      auto *lbl = new QLabel("Scans each direction");
+      acqGrid->addWidget(lbl, 2, 0);
+      acqGrid->addWidget(m_spScansEachDirection, 2, 1);
+
+      m_spScansEachDirection->setMinimum(1);
+      m_spScansEachDirection->setMaximum(10);
+      m_spScansEachDirection->setSingleStep(1);
+
+      m_spScansEachDirection->setValue(m_acqParams.scansEachDirection);
+
+      connect(m_spScansEachDirection, &QSpinBox::valueChanged,
+              [this](int val) { m_acqParams.scansEachDirection = val; });
+    }
+
+    // Speed
+    {
+      // auto *lbl=new QLabel("Speed");
+    }
   }
 
   /**

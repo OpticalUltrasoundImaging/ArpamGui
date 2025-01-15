@@ -4,6 +4,7 @@
 #include "DAQ/DAQ.hpp"
 #include "Motor/NI.hpp"
 #include <QAction>
+#include <QDoubleSpinBox>
 #include <QGroupBox>
 #include <QPushButton>
 #include <QSpinBox>
@@ -12,9 +13,14 @@
 #include <RFBuffer.hpp>
 #include <atomic>
 #include <memory>
-#include <qgroupbox.h>
 
 #ifdef ARPAM_HAS_ALAZAR
+
+struct AcquisitionParams {
+  int maxFrames{400};        // Max number of frames to acquire.
+  int scansEachDirection{1}; // scans in each direction
+  double speed{1.0};         // rotations/sec
+};
 
 class AcquisitionControllerObj : public QObject {
   Q_OBJECT
@@ -32,13 +38,8 @@ public:
   [[nodiscard]] auto &motor() { return m_motor; }
 
   bool isAcquiring() const { return acquiring; }
-  void startAcquisitionLoop();
+  void startAcquisitionLoop(AcquisitionParams params);
   void stopAcquisitionLoop() { acquiring = false; };
-
-  [[nodiscard]] auto maxFrames() const { return m_maxFrames; }
-
-public slots:
-  void setMaxFrames(int val) { m_maxFrames = val; }
 
 signals:
   void acquisitionStarted();
@@ -51,8 +52,6 @@ signals:
 private:
   motor::MotorNI m_motor;
   daq::DAQ m_daq;
-
-  int m_maxFrames{400};
 
   std::atomic<bool> acquiring{false};
 };
@@ -79,8 +78,10 @@ public:
 
   void startAcquisitionBackAndForth();
 
+  // Acquisition controller, thread, and parameters
   AcquisitionControllerObj controller;
   QThread controllerThread;
+  AcquisitionParams m_acqParams;
 
   // Actions
   QAction *m_actShowMotorTestPanel;
@@ -90,6 +91,10 @@ public:
   QPushButton *m_btnSaveDisplay;
 
   QSpinBox *m_spMaxFrames;
+
+  // Acquisition params
+  QSpinBox *m_spScansEachDirection;
+  QDoubleSpinBox *m_spSpeed;
 
   QGroupBox *m_motorTestGB;
 };

@@ -509,8 +509,8 @@ bool DAQ::prepareAcquisition() noexcept {
   return success;
 }
 
-bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset,
-                           const std::function<void()> &callback) noexcept {
+bool DAQ::acquire(int buffersToAcquire, int indexOffset,
+                  const std::function<void()> &startCallback) noexcept {
   shouldStopAcquiring = false;
   acquiringData = true;
 
@@ -544,8 +544,8 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset,
   };
 
   // Motor callback here
-  if (callback) {
-    callback();
+  if (startCallback) {
+    startCallback();
   }
 
   ALAZAR_CALL(AlazarStartCapture(board));
@@ -600,6 +600,7 @@ bool DAQ::startAcquisition(int buffersToAcquire, int indexOffset,
       m_buffer->produce(
           [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
             data->frameIdx = indexOffset + buffersCompleted - 1;
+            qDebug() << "Producer sent " << data->frameIdx;
 
             // Copy RF from Alazar buffer to our buffer
             {

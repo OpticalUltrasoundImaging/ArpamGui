@@ -40,7 +40,6 @@ steps:
 #include <QtLogging>
 #include <fmt/core.h>
 #include <string>
-#include <vector>
 
 namespace motor {
 
@@ -109,6 +108,7 @@ private:
   void *directionTaskHandle{};
 
   StepperDriver m_driver;
+  std::string failLocation;
 };
 
 } // namespace motor

@@ -50,11 +50,10 @@ bool MotorNI::prepareMove(double speed, double rotations) {
   m_driver.setSpeed(speed);
   m_driver.setRotations(rotations);
 
+  // Only recreate task and recompute squareWave if needed
   if (m_driver.needsUpdate() || taskHandle == nullptr) {
-    // Only recreate task and recompute squareWave if needed
-    const auto &squareWave = m_driver.squareWave();
-
     clearTask();
+    const auto &squareWave = m_driver.squareWave();
 
     // Create a Task and Virtual Channels
     DAQMX_CALL(DAQmxCreateTask("MoveMotor", &taskHandle));
@@ -101,10 +100,10 @@ bool MotorNI::prepareMove(double speed, double rotations) {
                                      nullptr, nullptr));
     }
   }
-
   return success;
 }
 
+// Must call prepareMove first
 bool MotorNI::startMoveAsync() {
   bool success = true;
   DAQMX_CALL(DAQmxStartTask(taskHandle));
@@ -114,11 +113,10 @@ bool MotorNI::startMoveAsync() {
 bool MotorNI::waitUntilMoveEnds() {
   bool success = true;
 
-  DAQMX_CALL(
-      DAQmxWaitUntilTaskDone(taskHandle, m_driver.approxMoveTimeSec() + 1));
-
   // Stop the Task.
   if (taskHandle != nullptr) {
+    DAQMX_CALL(
+        DAQmxWaitUntilTaskDone(taskHandle, m_driver.approxMoveTimeSec() + 1));
     DAQmxStopTask(taskHandle);
   }
 
@@ -148,16 +146,16 @@ bool MotorNI::moveBlocking(double speed, double rotations) {
 bool MotorNI::setDirection(Direction direction) {
   bool success{true};
 
-  if (directionTaskHandle == nullptr) {
-    // Create a Task and Virtual Channels
-    DAQMX_CALL(DAQmxCreateTask("SetMotorDirection", &directionTaskHandle));
+  // if (directionTaskHandle == nullptr) {
+  // Create a Task and Virtual Channels
+  DAQMX_CALL(DAQmxCreateTask("SetMotorDirection", &directionTaskHandle));
 
-    // Create DIO channel
-    if (success) {
-      DAQMX_CALL(DAQmxCreateDOChan(directionTaskHandle, "Dev1/port1", "",
-                                   DAQmx_Val_ChanForAllLines));
-    }
+  // Create DIO channel
+  if (success) {
+    DAQMX_CALL(DAQmxCreateDOChan(directionTaskHandle, "Dev1/port1", "",
+                                 DAQmx_Val_ChanForAllLines));
   }
+  // }
 
   if (success) {
     DAQMX_CALL(DAQmxStartTask(directionTaskHandle));
@@ -178,6 +176,8 @@ bool MotorNI::setDirection(Direction direction) {
   }
 
   DAQmxStopTask(directionTaskHandle);
+
+  DAQmxClearTask(directionTaskHandle);
 
   return success;
 }
