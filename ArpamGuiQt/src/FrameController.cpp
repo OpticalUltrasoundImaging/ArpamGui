@@ -359,13 +359,7 @@ void FrameController::updatePlayingState(bool playing) {
   } else {
     // Now pausing
     m_btnPlayPause->setText("Play");
-
     m_producerFile->stopProducing();
-
-    if (m_exportingAllFrames) {
-      // Update exporting all state
-      handleExportAllFramesBtnClick();
-    }
   }
 }
 
@@ -443,38 +437,20 @@ void FrameController::exportCurrentFrame(const fs::path &exportDir) {
 }
 
 void FrameController::handleExportAllFramesBtnClick() {
-  if (m_exportingAllFrames) {
+  if (m_reconWorker->exportingAllFrames()) {
     // Currently exporting. Abort and restore
     updatePlayingState(false);
-    m_exportingAllFrames = false;
-
     m_reconWorker->stopExportingFrames();
 
-    m_btnExportAllFrames->setText("Export All Frames");
-    m_actExportAllFrames->setText("Export All Frames");
+    m_btnExportAllFrames->setText("Export all frames");
 
-    m_btnPlayPause->setEnabled(true);
-    m_btnExportFrame->setEnabled(true);
-    m_actPlayPause->setEnabled(true);
-    m_actPrevFrame->setEnabled(true);
-    m_actNextFrame->setEnabled(true);
-    m_actExportFrame->setEnabled(true);
   } else {
-    m_btnPlayPause->setEnabled(false);
-    m_btnExportFrame->setEnabled(false);
-    m_actPlayPause->setEnabled(false);
-    m_actPrevFrame->setEnabled(false);
-    m_actNextFrame->setEnabled(false);
-    m_actExportFrame->setEnabled(false);
-
     // Not currently exporting. Start
     m_reconWorker->shouldExportFrames(m_exportDir, &m_doc, m_exportSetting);
-    m_exportingAllFrames = true;
     fs::create_directories(m_exportDir);
+    m_btnExportAllFrames->setText("Stop export all");
 
+    emit sigFrameNumUpdated(0);
     updatePlayingState(true);
-
-    m_btnExportAllFrames->setText("Abort Export All");
-    m_actExportAllFrames->setText("Abort Export All");
   }
 }

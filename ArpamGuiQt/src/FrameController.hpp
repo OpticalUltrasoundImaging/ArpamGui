@@ -129,7 +129,6 @@ private:
 
   // States
   bool m_isPlaying{false};
-  bool m_exportingAllFrames{false};
   ExportSetting m_exportSetting;
   fs::path m_exportDir;        // Only used when exporting all
   fs::path m_exportDirDefault; // Desktop

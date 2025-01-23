@@ -38,6 +38,7 @@ public:
 
   // Signal the worker to stop exporting frames
   void stopExportingFrames() { m_exportAll = false; }
+  [[nodiscard]] bool exportingAllFrames() const { return m_exportAll; }
 
 signals:
   void imagesReady(std::shared_ptr<BScanData<ArpamFloat>> data);
