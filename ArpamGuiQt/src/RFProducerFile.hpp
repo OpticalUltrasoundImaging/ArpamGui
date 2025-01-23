@@ -50,6 +50,7 @@ private:
   std::mutex m_paramsMtx;
   // File loader
   uspam::io::BinfileLoader<uint16_t> m_loader;
+  int m_scansEachDirection{1};
 
   // Producing state
   std::atomic<bool> m_producing{false};
