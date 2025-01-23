@@ -43,11 +43,11 @@ public:
 
   // Must be called before acquisition.
   // Allocates resources and primes the board
-  [[nodiscard]] bool prepareAcquisition() noexcept;
+  [[nodiscard]] bool prepareAcquisition(int scansEachDirection = 1) noexcept;
 
   // Acquire `buffersToAcquire` buffers (BScans)
   [[nodiscard]] bool
-  acquire(int buffersToAcquire, int indexOffset = 0,
+  acquire(int buffersToAcquire, int indexOffset = 0, bool flip = false,
           const std::function<void()> &startCallback = {}) noexcept;
 
   // Clean up resources allocated by "prepareAcquisition"

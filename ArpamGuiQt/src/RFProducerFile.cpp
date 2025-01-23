@@ -2,12 +2,25 @@
 #include <QDebug>
 #include <QString>
 #include <QtLogging>
+#include <regex>
 
 void RFProducerFile::setBinfile(const fs::path &binfile) {
   try {
     // Init loader
     m_loader.open(binfile);
     emit maxFramesChanged(m_loader.size());
+
+    // Parse scansEachDirection
+    {
+      const auto stem = binfile.stem().string();
+      std::regex regex(R"rgx(_SED(\d+))rgx");
+      std::smatch match;
+      if (std::regex_search(stem, match, regex)) {
+        m_scansEachDirection = std::stoi(match[1].str());
+      } else {
+        m_scansEachDirection = 1;
+      }
+    }
 
     // Load first frame
     produceOne(0);
@@ -56,6 +69,9 @@ void RFProducerFile::reproduceOne() {
       m_loader.get<ArpamFloat>(data->rf);
       metrics.load_ms = timeit.get_ms();
     }
+
+    // Set flip
+    { data->flip = (data->frameIdx / m_scansEachDirection) % 2 == 1; }
   });
 };
 

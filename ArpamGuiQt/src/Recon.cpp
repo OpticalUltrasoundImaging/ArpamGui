@@ -77,7 +77,9 @@ void reconBScan(BScanData<ArpamFloat> &data,
   Recon
   */
   {
-    const bool flip = params.system.flip(data.frameIdx);
+    const bool flip = params.system.flipOnEven ? !data.flip : data.flip;
+
+    // const bool flip = params.system.flip(data.frameIdx);
     auto a2 = std::async(std::launch::async, procOne, std::ref(params.system),
                          std::ref(params.US), std::ref(data.US), flip, false);
     {

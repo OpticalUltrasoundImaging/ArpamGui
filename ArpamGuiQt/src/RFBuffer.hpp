@@ -67,6 +67,7 @@ template <typename T> struct BScanData_ {
 template <typename T> struct BScanData {
   // RF data
   arma::Mat<T> rf;
+  bool flip{};
 
   BScanData_<T> PA;
   BScanData_<T> US;

@@ -446,12 +446,14 @@ bool DAQ::initHardware() noexcept {
   return true;
 }
 
-bool DAQ::prepareAcquisition() noexcept {
+bool DAQ::prepareAcquisition(int scansEachDirection) noexcept {
   m_errMsg.clear();
 
   // Open file pointer
   if (m_saveData) {
-    const auto fname = "ARPAM" + datetime::datetimeFormat("%H%M%S") + ".bin";
+    const auto fname =
+        fmt::format("ARPAM{}_SED{}.bin", datetime::datetimeFormat("%H%M%S"),
+                    scansEachDirection);
     m_lastBinfile = m_savedir / fname;
     m_fs = std::fstream(m_lastBinfile, std::ios::out | std::ios::binary);
 
@@ -509,7 +511,7 @@ bool DAQ::prepareAcquisition() noexcept {
   return success;
 }
 
-bool DAQ::acquire(int buffersToAcquire, int indexOffset,
+bool DAQ::acquire(int buffersToAcquire, int indexOffset, bool flip,
                   const std::function<void()> &startCallback) noexcept {
   shouldStopAcquiring = false;
   acquiringData = true;
@@ -600,6 +602,7 @@ bool DAQ::acquire(int buffersToAcquire, int indexOffset,
       m_buffer->produce(
           [&, this](std::shared_ptr<BScanData<ArpamFloat>> &data) {
             data->frameIdx = indexOffset + buffersCompleted - 1;
+            data->flip = flip;
             qDebug() << "Producer sent " << data->frameIdx;
 
             // Copy RF from Alazar buffer to our buffer

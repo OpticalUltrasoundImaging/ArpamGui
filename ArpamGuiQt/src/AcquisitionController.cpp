@@ -29,7 +29,7 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
   // Call the method directly to make sure sequential
   daqSuccess = m_daq.initHardware();
   if (daqSuccess) {
-    daqSuccess = m_daq.prepareAcquisition();
+    daqSuccess = m_daq.prepareAcquisition(params.scansEachDirection);
   }
 
   /*
@@ -69,8 +69,8 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
           break;
         }
 
-        daqSuccess =
-            m_daq.acquire(params.scansEachDirection, currIdx, motorMoveAsyncCB);
+        daqSuccess = m_daq.acquire(params.scansEachDirection, currIdx, false,
+                                   motorMoveAsyncCB);
         if (!motorSuccess) {
           additionalMotorMessage = "first motorMoveAsyncCB failed.";
           break;
@@ -93,7 +93,7 @@ void AcquisitionControllerObj::startAcquisitionLoop(AcquisitionParams params) {
         }
 
         if (daqSuccess) {
-          daqSuccess = m_daq.acquire(params.scansEachDirection, currIdx,
+          daqSuccess = m_daq.acquire(params.scansEachDirection, currIdx, true,
                                      motorMoveAsyncCB);
         } else {
           // Make sure motor turns back even if DAQ failed.
@@ -273,7 +273,7 @@ AcquisitionController::AcquisitionController(
       acqGrid->addWidget(m_sbScansEachDirection, 1, 1);
 
       m_sbScansEachDirection->setMinimum(1);
-      m_sbScansEachDirection->setMaximum(10);
+      m_sbScansEachDirection->setMaximum(25);
       m_sbScansEachDirection->setSingleStep(1);
 
       m_sbScansEachDirection->setValue(m_acqParams.scansEachDirection);
