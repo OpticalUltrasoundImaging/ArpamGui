@@ -487,7 +487,7 @@ bool DAQ::prepareAcquisition(int scansEachDirection) noexcept {
 
   // Free all memory allocated
   for (auto &buf : buffers) {
-    if (buf.size() >= 0) {
+    if (buf.size() > 0) {
       AlazarFreeBufferU16(board, buf.data());
     }
   }
@@ -568,7 +568,7 @@ bool DAQ::acquire(int buffersToAcquire, int indexOffset, bool flip,
     auto &buf = buffers[bufferIdx];
     const auto bytesPerBuffer = buf.size() * sizeof(uint16_t);
 
-    auto ret = AlazarWaitAsyncBufferComplete(board, buf.data(), timeout_ms);
+    ret = AlazarWaitAsyncBufferComplete(board, buf.data(), timeout_ms);
 
     success = false;
     switch (ret) {
