@@ -9,6 +9,7 @@
 #include <armadillo>
 #include <cassert>
 #include <cmath>
+#include <fftconv/aligned_vector.hpp>
 #include <fftconv/fftconv.hpp>
 #include <fftconv/hilbert.hpp>
 #include <opencv2/core/types.hpp>
@@ -123,7 +124,7 @@ void filterAndEnvelope(const arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
 
   const cv::Range range(0, static_cast<int>(rfBeamformed.n_cols));
   cv::parallel_for_(range, [&](const cv::Range &range) {
-    std::vector<T> filterBuffer(N);
+    fftconv::AlignedVector<T> filterBuffer(N);
     constexpr T mV_to_V = 1.0 / 1000;
     const T noiseFloor_V = params.noiseFloor_mV * mV_to_V;
 
