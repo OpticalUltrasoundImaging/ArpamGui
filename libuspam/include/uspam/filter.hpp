@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <armadillo>
 #include <array>
 #include <concepts>
@@ -8,8 +9,10 @@
 #include <kfr/dsp/iir_design.hpp>
 #include <kfr/kfr.h>
 #include <opencv2/opencv.hpp>
+#include <ranges>
 #include <span>
 #include <uspam/signal.hpp>
+
 
 namespace uspam {
 
@@ -48,6 +51,12 @@ public:
 
   void forward(std::span<const T> input, std::span<T> output) const override {
     fftconv::oaconvolve_fftw<T, fftconv::Same>(input, kernel, output);
+
+    // Clear invalid regions
+    const auto invalidSize = kernel.size() / 2;
+    std::ranges::fill(output.subspan(0, invalidSize), 0);
+    std::ranges::fill(output.subspan(output.size() - invalidSize, invalidSize),
+                      0);
   }
 
 private:
