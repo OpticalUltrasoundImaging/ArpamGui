@@ -134,6 +134,8 @@ void BScanData<T>::exportToFile(
   auto aCrops = std::async(
       std::launch::async, &BScanData<T>::exportAnnotatedCrops, this,
       directory / "roi", std::ref(annotations), std::ref(exportSetting));
+  // exportAnnotatedCrops(directory / "roi", std::ref(annotations),
+  //                      std::ref(exportSetting));
 
   // Save PA and US buffers/images
   auto aPA = std::async(std::launch::async, &BScanData_<T>::saveBScanData, &PA,
@@ -221,14 +223,20 @@ void BScanData<T>::exportAnnotatedCrops(
       const auto arc = anno.arc();
 
       // startAngle starts at 90 degrees
-      const auto startAngle = -arc.startAngle + 90;
-      const auto spanAngle = -arc.spanAngle;
+      auto startAngle = -arc.startAngle + 90;
+      auto spanAngle = -arc.spanAngle;
+
+      if (spanAngle < 0) {
+        spanAngle = -spanAngle;
+        startAngle = startAngle - spanAngle;
+      }
+
       const auto n_cols = this->US.rfLog.n_cols;
       const auto angle2rect = [n_cols](const double angle) {
         return static_cast<int>(std::round(angle / 360.0 * n_cols));
       };
       auto startCol = angle2rect(startAngle);
-      auto spanCol = angle2rect(spanAngle);
+      const auto spanCol = angle2rect(spanAngle);
 
       if (startCol < 0) {
         startCol = startCol + n_cols;
