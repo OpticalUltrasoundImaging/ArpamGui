@@ -140,6 +140,9 @@ void filterAndEnvelope(const arma::Mat<T> &rfBeamformed, arma::Mat<T> &rfEnv,
       fftconv::hilbert<T>(filterBuffer, envCol);
       uspam::recon::logCompress<T, Tlog>(envCol, logCol, noiseFloor_V,
                                          params.desiredDynamicRange);
+
+      constexpr size_t numArtifactPoints = 50;
+      std::fill(logCol.begin(), logCol.begin() + numArtifactPoints, 0);
     }
   });
 }
