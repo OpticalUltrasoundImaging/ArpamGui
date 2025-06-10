@@ -401,7 +401,7 @@ ReconParamsController::ReconParamsController(QWidget *parent)
                                {0.F, 1.F}, 0.01F);
 
       makeLabeledSpinbox(layout, row++, "Truncate", help_Truncate, " pts",
-                         p.truncate, {0, 2000});
+                         p.truncate, {0, 3000});
 
       makeLabeledDoubleSpinbox(layout, row++, "Noise floor", help_NoiseFloor,
                                " mV", p.noiseFloor_mV, {0.0F, 60.0F}, 1.0F);
