@@ -2,8 +2,12 @@
 
 Control, data acquisition, real-time display, image processing, parameter optimization, and image annotation, all-in-one GUI for an acoustic resolution photoacoustic microscopy (ARPAM) coregistered with ultrasound endoscopy system in the Optical and Ultrasound Imaging Lab.
 
-Data acquisition: AlazarTech SDK
-GUI framework: Qt
+- Data acquisition: AlazarTech SDK
+- GUI framework: Qt
+
+| Engineer View                   | Physician View                   |
+| ------------------------------- | -------------------------------- |
+| ![](./media/engineer_view.webp) | ![](./media/physician_view.webp) |
 
 ## Building
 
