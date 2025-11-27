@@ -2,48 +2,55 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "arpam-gui",
   "version": "0.1",
+  "builtin-baseline": "ae8fa5ae5e6162a88e412618245809ed2aa579d9",
   "dependencies": [
     "armadillo",
     "fftconv",
+    {
+      "name": "fftw3",
+      "features": [
+        "avx2",
+        "threads"
+      ],
+      "platform": "x64"
+    },
+    {
+      "name": "fftw3",
+      "features": [
+        "threads"
+      ],
+      "platform": "!x64"
+    },
     "fmt",
     "gtest",
     "kfr",
-    "qcustomplot",
-    "qtbase",
-    "rapidjson",
-    "tbb",
     {
       "name": "opencv4",
-      "platform": "x64",
       "features": [
         "tbb",
         "tiff",
         "world"
-      ]
+      ],
+      "platform": "x64"
     },
     {
       "name": "opencv4",
-      "platform": "!x64",
       "features": [
         "tiff",
         "world"
+      ],
+      "platform": "!x64"
+    },
+    "qcustomplot",
+    {
+      "name": "qtbase",
+      "default-features": false,
+      "features": [
+        "gui",
+        "widgets"
       ]
     },
-    {
-      "name": "fftw3",
-      "platform": "x64",
-      "features": [
-        "avx2",
-        "threads"
-      ]
-    },
-    {
-      "name": "fftw3",
-      "platform": "!x64",
-      "features": [
-        "threads"
-      ]
-    }
-  ],
-  "builtin-baseline": "ae8fa5ae5e6162a88e412618245809ed2aa579d9"
+    "rapidjson",
+    "tbb"
+  ]
 }
