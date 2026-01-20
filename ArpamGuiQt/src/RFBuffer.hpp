@@ -103,7 +103,7 @@ Thread safe buffer for the producer/consumer pattern
 
 Inspired by https://andrew128.github.io/ProducerConsumer/
 */
-template <typename T> class RFBuffer {
+template <typename T, size_t Capacity> class RFBuffer {
 public:
   RFBuffer() {
     for (auto &sptr : m_buffer) {
@@ -168,10 +168,10 @@ public:
   }
 
 private:
-  std::array<std::shared_ptr<BScanData<T>>, 10> m_buffer{};
-  int buffer_size{};
-  int m_rpos{}; // read idx where vars are removed from buffer (consumed)
-  int m_wpos{}; // write idx where vars are put inside of buffer (produced)
+  std::array<std::shared_ptr<BScanData<T>>, Capacity> m_buffer{};
+  size_t buffer_size{};
+  size_t m_rpos{}; // read idx where vars are removed from buffer (consumed)
+  size_t m_wpos{}; // write idx where vars are put inside of buffer (produced)
 
   // Concurrency
   std::mutex m_mtx;
