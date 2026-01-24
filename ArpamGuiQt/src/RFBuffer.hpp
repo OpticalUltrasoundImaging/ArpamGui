@@ -103,7 +103,7 @@ Thread safe buffer for the producer/consumer pattern
 
 Inspired by https://andrew128.github.io/ProducerConsumer/
 */
-template <typename T, size_t Capacity> class RFBuffer {
+template <typename T, size_t Capacity = 8> class RFBuffer {
 public:
   RFBuffer() {
     for (auto &sptr : m_buffer) {
