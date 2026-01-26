@@ -124,7 +124,9 @@ void BScanData<T>::exportToFile(
 
   // Save frame index
   // Touch file to create an empty txt file with the frame idx as title
-  { std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx)); }
+  {
+    std::ofstream fs(directory / fmt::format("frame_{}.txt", frameIdx));
+  }
 
   /*
   Exported crops from annotation
@@ -157,7 +159,7 @@ void BScanData<T>::exportToFile(
   // Save radial images
   if (exportSetting.saveRadialImages) {
     // Save combined image
-    auto pausPath = (directory / "PAUSradial.tiff").string();
+    const auto pausPath = (directory / "PAUSradial.tiff").string();
     if (!cv::imwrite(pausPath, PAUSradial)) {
       std::cerr << "Failed to save " << pausPath << "\n";
     }
@@ -188,6 +190,7 @@ void BScanData<T>::exportAnnotatedCrops(
 
   for (const auto &anno : annotations) {
     switch (anno.type) {
+
     case annotation::Annotation::Type::Rect: {
       const auto qrect = anno.rect().toRect();
       const auto rect = cvRect(qrect);
@@ -216,9 +219,8 @@ void BScanData<T>::exportAnnotatedCrops(
         const auto name = fmt::format("USradial-{}", annoSuffix);
         croppedQImages.emplace_back(cropped, name);
       }
-    }
+    } break;
 
-    break;
     case annotation::Annotation::Fan: {
       const auto arc = anno.arc();
 
@@ -273,9 +275,11 @@ void BScanData<T>::exportAnnotatedCrops(
       exportCropped(PA.rfLog, fmt::format("PA-{}", annoSuffix));
 
     } break;
+
     case annotation::Annotation::Polygon:
     case annotation::Annotation::Line:
     case annotation::Annotation::Size:
+      std::cerr << " Ignoring export of unsupported anntation\n";
       break;
     }
   }

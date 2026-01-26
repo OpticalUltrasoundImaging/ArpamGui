@@ -103,84 +103,78 @@ Thread safe buffer for the producer/consumer pattern
 
 Inspired by https://andrew128.github.io/ProducerConsumer/
 */
-template <typename T> class RFBuffer {
+template <typename T, size_t Capacity = 8> class RFBuffer {
 public:
   RFBuffer() {
-    for (int i = 0; i < buffer.size(); ++i) {
-      buffer[i] = std::make_shared<BScanData<T>>();
+    for (auto &sptr : m_buffer) {
+      sptr = std::make_shared<BScanData<T>>();
     }
   }
 
   // The exit condition for a consumer is receiving a nullptr
   void exit() {
-    std::unique_lock<std::mutex> unique_lock(mtx);
+    std::unique_lock<std::mutex> unique_lock(m_mtx);
 
-    not_full.wait(unique_lock, [this] { return buffer_size != buffer.size(); });
+    m_not_full.wait(unique_lock,
+                    [this] { return buffer_size != m_buffer.size(); });
 
-    buffer[right] = nullptr;
+    m_buffer[m_wpos] = nullptr;
 
     // Update fields
-    right = (right + 1) % buffer.size();
+    m_wpos = (m_wpos + 1) % m_buffer.size();
     buffer_size++;
 
-    // Unlock unique lock
     unique_lock.unlock();
     // Notify one thread that buffer isn't empty
-    not_empty.notify_one();
+    m_not_empty.notify_one();
   }
 
   template <typename Func> void produce(const Func &producer_callback) {
-    std::unique_lock<std::mutex> unique_lock(mtx);
+    std::unique_lock<std::mutex> unique_lock(m_mtx);
 
     // Wait if the buffer is full
-    not_full.wait(unique_lock, [this] { return buffer_size != buffer.size(); });
+    m_not_full.wait(unique_lock,
+                    [this] { return buffer_size != m_buffer.size(); });
 
-    // Add input to buffer
-    // buffer[right] = num;
-    auto &currData = buffer[right];
-    { producer_callback(currData); }
+    // Add to buffer
+    producer_callback(m_buffer[m_wpos]);
 
     // Update fields
-    right = (right + 1) % buffer.size();
+    m_wpos = (m_wpos + 1) % m_buffer.size();
     buffer_size++;
 
-    // Unlock unique lock
     unique_lock.unlock();
     // Notify one thread that buffer isn't empty
-    not_empty.notify_one();
+    m_not_empty.notify_one();
   }
 
   template <typename Func> void consume(const Func &consumer_callback) {
     // Acquire
-    std::unique_lock<std::mutex> unique_lock(mtx);
+    std::unique_lock<std::mutex> unique_lock(m_mtx);
 
     // Wait if buffer is empty
-    not_empty.wait(unique_lock, [this]() { return buffer_size != 0; });
+    m_not_empty.wait(unique_lock, [this]() { return buffer_size != 0; });
 
     // Get from buffer
-    {
-      auto &result = buffer[left];
-      consumer_callback(result);
-    }
+    consumer_callback(m_buffer[m_rpos]);
 
     // Update appropriate fields
-    left = (left + 1) % buffer.size();
+    m_rpos = (m_rpos + 1) % m_buffer.size();
     buffer_size--;
 
-    // Unlock unique lock
     unique_lock.unlock();
     // Notify one thread that the buffer isn't full
-    not_full.notify_one();
+    m_not_full.notify_one();
   }
 
 private:
-  std::array<std::shared_ptr<BScanData<T>>, 10> buffer{};
-  int buffer_size{0};
-  int left{0};  // index where vars are put inside of buffer (produced)
-  int right{0}; // idx where vars are removed from buffer (consumed)
+  std::array<std::shared_ptr<BScanData<T>>, Capacity> m_buffer{};
+  size_t buffer_size{};
+  size_t m_rpos{}; // read idx where vars are removed from buffer (consumed)
+  size_t m_wpos{}; // write idx where vars are put inside of buffer (produced)
 
   // Concurrency
-  std::mutex mtx;
-  std::condition_variable not_empty;
-  std::condition_variable not_full;
+  std::mutex m_mtx;
+  std::condition_variable m_not_empty;
+  std::condition_variable m_not_full;
 };
