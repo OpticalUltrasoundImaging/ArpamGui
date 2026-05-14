@@ -10,7 +10,10 @@
       "name": "base",
       "hidden": true,
       "binaryDir": "build/${presetName}",
-      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "$env{QT_ROOT_DIR}"
+      }
     },
     {
       "name": "win64-cl-base",

@@ -22,6 +22,8 @@ project(ARPAM_gui
 
 enable_testing()
 
+add_subdirectory(third_party/qcustomplot)
+
 # Build libarpam
 add_subdirectory(libuspam)
 
