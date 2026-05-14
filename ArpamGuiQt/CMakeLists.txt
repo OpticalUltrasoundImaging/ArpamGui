@@ -2,25 +2,9 @@ project(ArpamGuiQt VERSION 1.0.0 LANGUAGES CXX)
 
 set(EXE_NAME ArpamGuiQt)
 
-find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Gui PrintSupport)
 qt_standard_project_setup()
 set(CMAKE_AUTOMOC ON)
-
-# Manually include QCustomPlot
-find_path(QCUSTOMPLOT_INCLUDE_DIR qcustomplot.h PATH_SUFFIXES qcustomplot)
-if (WIN32)
-    find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot2)
-    find_library(QCUSTOMPLOT_LIBRARY_DEBUG NAMES qcustomplotd2)
-    set(QCUSTOMPLOT_LIBRARY "$<IF:$<CONFIG:Debug>,${QCUSTOMPLOT_LIBRARY_DEBUG},${QCUSTOMPLOT_LIBRARY}>")
-else ()
-    find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot)
-endif()
-
-if (QCUSTOMPLOT_INCLUDE_DIR AND QCUSTOMPLOT_LIBRARY)
-    message(STATUS "Found QCustomPlot: ${QCUSTOMPLOT_LIBRARY}")
-else()
-    message(FATAL_ERROR "Could not find QCustomPlot")
-endif()
 
 ### Icons
 # https://doc.qt.io/qt-6/appicon.html
@@ -44,9 +28,6 @@ add_definitions(-DARPAM_COMPILE_TIME="${CURRENT_TIME}")
 # Compiler name and version
 add_definitions(-DARPAM_COMPILER_NAME="${CMAKE_CXX_COMPILER_ID}")
 add_definitions(-DARPAM_COMPILER_VERSION="${CMAKE_CXX_COMPILER_VERSION}")
-
-# Use QCustomPlot as a shared library
-add_definitions(-DQCUSTOMPLOT_USE_LIBRARY)
 
 ### Source files
 qt_add_executable(${EXE_NAME}
@@ -126,10 +107,7 @@ qt_add_resources(${EXE_NAME} styles
     resources/styles/styles.qss
 )
 
-target_include_directories(${EXE_NAME} PRIVATE 
-    src
-    ${QCUSTOMPLOT_INCLUDE_DIR}
-)
+target_include_directories(${EXE_NAME} PRIVATE src)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(FFTW3 CONFIG REQUIRED)
@@ -139,9 +117,9 @@ find_package(KFR CONFIG REQUIRED)
 target_link_libraries(${EXE_NAME} PRIVATE
     libuspam
     fmt::fmt
-    Qt::Widgets
-    Qt::Gui
-    ${QCUSTOMPLOT_LIBRARY}
+    Qt6::Widgets
+    Qt6::Gui
+    qcustomplot
     FFTW3::fftw3
     FFTW3::fftw3f
     kfr
@@ -192,12 +170,20 @@ if (WIN32)
         message(STATUS "ArpamGuiQt will build with NI support")
         message(STATUS "NI_DAQMX_INCLUDE_DIR ${NI_DAQMX_INCLUDE_DIR}")
 
-        set(NI_DAQMX_LIBS 
+        set(_ni_candidate_libs
             ${NI_DAQMX_LIB_DIR}/NIDAQmx.lib
             ${NI_DAQMX_LIB_DIR}/nip2p.lib
             ${NI_DAQMX_LIB_DIR}/nisyscfg.lib
             ${NI_DAQMX_LIB_DIR}/nivision.lib
         )
+        set(NI_DAQMX_LIBS "")
+        foreach(_lib ${_ni_candidate_libs})
+            if (EXISTS "${_lib}")
+                list(APPEND NI_DAQMX_LIBS "${_lib}")
+            else()
+                message(STATUS "NI-DAQmx: skipping missing lib ${_lib}")
+            endif()
+        endforeach()
 
         target_compile_definitions(${EXE_NAME} PRIVATE ARPAM_HAS_NI)
         target_include_directories(${EXE_NAME} PRIVATE ${NI_DAQMX_INCLUDE_DIR})
@@ -219,14 +205,13 @@ if (WIN32)
         WIN32_EXECUTABLE ON
     )
 
-    # Determine the path to windeployqt
-    set(WINDEPLOYQT_PATH "${Qt6_DIR}/../../tools/Qt6/bin")
-    set(WINDEPLOYQT_EXE "${WINDEPLOYQT_PATH}/windeployqt.exe")
-    set(WINDEPLOYQT_DEBUG_EXE "${WINDEPLOYQT_PATH}/windeployqt.debug.bat")
+    # Locate windeployqt alongside qmake (works for both vcpkg and aqtinstall Qt)
+    get_target_property(_qt_qmake Qt6::qmake IMPORTED_LOCATION)
+    cmake_path(GET _qt_qmake PARENT_PATH _qt_bin_dir)
+    find_program(WINDEPLOYQT windeployqt HINTS "${_qt_bin_dir}" REQUIRED)
 
-    # Add post build command to call windeployqt
     add_custom_command(TARGET ${EXE_NAME} POST_BUILD
-        COMMAND "$<IF:$<CONFIG:Debug>,${WINDEPLOYQT_DEBUG_EXE},${WINDEPLOYQT_EXE}>"
+        COMMAND "${WINDEPLOYQT}"
         --verbose 1
         "$<TARGET_FILE:${EXE_NAME}>"
     )

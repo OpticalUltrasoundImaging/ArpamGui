@@ -33,6 +33,13 @@ jobs:
         with:
           submodules: true
 
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.9.2'
+          arch: 'win64_msvc2022_64'
+          cache: true
+
       - name: Setup VCPKG
         shell: pwsh
         run: |
@@ -100,6 +107,13 @@ jobs:
         # ICU requires Homebrew autoconf, autoconf-archive, and automake
         # glibtoolize requires libtool
         run: brew install autoconf autoconf-archive automake libtool
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.9.2'
+          arch: 'clang_64'
+          cache: true
 
       - name: Setup VCPKG
         shell: bash
